@@ -74,8 +74,8 @@ declare module 'exomodel' {
 	    readonly origin: string;
 	    readonly defaultValue: any;
 	    getPath(): string;
-	    canSetValue(obj: Entity, val: any): any;
-	    value(obj: Entity, val?: any, additionalArgs?: any): any;
+		canSetValue(obj: Entity, val: any): any;
+	    value(obj?: Entity, val?: any, additionalArgs?: any): void;
 	    rootedPath(type: Type): string;
 	}
 	export interface PropertyConstructor {

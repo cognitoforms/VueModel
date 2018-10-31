@@ -5,7 +5,7 @@ import { VueExoModel$makeEntitiesVueObservable, EntityObserverDependencies } fro
 import { Vue$isReserved } from "./vue-helpers";
 
 export interface VuePluginDependencies {
-    entitiesAreVueObservable?: boolean;
+    entitiesAreVueObservable: boolean;
     ExoModel$Model: ModelConstructor;
     ExoModel$Entity: EntityConstructor;
     ExoModel$Property: PropertyConstructor;

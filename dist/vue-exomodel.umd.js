@@ -1,5 +1,5 @@
 /*!
- * VueExoModel.js v0.0.2
+ * VueExoModel.js v0.0.3
  * (c) 2018 Cognito LLC
  * Released under the MIT License.
  */
@@ -252,8 +252,102 @@
         });
     }
 
+    var FieldAdapter = /** @class */ (function () {
+        // TODO: Support format options
+        // private _format: string;
+        function FieldAdapter(entity, source) {
+            // Public read-only properties
+            Object.defineProperty(this, "entity", { enumerable: true, value: entity });
+            Object.defineProperty(this, "source", { enumerable: true, value: source });
+        }
+        Object.defineProperty(FieldAdapter.prototype, "property", {
+            get: function () {
+                // TODO: Support multi-hop source
+                return this.entity.meta.type.property(this.source);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(FieldAdapter.prototype, "label", {
+            get: function () {
+                return this.property.label;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(FieldAdapter.prototype, "helptext", {
+            get: function () {
+                return this.property.helptext;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(FieldAdapter.prototype, "value", {
+            get: function () {
+                var value = this.property.value(this.entity);
+                return value;
+            },
+            set: function (value) {
+                this.property.value(this.entity, value);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(FieldAdapter.prototype, "displayValue", {
+            get: function () {
+                var _this = this;
+                var value = this.property.value(this.entity);
+                if (this.property.format != null) {
+                    return this.property.format.convert(value);
+                }
+                var displayValue;
+                if (value === null || value === undefined) {
+                    displayValue = "";
+                }
+                else if (this.property.format != null) {
+                    // Use a markup or property format if available
+                    if (Array.isArray(value)) {
+                        var array = value;
+                        displayValue = array.map(function (item) { return _this.property.format.convert(item); });
+                    }
+                    else {
+                        displayValue = this.property.format.convert(value);
+                    }
+                }
+                else if (Array.isArray(value)) {
+                    // If no format exists, then fall back to toString
+                    var array = value;
+                    displayValue = array.map(function (item) {
+                        if (value === null || value === undefined) {
+                            return "";
+                        }
+                        else {
+                            return item.toString();
+                        }
+                    });
+                }
+                else {
+                    displayValue = value.toString();
+                }
+                return Array.isArray(displayValue) ? displayValue.join(", ") : displayValue;
+            },
+            set: function (text) {
+                if (this.property.format != null) {
+                    var value = this.property.format.convertBack(text);
+                    this.property.value(this.entity, value);
+                }
+                else {
+                    this.property.value(this.entity, text);
+                }
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return FieldAdapter;
+    }());
+
     var VueExoModel$Dependencies = {
-        entitiesAreObservable: false,
+        entitiesAreVueObservable: false,
         ExoModel$Model: exomodel.Model,
         ExoModel$Entity: exomodel.Entity,
         ExoModel$Property: exomodel.Property,
@@ -265,6 +359,7 @@
     }
 
     exports.install = install;
+    exports.FieldAdapter = FieldAdapter;
 
     Object.defineProperty(exports, '__esModule', { value: true });
 
