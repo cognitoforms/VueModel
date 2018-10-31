@@ -215,7 +215,7 @@ export function VueExoModel$makeEntitiesVueObservable(model: Model, dependencies
     if (entitiesAreVueObservable) {
         VueExoModel$ensureModelEventsRegistered(model, dependencies);
         debug("END: VueExoModel$ensureEntitiesAreVueObservable");
-        return;
+        return dependencies;
     }
 
     VueExoModel$defineEntityObserver(dependencies);

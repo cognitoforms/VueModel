@@ -1,5 +1,5 @@
 /*!
- * VueExoModel.js v0.0.3
+ * VueExoModel.js v0.0.4
  * (c) 2018 Cognito LLC
  * Released under the MIT License.
  */
@@ -152,7 +152,7 @@ function VueExoModel$makeEntitiesVueObservable(model, dependencies) {
     var entitiesAreVueObservable = dependencies.entitiesAreVueObservable;
     if (entitiesAreVueObservable) {
         VueExoModel$ensureModelEventsRegistered(model, dependencies);
-        return;
+        return dependencies;
     }
     VueExoModel$defineEntityObserver(dependencies);
     VueExoModel$defineObserveEntity(dependencies);
@@ -249,15 +249,15 @@ function VueExoModel$installPlugin(Vue, dependencies) {
 var FieldAdapter = /** @class */ (function () {
     // TODO: Support format options
     // private _format: string;
-    function FieldAdapter(entity, source) {
+    function FieldAdapter(entity, path) {
         // Public read-only properties
         Object.defineProperty(this, "entity", { enumerable: true, value: entity });
-        Object.defineProperty(this, "source", { enumerable: true, value: source });
+        Object.defineProperty(this, "path", { enumerable: true, value: path });
     }
     Object.defineProperty(FieldAdapter.prototype, "property", {
         get: function () {
-            // TODO: Support multi-hop source
-            return this.entity.meta.type.property(this.source);
+            // TODO: Support multi-hop path
+            return this.entity.meta.type.property(this.path);
         },
         enumerable: true,
         configurable: true

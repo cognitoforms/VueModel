@@ -5,20 +5,20 @@ export class FieldAdapter<TEntity extends Entity, TValue> {
     // Public read-only properties: aspects of the field adapter that cannot be
     // changed without fundamentally changing what the field adapter is
     readonly entity: TEntity;
-    readonly source: string;
+    readonly path: string;
 
     // TODO: Support format options
     // private _format: string;
 
-    constructor(entity: TEntity, source: string) {
+    constructor(entity: TEntity, path: string) {
         // Public read-only properties
         Object.defineProperty(this, "entity", { enumerable: true, value: entity });
-        Object.defineProperty(this, "source", { enumerable: true, value: source });
+        Object.defineProperty(this, "path", { enumerable: true, value: path });
     }
 
     get property(): Property {
-        // TODO: Support multi-hop source
-        return this.entity.meta.type.property(this.source);
+        // TODO: Support multi-hop path
+        return this.entity.meta.type.property(this.path);
     }
 
     get label(): string {
