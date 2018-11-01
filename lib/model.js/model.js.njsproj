@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{84111aa3-88c8-479d-81ee-308d0b9f5225}</ProjectGuid>
+    <ProjectGuid>{c48dd057-92c0-497a-9481-488102315228}</ProjectGuid>
     <ProjectHome>.</ProjectHome>
     <ProjectView>ShowAllFiles</ProjectView>
     <StartupFile />
@@ -17,76 +17,43 @@
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">14.0</VisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
     <LastActiveSolutionConfig>Debug|Any CPU</LastActiveSolutionConfig>
-    <StartWebBrowser>True</StartWebBrowser>
-    <SaveNodeJsSettingsInProjectFile>True</SaveNodeJsSettingsInProjectFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
   <ItemGroup>
     <Content Include=".gitignore" />
-    <Content Include=".vscode\settings.json" />
-    <Content Include="lib\model.js\.gitignore" />
-    <Content Include="lib\model.js\.vscode\settings.json" />
-    <Content Include="lib\model.js\LICENSE" />
-    <Content Include="lib\model.js\package-lock.json" />
-    <Content Include="lib\model.js\package.json" />
-    <Content Include="lib\model.js\README.md" />
-    <Content Include="lib\model.js\tsconfig.json" />
     <Content Include="LICENSE" />
     <Content Include="package-lock.json" />
     <Content Include="package.json" />
     <Content Include="tsconfig.json" />
-    <Content Include="tslint.json" />
     <Content Include="README.md" />
-    <TypeScriptCompile Include="dist\vuemodel.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\ref\ste-core.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\ref\ste-events.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\entity.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\format.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\helpers.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\internals.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\main.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\model.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\object-meta.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\observable-list.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\property.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\type.ts" />
-    <TypeScriptCompile Include="out\vuemodel.d.ts" />
-    <TypeScriptCompile Include="ref\model.d.ts" />
+    <TypeScriptCompile Include="out\model.d.ts" />
     <TypeScriptCompile Include="ref\ste-core.d.ts" />
     <TypeScriptCompile Include="ref\ste-events.d.ts" />
-    <TypeScriptCompile Include="ref\vue.d.ts" />
-    <TypeScriptCompile Include="src\entity-observer.ts" />
-    <TypeScriptCompile Include="src\field-adapter.ts" />
+    <TypeScriptCompile Include="src\entity.ts" />
+    <TypeScriptCompile Include="src\format.ts" />
     <TypeScriptCompile Include="src\helpers.ts" />
+    <TypeScriptCompile Include="src\internals.ts" />
     <TypeScriptCompile Include="src\main.ts" />
-    <TypeScriptCompile Include="src\vue-helpers.ts" />
-    <TypeScriptCompile Include="src\vue-model.ts" />
-    <TypeScriptCompile Include="src\vue-plugin.ts" />
+    <TypeScriptCompile Include="src\model.ts" />
+    <TypeScriptCompile Include="src\object-meta.ts" />
+    <TypeScriptCompile Include="src\observable-list.ts" />
+    <TypeScriptCompile Include="src\property.ts" />
+    <TypeScriptCompile Include="src\type.ts" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include=".vscode\" />
     <Folder Include="dist" />
-    <Folder Include="lib\" />
-    <Folder Include="lib\model.js\" />
-    <Folder Include="lib\model.js\.vscode\" />
-    <Folder Include="lib\model.js\dist\" />
-    <Folder Include="lib\model.js\ref\" />
-    <Folder Include="lib\model.js\src\" />
     <Folder Include="out" />
     <Folder Include="ref" />
     <Folder Include="src" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="dist\vuemodel.umd.js" />
-    <Compile Include="dist\vuemodel.umd.min.js" />
-    <Compile Include="lib\model.js\dist\model.cjs.js" />
-    <Compile Include="lib\model.js\dist\model.esm.js" />
-    <Compile Include="lib\model.js\dist\model.js" />
-    <Compile Include="lib\model.js\dist\model.min.js" />
-    <Compile Include="lib\model.js\dist\model.umd.js" />
-    <Compile Include="lib\model.js\dist\model.umd.min.js" />
-    <Compile Include="lib\model.js\rollup.config.js" />
+    <Compile Include="dist\model.cjs.js" />
+    <Compile Include="dist\model.esm.js" />
+    <Compile Include="dist\model.js" />
+    <Compile Include="dist\model.min.js" />
+    <Compile Include="dist\model.umd.js" />
+    <Compile Include="dist\model.umd.min.js" />
     <Compile Include="rollup.config.js" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />

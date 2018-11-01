@@ -1,17 +1,18 @@
 /// <reference path="../ref/vue.d.ts" />
-/// <reference path="../ref/model.d.ts" />
 
 import { ComponentConstructor } from "vue";
-import * as Model from "Model";
+import { Model, ModelConstructor } from "../lib/model.js/src/model";
+import { Entity, EntityConstructor } from "../lib/model.js/src/entity";
+import { Property, PropertyConstructor } from "../lib/model.js/src/property";
 import { VueModel$installPlugin } from "./vue-plugin";
 import { VueModel } from "./vue-model";
 import { FieldAdapter } from "./field-adapter";
 
 let VueModel$Dependencies = {
     entitiesAreVueObservable: false,
-    Model$Model: Model.Model as Model.ModelConstructor,
-    Model$Entity: Model.Entity as Model.EntityConstructor,
-    Model$Property: Model.Property as Model.PropertyConstructor,
+    Model$Model: Model as ModelConstructor,
+    Model$Entity: Entity as EntityConstructor,
+    Model$Property: Property as PropertyConstructor,
 };
 
 // TODO: Do we need to take `toggleObserving()` into account?

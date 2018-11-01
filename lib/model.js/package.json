@@ -1,11 +1,12 @@
 {
-  "version": "0.0.7",
-  "name": "vuemodel",
+  "version": "0.0.13",
+  "name": "model.js",
   "license": "MIT",
-  "main": "dist/vuemodel.cjs.js",
-  "module": "dist/vuemodel.esm.js",
-  "browser": "dist/vuemodel.umd.js",
-  "types": "dist/vuemodel.d.ts",
+  "main": "dist/model.cjs.js",
+  "module": "dist/model.esm.js",
+  "browser": "dist/model.umd.js",
+  "iife": "dist/model.js",
+  "types": "dist/model.d.ts",
   "private": true,
   "scripts": {
     "build": "rollup -c"
@@ -20,6 +21,6 @@
     "typescript": "^3.1.3"
   },
   "dependencies": {
-    "vue": "^2.5.17"
+    "ste-events": "^1.4.6"
   }
 }

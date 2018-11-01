@@ -1,4 +1,5 @@
-import { Entity, Property } from "Model";
+import { Entity } from "../lib/model.js/src/entity";
+import { Property } from "../lib/model.js/src/property";
 
 export class FieldAdapter<TEntity extends Entity, TValue> {
 

@@ -1,4 +1,7 @@
-import { Model, ModelConstructor, Entity, EntityConstructor, Type, Property, PropertyConstructor, ModelEntityRegisteredEventArgs, ModelPropertyAddedEventArgs, PropertyAccessEventArgs, PropertyChangeEventArgs } from "Model";
+import { Model, ModelConstructor, ModelEntityRegisteredEventArgs, ModelPropertyAddedEventArgs } from "../lib/model.js/src/model";
+import { Entity, EntityConstructor } from "../lib/model.js/src/entity";
+import { Type } from "../lib/model.js/src/type";
+import { Property, PropertyConstructor,   PropertyAccessEventArgs, PropertyChangeEventArgs } from "../lib/model.js/src/property";
 import { Observer, ObserverConstructor, DepConstructor, Dep } from "vue";
 import { debug, hasOwnProperty, getProp } from "./helpers";
 import { Vue$dependArray } from "./vue-helpers";

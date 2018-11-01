@@ -1,5 +1,7 @@
 import { ComponentConstructor, ObserverConstructor, DepConstructor, Component } from "vue";
-import { ModelConstructor, Entity, EntityConstructor, Property, PropertyConstructor } from "Model";
+import { ModelConstructor } from "../lib/model.js/src/model";
+import { Entity, EntityConstructor } from "../lib/model.js/src/entity";
+import { PropertyConstructor } from "../lib/model.js/src/property";
 import { debug, hasOwnProperty } from "./helpers";
 import { VueModel$makeEntitiesVueObservable, EntityObserverDependencies } from "./entity-observer";
 import { Vue$isReserved } from "./vue-helpers";
