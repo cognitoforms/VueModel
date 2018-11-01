@@ -1,3 +1,5 @@
+/// <reference path="ste-events.d.ts" />
+
 declare module 'Model' {
 	import { EventDispatcher, IEvent } from "ste-events";
 	export class ObjectMeta {

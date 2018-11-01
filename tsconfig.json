@@ -1,4 +1,7 @@
 {
+  "files": [
+    "./src/main.ts"
+  ],
   "compilerOptions": {
     "outDir": "./dist/",
     "sourceMap": true,
