@@ -31,8 +31,8 @@ function getMinFileName(fileName) {
 		throw new Error("Invalid file name '" + fileName + "'.");
 	}
 }
-const modelJsContent = fs.readFileSync(__dirname + "/lib/model.js/dist/model.js", { encoding: "utf8" });
-const modelJsMinContent = fs.readFileSync(__dirname + "/lib/model.js/dist/model.min.js", { encoding: "utf8" });
+const modelJsContent = fs.readFileSync(__dirname + "/../model.js/dist/model.js", { encoding: "utf8" });
+const modelJsMinContent = fs.readFileSync(__dirname + "/../model.js/dist/model.min.js", { encoding: "utf8" });
 
 export default [
 	// UMD (for browsers) build (development)

@@ -5,6 +5,9 @@
   "browser": "dist/vuemodel.umd.js",
   "types": "dist/vuemodel.d.ts",
   "private": true,
+  "scripts": {
+    "build": "rollup -c"
+  },
   "devDependencies": {
     "rollup": "^0.66.6",
     "rollup-plugin-commonjs": "^9.2.0",
