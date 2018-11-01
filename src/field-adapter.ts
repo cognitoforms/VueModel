@@ -1,4 +1,4 @@
-import { Entity, Property } from "exomodel";
+import { Entity, Property } from "model";
 
 export class FieldAdapter<TEntity extends Entity, TValue> {
 

@@ -1,6 +1,6 @@
-# Vue-ExoModel
+# VueModel
 
-A Vue plugin for ExoModel.
+A Vue plugin that provides a rich object model for Vue using model.js.
 
 ## License
 

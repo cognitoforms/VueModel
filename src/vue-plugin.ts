@@ -1,37 +1,37 @@
 import { ComponentConstructor, ObserverConstructor, DepConstructor, Component } from "vue";
-import { ModelConstructor, Entity, EntityConstructor, Property, PropertyConstructor } from "exomodel";
+import { ModelConstructor, Entity, EntityConstructor, Property, PropertyConstructor } from "model";
 import { debug, hasOwnProperty } from "./helpers";
-import { VueExoModel$makeEntitiesVueObservable, EntityObserverDependencies } from "./entity-observer";
+import { VueModel$makeEntitiesVueObservable, EntityObserverDependencies } from "./entity-observer";
 import { Vue$isReserved } from "./vue-helpers";
 
 export interface VuePluginDependencies {
     entitiesAreVueObservable: boolean;
-    ExoModel$Model: ModelConstructor;
-    ExoModel$Entity: EntityConstructor;
-    ExoModel$Property: PropertyConstructor;
+    Model$Model: ModelConstructor;
+    Model$Entity: EntityConstructor;
+    Model$Property: PropertyConstructor;
     Vue$Observer?: ObserverConstructor;
     Vue$Dep?: DepConstructor;
 }
 
-function VueExoModel$proxyEntityPropertyOntoComponentInstance(vm: Component, rootKey: string, property: Property) {
-    debug("BEGIN: VueExoModel$proxyEntityPropertyOntoComponentInstance");
+function VueModel$proxyEntityPropertyOntoComponentInstance(vm: Component, rootKey: string, property: Property) {
+    debug("BEGIN: VueModel$proxyEntityPropertyOntoComponentInstance");
 
     Object.defineProperty(vm, property.name, {
         configurable: true,
         enumerable: true,
-        get: function VueExoModel$proxyPropertyGet() {
+        get: function VueModel$proxyPropertyGet() {
             return this[rootKey][property.name];
         },
-        set: function VueExoModel$proxyPropertySet(value) {
+        set: function VueModel$proxyPropertySet(value) {
             this[rootKey][property.name] = value;
         }
     });
 
-    debug("END: VueExoModel$proxyEntityPropertyOntoComponentInstance");
+    debug("END: VueModel$proxyEntityPropertyOntoComponentInstance");
 }
 
-function VueExoModel$proxyEntityPropertiesOntoComponentInstance(entity: Entity, vm: Component) {
-    debug("BEGIN: VueExoModel$proxyEntityPropertiesOntoComponentInstance");
+function VueModel$proxyEntityPropertiesOntoComponentInstance(entity: Entity, vm: Component) {
+    debug("BEGIN: VueModel$proxyEntityPropertiesOntoComponentInstance");
 
     // TODO: add proxies onto the component instance
     // proxy data on instance
@@ -46,25 +46,25 @@ function VueExoModel$proxyEntityPropertiesOntoComponentInstance(entity: Entity, 
         } else if (props && hasOwnProperty(props, property.name)) {
             debug("Property '" + property.name + "' is hidden by a component prop with the same name.");
         } else if (!Vue$isReserved(property.name)) {
-            VueExoModel$proxyEntityPropertyOntoComponentInstance(vm, '_data', property);
+            VueModel$proxyEntityPropertyOntoComponentInstance(vm, '_data', property);
         }
     }
 
-    debug("BEGIN: VueExoModel$proxyEntityPropertiesOntoComponentInstance");
+    debug("BEGIN: VueModel$proxyEntityPropertiesOntoComponentInstance");
 }
 
-export function VueExoModel$installPlugin(Vue: ComponentConstructor, dependencies: VuePluginDependencies) {
+export function VueModel$installPlugin(Vue: ComponentConstructor, dependencies: VuePluginDependencies) {
 
-    let ExoModel$Entity: EntityConstructor = dependencies.ExoModel$Entity;
+    let Model$Entity: EntityConstructor = dependencies.Model$Entity;
 
     Vue.mixin({
-        beforeCreate: function VueExoModel$beforeCreate() {
-            debug("BEGIN: VueExoModel$beforeCreate");
+        beforeCreate: function VueModel$beforeCreate() {
+            debug("BEGIN: VueModel$beforeCreate");
 
             var vm = this;
 
             var replaceEntityData = function (data: any) {
-                if (data != null && data instanceof ExoModel$Entity) {
+                if (data != null && data instanceof Model$Entity) {
                     debug("Data is an entity, returning empty object...");
                     vm._entity = data;
                     return {};
@@ -91,10 +91,10 @@ export function VueExoModel$installPlugin(Vue: ComponentConstructor, dependencie
                 }
             }
 
-            debug("END: VueExoModel$beforeCreate");
+            debug("END: VueModel$beforeCreate");
         },
-        created: function VueExoModel$created() {
-            debug("BEGIN: VueExoModel$created");
+        created: function VueModel$created() {
+            debug("BEGIN: VueModel$created");
 
             var vm = this;
 
@@ -104,11 +104,11 @@ export function VueExoModel$installPlugin(Vue: ComponentConstructor, dependencie
 
                 dependencies.Vue$Dep = vm._data.__ob__.dep.constructor;
 
-                // Ensure that ExoModel entities are observable objects compatible with Vue's observer
-                // VueExoModel$makeEntitiesVueObservable(vm._entity.meta.type.model, { ExoModel$Model, ExoModel$Entity, Vue$Observer, Vue$Dep });
-                let exports = VueExoModel$makeEntitiesVueObservable(vm._entity.meta.type.model, dependencies as EntityObserverDependencies);
+                // Ensure that Model entities are observable objects compatible with Vue's observer
+                // VueModel$makeEntitiesVueObservable(vm._entity.meta.type.model, { Model$Model, Model$Entity, Vue$Observer, Vue$Dep });
+                let exports = VueModel$makeEntitiesVueObservable(vm._entity.meta.type.model, dependencies as EntityObserverDependencies);
 
-                let VueExoModel$observeEntity = exports.VueExoModel$observeEntity;
+                let VueModel$observeEntity = exports.VueModel$observeEntity;
 
                 // What follows is an attempt to emulate what would have happened to
                 // the `data` object had it gone through normal component intialization
@@ -118,18 +118,18 @@ export function VueExoModel$installPlugin(Vue: ComponentConstructor, dependencie
 
                 // Vue proxies the data objects `Object.keys()` onto the component itself,
                 // so that the data objects properties can be used directly in templates
-                VueExoModel$proxyEntityPropertiesOntoComponentInstance(vm._entity, vm);
+                VueModel$proxyEntityPropertiesOntoComponentInstance(vm._entity, vm);
 
                 // The internal `observe()` method basically makes the given object observable,
                 // (entities should already be at this point) but it also updates a `vmCount` counter
-                VueExoModel$observeEntity(vm._entity, true);
+                VueModel$observeEntity(vm._entity, true);
 
                 // Null out the field now that we've finished preparing the entity
                 vm._entity = null;
 
             }
 
-            debug("END: VueExoModel$created");
+            debug("END: VueModel$created");
         }
     });
 

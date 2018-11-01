@@ -1,4 +1,4 @@
-import { Model, ModelConstructor, Entity, EntityConstructor, Type, Property, PropertyConstructor, ModelEntityRegisteredEventArgs, ModelPropertyAddedEventArgs, PropertyAccessEventArgs, PropertyChangeEventArgs } from "exomodel";
+import { Model, ModelConstructor, Entity, EntityConstructor, Type, Property, PropertyConstructor, ModelEntityRegisteredEventArgs, ModelPropertyAddedEventArgs, PropertyAccessEventArgs, PropertyChangeEventArgs } from "model";
 import { Observer, ObserverConstructor, DepConstructor, Dep } from "vue";
 import { debug, hasOwnProperty, getProp } from "./helpers";
 import { Vue$dependArray } from "./vue-helpers";
@@ -15,50 +15,50 @@ export type ObserveEntityMethod = (entity: Entity, asRootData?: boolean) => Enti
 
 export interface EntityObserverDependencies {
     entitiesAreVueObservable?: boolean;
-    ExoModel$Model: ModelConstructor;
-    ExoModel$Entity: EntityConstructor;
-    ExoModel$Property: PropertyConstructor;
+    Model$Model: ModelConstructor;
+    Model$Entity: EntityConstructor;
+    Model$Property: PropertyConstructor;
     Vue$Observer: ObserverConstructor;
     Vue$Dep: DepConstructor;
-    VueExoModel$EntityObserver?: EntityObserverConstructor;
-    VueExoModel$observeEntity?: ObserveEntityMethod;
+    VueModel$EntityObserver?: EntityObserverConstructor;
+    VueModel$observeEntity?: ObserveEntityMethod;
 }
 
 var vueCompatibleModels: Model[] = [];
 
-function VueExoModel$ensureModelEventsRegistered(model: Model, dependencies: EntityObserverDependencies) {
-    debug("BEGIN: VueExoModel$ensureModelEventsRegistered");
+function VueModel$ensureModelEventsRegistered(model: Model, dependencies: EntityObserverDependencies) {
+    debug("BEGIN: VueModel$ensureModelEventsRegistered");
 
     if (model != null) {
         if (vueCompatibleModels.indexOf(model) >= 0) {
-            debug("END: VueExoModel$ensureModelEventsRegistered");
+            debug("END: VueModel$ensureModelEventsRegistered");
             return;
         }
 
-        let ExoModel$Model = dependencies.ExoModel$Model;
-        let ExoModel$Property = dependencies.ExoModel$Property;
-        let VueExoModel$observeEntity = dependencies.VueExoModel$observeEntity;
+        let Model$Model = dependencies.Model$Model;
+        let Model$Property = dependencies.Model$Property;
+        let VueModel$observeEntity = dependencies.VueModel$observeEntity;
 
-        if (model instanceof ExoModel$Model) {
+        if (model instanceof Model$Model) {
 
             model.entityRegisteredEvent.subscribe(function(sender: Model, args: ModelEntityRegisteredEventArgs) {
-                VueExoModel$observeEntity(args.entity);
+                VueModel$observeEntity(args.entity);
             });
 
             // Make existing entities observable
             model.types.forEach(function(type: Type) {
                 type.known().forEach(function(entity: Entity) {
-                    VueExoModel$observeEntity(entity);
+                    VueModel$observeEntity(entity);
                 });
             });
 
             model.propertyAddedEvent.subscribe(function(sender: Model, args: ModelPropertyAddedEventArgs) {
-                VueExoModel$ensurePropertyEventsRegistered(args.property, dependencies);
+                VueModel$ensurePropertyEventsRegistered(args.property, dependencies);
             });
 
             // Register for events for existing properties
             model.types.forEach(function(type) {
-                type.properties.forEach((p: Property) => VueExoModel$ensurePropertyEventsRegistered(p, dependencies));
+                type.properties.forEach((p: Property) => VueModel$ensurePropertyEventsRegistered(p, dependencies));
             });
 
             vueCompatibleModels.push(model);
@@ -67,35 +67,35 @@ function VueExoModel$ensureModelEventsRegistered(model: Model, dependencies: Ent
         }
     }
 
-    debug("BEGIN: VueExoModel$ensureModelEventsRegistered");
+    debug("BEGIN: VueModel$ensureModelEventsRegistered");
 }
 
 var vueCompatibleProperties: Property[] = [];
 
-function VueExoModel$ensurePropertyEventsRegistered(property: Property, dependencies: EntityObserverDependencies) {
-    debug("BEGIN: VueExoModel$ensurePropertyEventsRegistered");
+function VueModel$ensurePropertyEventsRegistered(property: Property, dependencies: EntityObserverDependencies) {
+    debug("BEGIN: VueModel$ensurePropertyEventsRegistered");
 
     if (property != null) {
         if (vueCompatibleProperties.indexOf(property) >= 0) {
-            debug("END: VueExoModel$ensurePropertyEventsRegistered");
+            debug("END: VueModel$ensurePropertyEventsRegistered");
             return;
         }
 
         let Vue$Dep = dependencies.Vue$Dep;
-        let VueExoModel$observeEntity = dependencies.VueExoModel$observeEntity;
-        let ExoModel$Property = dependencies.ExoModel$Property;
+        let VueModel$observeEntity = dependencies.VueModel$observeEntity;
+        let Model$Property = dependencies.Model$Property;
 
-        if (property instanceof ExoModel$Property) {
+        if (property instanceof Model$Property) {
 
             property.accessedEvent.subscribe(function (entity: Entity, args: PropertyAccessEventArgs) {
                 // Get or initialize the `Dep` object
-                var propertyDep = VueExoModel$getEntityPropertyDep(entity, args.property, dependencies);
+                var propertyDep = VueModel$getEntityPropertyDep(entity, args.property, dependencies);
 
                 // Attach dependencies if something is watching
                 if (Vue$Dep.target) {
                     propertyDep.depend();
  
-                    var childOb = VueExoModel$observeEntity(args.value);
+                    var childOb = VueModel$observeEntity(args.value);
 
                     if (childOb) {
                         childOb.dep.depend();
@@ -108,10 +108,10 @@ function VueExoModel$ensurePropertyEventsRegistered(property: Property, dependen
 
             property.changedEvent.subscribe(function (entity: Entity, args: PropertyChangeEventArgs) {
                 // Get or initialize the `Dep` object
-                var propertyDep = VueExoModel$getEntityPropertyDep(entity, args.property, dependencies);
+                var propertyDep = VueModel$getEntityPropertyDep(entity, args.property, dependencies);
 
                 // Make sure a new value that is an entity is observable
-                VueExoModel$observeEntity(args.newValue);
+                VueModel$observeEntity(args.newValue);
 
                 // Notify of property change
                 propertyDep.notify();
@@ -124,11 +124,11 @@ function VueExoModel$ensurePropertyEventsRegistered(property: Property, dependen
         }
     }
 
-    debug("BEGIN: VueExoModel$ensurePropertyEventsRegistered");
+    debug("BEGIN: VueModel$ensurePropertyEventsRegistered");
 }
 
-function VueExoModel$getEntityPropertyDep(entity: Entity, property: Property, dependencies: EntityObserverDependencies): Dep {
-    debug("BEGIN: VueExoModel$getEntityPropertyDep");
+function VueModel$getEntityPropertyDep(entity: Entity, property: Property, dependencies: EntityObserverDependencies): Dep {
+    debug("BEGIN: VueModel$getEntityPropertyDep");
 
     var depFieldName = property.fieldName + "_Dep";
 
@@ -150,13 +150,13 @@ function VueExoModel$getEntityPropertyDep(entity: Entity, property: Property, de
         });
     }
 
-    debug("END: VueExoModel$getEntityPropertyDep");
+    debug("END: VueModel$getEntityPropertyDep");
 
     return dep;
 }
 
-function VueExoModel$defineEntityObserver(dependencies: EntityObserverDependencies): EntityObserverConstructor {
-    debug("BEGIN: VueExoModel$defineEntityObserver");
+function VueModel$defineEntityObserver(dependencies: EntityObserverDependencies): EntityObserverConstructor {
+    debug("BEGIN: VueModel$defineEntityObserver");
 
     let Vue$Observer = dependencies.Vue$Observer;
 
@@ -174,25 +174,25 @@ function VueExoModel$defineEntityObserver(dependencies: EntityObserverDependenci
         debug("END: EntityObserver$walk");
     };
 
-    debug("END: VueExoModel$defineEntityObserver");
+    debug("END: VueModel$defineEntityObserver");
 
-    return dependencies.VueExoModel$EntityObserver = (ctor as unknown) as ObserverConstructor;
+    return dependencies.VueModel$EntityObserver = (ctor as unknown) as ObserverConstructor;
 }
 
-function VueExoModel$defineObserveEntity(dependencies: EntityObserverDependencies): ObserveEntityMethod {
+function VueModel$defineObserveEntity(dependencies: EntityObserverDependencies): ObserveEntityMethod {
 
-    return dependencies.VueExoModel$observeEntity = function VueExoModel$observeEntity(entity: Entity, asRootData: boolean = false): EntityObserver {
-        debug("BEGIN: VueExoModel$observeEntity");
+    return dependencies.VueModel$observeEntity = function VueModel$observeEntity(entity: Entity, asRootData: boolean = false): EntityObserver {
+        debug("BEGIN: VueModel$observeEntity");
 
-        let ExoModel$Entity = dependencies.ExoModel$Entity;
-        let VueExoModel$EntityObserver = dependencies.VueExoModel$EntityObserver;
+        let Model$Entity = dependencies.Model$Entity;
+        let VueModel$EntityObserver = dependencies.VueModel$EntityObserver;
 
-        if (entity instanceof ExoModel$Entity) {
+        if (entity instanceof Model$Entity) {
             var ob: EntityObserver;
-            if (hasOwnProperty(entity, '__ob__') && getProp(entity, '__ob__') instanceof VueExoModel$EntityObserver) {
+            if (hasOwnProperty(entity, '__ob__') && getProp(entity, '__ob__') instanceof VueModel$EntityObserver) {
                 ob = getProp(entity, '__ob__');
             } else {
-                ob = new VueExoModel$EntityObserver(entity);
+                ob = new VueModel$EntityObserver(entity);
             }
             if (asRootData && ob) {
                 ob.vmCount++;
@@ -202,31 +202,31 @@ function VueExoModel$defineObserveEntity(dependencies: EntityObserverDependencie
             // TODO: Warn about attempting to observe non-entity?
         }
 
-        debug("END: VueExoModel$observeEntity");
+        debug("END: VueModel$observeEntity");
     };
 
 }
 
-export function VueExoModel$makeEntitiesVueObservable(model: Model, dependencies: EntityObserverDependencies): EntityObserverDependencies {
-    debug("BEGIN: VueExoModel$ensureEntitiesAreVueObservable");
+export function VueModel$makeEntitiesVueObservable(model: Model, dependencies: EntityObserverDependencies): EntityObserverDependencies {
+    debug("BEGIN: VueModel$ensureEntitiesAreVueObservable");
 
     let entitiesAreVueObservable = dependencies.entitiesAreVueObservable;
 
     if (entitiesAreVueObservable) {
-        VueExoModel$ensureModelEventsRegistered(model, dependencies);
-        debug("END: VueExoModel$ensureEntitiesAreVueObservable");
+        VueModel$ensureModelEventsRegistered(model, dependencies);
+        debug("END: VueModel$ensureEntitiesAreVueObservable");
         return dependencies;
     }
 
-    VueExoModel$defineEntityObserver(dependencies);
+    VueModel$defineEntityObserver(dependencies);
 
-    VueExoModel$defineObserveEntity(dependencies);
+    VueModel$defineObserveEntity(dependencies);
 
-    VueExoModel$ensureModelEventsRegistered(model, dependencies);
+    VueModel$ensureModelEventsRegistered(model, dependencies);
 
     dependencies.entitiesAreVueObservable = true;
 
-    debug("END: VueExoModel$ensureEntitiesAreVueObservable");
+    debug("END: VueModel$ensureEntitiesAreVueObservable");
 
     return dependencies;
 }

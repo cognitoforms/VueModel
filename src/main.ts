@@ -1,21 +1,25 @@
 import { ComponentConstructor } from "vue";
-import { ExoModelModule } from "exomodel";
-import { VueExoModel$installPlugin } from "./vue-plugin";
+import * as Model from "Model";
+import { VueModel$installPlugin } from "./vue-plugin";
+import { VueModel } from "./vue-model";
+import { FieldAdapter } from "./field-adapter";
 
-export { FieldAdapter } from "./field-adapter";
-
-declare var exomodel: ExoModelModule;
-
-let VueExoModel$Dependencies = {
+let VueModel$Dependencies = {
     entitiesAreVueObservable: false,
-    ExoModel$Model: exomodel.Model,
-    ExoModel$Entity: exomodel.Entity,
-    ExoModel$Property: exomodel.Property,
+    Model$Model: Model.Model,
+    Model$Entity: Model.Entity,
+    Model$Property: Model.Property,
 };
 
 // TODO: Do we need to take `toggleObserving()` into account?
 // var shouldObserve = true;
 
-export function install(Vue: ComponentConstructor) {
-    return VueExoModel$installPlugin(Vue, VueExoModel$Dependencies);
-}
+let api = VueModel as any;
+
+api.FieldAdapter = FieldAdapter;
+
+api.install = function install(Vue: ComponentConstructor) {
+    return VueModel$installPlugin(Vue, VueModel$Dependencies);
+};
+
+export default api;
