@@ -71,6 +71,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include=".gitignore" />
+    <Content Include="dist\vuemodel.umd.js" />
+    <Content Include="dist\vuemodel.umd.min.js" />
     <Content Include="legacy\base\core\Activity.js" />
     <Content Include="legacy\base\core\Array.js" />
     <Content Include="legacy\base\core\Batch.js" />
@@ -236,6 +238,7 @@
     <TypeScriptCompile Include="migration\condition-type.ts" />
     <TypeScriptCompile Include="migration\condition.ts" />
     <TypeScriptCompile Include="migration\enums.ts" />
+    <TypeScriptCompile Include="migration\event-scope.ts" />
     <TypeScriptCompile Include="migration\format-error.ts" />
     <TypeScriptCompile Include="migration\format-provider.ts" />
     <TypeScriptCompile Include="migration\list-length-rule.ts" />
