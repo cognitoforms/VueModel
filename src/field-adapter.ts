@@ -1,4 +1,6 @@
-import { Entity, Property } from "model";
+/// <reference path="../ref/model.d.ts" />
+
+import { Entity, Property } from "Model";
 
 export class FieldAdapter<TEntity extends Entity, TValue> {
 

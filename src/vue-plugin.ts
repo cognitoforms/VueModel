@@ -1,5 +1,8 @@
+/// <reference path="../ref/vue.d.ts" />
+/// <reference path="../ref/model.d.ts" />
+
 import { ComponentConstructor, ObserverConstructor, DepConstructor, Component } from "vue";
-import { ModelConstructor, Entity, EntityConstructor, Property, PropertyConstructor } from "model";
+import { ModelConstructor, Entity, EntityConstructor, Property, PropertyConstructor } from "Model";
 import { debug, hasOwnProperty } from "./helpers";
 import { VueModel$makeEntitiesVueObservable, EntityObserverDependencies } from "./entity-observer";
 import { Vue$isReserved } from "./vue-helpers";

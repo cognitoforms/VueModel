@@ -1,3 +1,6 @@
+/// <reference path="../ref/vue.d.ts" />
+/// <reference path="../ref/model.d.ts" />
+
 declare module 'VueModel/helpers' {
 	export function getProp(obj: any, prop: string): any;
 	export function setProp(target: any, key: string, value: any): void;
@@ -11,7 +14,7 @@ declare module 'VueModel/vue-helpers' {
 
 }
 declare module 'VueModel/entity-observer' {
-	import { Model, ModelConstructor, Entity, EntityConstructor, PropertyConstructor } from "model";
+	import { Model, ModelConstructor, Entity, EntityConstructor, PropertyConstructor } from "Model";
 	import { Observer, ObserverConstructor, DepConstructor } from "vue";
 	export interface EntityObserver extends Observer {
 	}

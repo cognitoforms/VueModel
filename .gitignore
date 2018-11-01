@@ -1,2 +1,6 @@
 .DS_Store
 node_modules/
+legacy/
+migration/
+src/*.js
+lib/model.js/src/*.js

@@ -4,30 +4,35 @@
 declare module 'VueModel' {
 	import { Model, ModelConstructor, Entity, EntityConstructor, Property, PropertyConstructor } from "Model";
 	import { ComponentConstructor, Observer, ObserverConstructor, DepConstructor } from "vue";
-	export interface EntityObserver extends Observer {
+	export class EntityObserver extends Observer {
+		constructor(entity: Entity);
 	}
 	export interface EntityObserverConstructor {
-	    new (entity: Entity): EntityObserver;
+		new(entity: Entity): EntityObserver;
 	}
 	export interface VueModelOptions {
-	    createOwnProperties: boolean;
+		createOwnProperties: boolean;
 	}
 	export class VueModel {
-	    readonly $meta: Model;
-	    constructor(options: VueModelOptions);
+		readonly $meta: Model;
+		constructor(options: VueModelOptions);
 	}
 	export interface VueModelConstructor {
 		new(options: VueModelOptions): VueModel;
 		install(Vue: ComponentConstructor): void;
+		FieldAdapter: FieldAdapterConstructor;
 	}
 	export class FieldAdapter<TEntity extends Entity, TValue> {
-	    readonly entity: TEntity;
-	    readonly path: string;
-	    constructor(entity: TEntity, path: string);
-	    readonly property: Property;
-	    readonly label: string;
-	    readonly helptext: string;
-	    value: TValue;
-	    displayValue: string;
+		readonly entity: TEntity;
+		readonly path: string;
+		constructor(entity: TEntity, path: string);
+		readonly property: Property;
+		readonly label: string;
+		readonly helptext: string;
+		value: TValue;
+		displayValue: string;
+	}
+	export interface FieldAdapterConstructor {
+		new <TEntity extends Entity, TValue>(entity: TEntity, path: string): FieldAdapter<TEntity, TValue>;
 	}
 }

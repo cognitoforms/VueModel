@@ -1,5 +1,5 @@
 declare module 'vue' {
-    export interface Component {
+    export class Component {
         $options: ComponentOptionsObject;
     }
     export interface ComponentOptionsObject {
@@ -22,7 +22,7 @@ declare module 'vue' {
         beforeDestroy?(): void;
         destroyed?(): void;
     }
-    export interface Dep {
+    export class Dep {
         depend(): void;
         notify(): void;
     }
@@ -30,7 +30,7 @@ declare module 'vue' {
         new(): Dep;
         target: any;
     }
-    export interface Observer {
+    export class Observer {
         dep: Dep;
         vmCount: number;
     }
