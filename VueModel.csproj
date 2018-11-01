@@ -35,7 +35,7 @@
     <TypeScriptTarget>ES5</TypeScriptTarget>
     <TypeScriptJSXEmit>None</TypeScriptJSXEmit>
     <TypeScriptModuleKind>None</TypeScriptModuleKind>
-    <TypeScriptCompileOnSaveEnabled>True</TypeScriptCompileOnSaveEnabled>
+    <TypeScriptCompileOnSaveEnabled>False</TypeScriptCompileOnSaveEnabled>
     <TypeScriptNoImplicitAny>False</TypeScriptNoImplicitAny>
     <TypeScriptRemoveComments>True</TypeScriptRemoveComments>
     <TypeScriptOutFile>
@@ -216,54 +216,54 @@
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
-    <TypeScriptCompile Include="lib\model.js\out\model.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\ref\ste-core.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\ref\ste-events.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\entity.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\format.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\helpers.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\internals.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\main.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\model.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\object-meta.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\observable-list.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\property.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\type.ts" />
-    <TypeScriptCompile Include="migration\allowed-values-rule.ts" />
-    <TypeScriptCompile Include="migration\calculated-property-rule.ts" />
-    <TypeScriptCompile Include="migration\compare-rule.ts" />
-    <TypeScriptCompile Include="migration\condition-rule.ts" />
-    <TypeScriptCompile Include="migration\condition-target.ts" />
-    <TypeScriptCompile Include="migration\condition-type-set.ts" />
-    <TypeScriptCompile Include="migration\condition-type.ts" />
-    <TypeScriptCompile Include="migration\condition.ts" />
-    <TypeScriptCompile Include="migration\enums.ts" />
-    <TypeScriptCompile Include="migration\event-scope.ts" />
-    <TypeScriptCompile Include="migration\format-error.ts" />
-    <TypeScriptCompile Include="migration\format-provider.ts" />
-    <TypeScriptCompile Include="migration\list-length-rule.ts" />
-    <TypeScriptCompile Include="migration\path-tokens.ts" />
-    <TypeScriptCompile Include="migration\property-chain.ts" />
-    <TypeScriptCompile Include="migration\range-rule.ts" />
-    <TypeScriptCompile Include="migration\required-if-rule.ts" />
-    <TypeScriptCompile Include="migration\required-rule.ts" />
-    <TypeScriptCompile Include="migration\resource.ts" />
-    <TypeScriptCompile Include="migration\rule.ts" />
-    <TypeScriptCompile Include="migration\string-format-rule.ts" />
-    <TypeScriptCompile Include="migration\string-length-rule.ts" />
-    <TypeScriptCompile Include="migration\validated-property-rule.ts" />
-    <TypeScriptCompile Include="migration\validation-rule.ts" />
-    <TypeScriptCompile Include="ref\model.d.ts" />
-    <TypeScriptCompile Include="ref\ste-core.d.ts" />
-    <TypeScriptCompile Include="ref\ste-events.d.ts" />
-    <TypeScriptCompile Include="ref\vue.d.ts" />
-    <TypeScriptCompile Include="src\entity-observer.ts" />
-    <TypeScriptCompile Include="src\field-adapter.ts" />
-    <TypeScriptCompile Include="src\helpers.ts" />
-    <TypeScriptCompile Include="src\main.ts" />
-    <TypeScriptCompile Include="src\vue-helpers.ts" />
-    <TypeScriptCompile Include="src\vue-model.ts" />
-    <TypeScriptCompile Include="src\vue-plugin.ts" />
+    <None Include="lib\model.js\out\model.d.ts" />
+    <None Include="lib\model.js\ref\ste-core.d.ts" />
+    <None Include="lib\model.js\ref\ste-events.d.ts" />
+    <None Include="lib\model.js\src\entity.ts" />
+    <None Include="lib\model.js\src\format.ts" />
+    <None Include="lib\model.js\src\helpers.ts" />
+    <None Include="lib\model.js\src\internals.ts" />
+    <None Include="lib\model.js\src\main.ts" />
+    <None Include="lib\model.js\src\model.ts" />
+    <None Include="lib\model.js\src\object-meta.ts" />
+    <None Include="lib\model.js\src\observable-list.ts" />
+    <None Include="lib\model.js\src\property.ts" />
+    <None Include="lib\model.js\src\type.ts" />
+    <None Include="migration\allowed-values-rule.ts" />
+    <None Include="migration\calculated-property-rule.ts" />
+    <None Include="migration\compare-rule.ts" />
+    <None Include="migration\condition-rule.ts" />
+    <None Include="migration\condition-target.ts" />
+    <None Include="migration\condition-type-set.ts" />
+    <None Include="migration\condition-type.ts" />
+    <None Include="migration\condition.ts" />
+    <None Include="migration\enums.ts" />
+    <None Include="migration\event-scope.ts" />
+    <None Include="migration\format-error.ts" />
+    <None Include="migration\format-provider.ts" />
+    <None Include="migration\list-length-rule.ts" />
+    <None Include="migration\path-tokens.ts" />
+    <None Include="migration\property-chain.ts" />
+    <None Include="migration\range-rule.ts" />
+    <None Include="migration\required-if-rule.ts" />
+    <None Include="migration\required-rule.ts" />
+    <None Include="migration\resource.ts" />
+    <None Include="migration\rule.ts" />
+    <None Include="migration\string-format-rule.ts" />
+    <None Include="migration\string-length-rule.ts" />
+    <None Include="migration\validated-property-rule.ts" />
+    <None Include="migration\validation-rule.ts" />
+    <None Include="ref\model.d.ts" />
+    <None Include="ref\ste-core.d.ts" />
+    <None Include="ref\ste-events.d.ts" />
+    <None Include="ref\vue.d.ts" />
+    <None Include="src\entity-observer.ts" />
+    <None Include="src\field-adapter.ts" />
+    <None Include="src\helpers.ts" />
+    <None Include="src\main.ts" />
+    <None Include="src\vue-helpers.ts" />
+    <None Include="src\vue-model.ts" />
+    <None Include="src\vue-plugin.ts" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
