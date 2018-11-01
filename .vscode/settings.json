@@ -5,6 +5,7 @@
         "**/node_modules": true,
         "**/bin": true,
         "**/obj": true,
+        "out": true,
         "Properties": true,
     },
 }
