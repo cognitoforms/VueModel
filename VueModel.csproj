@@ -70,6 +70,7 @@
     <TypeScriptSourceRoot />
   </PropertyGroup>
   <ItemGroup>
+    <Content Include=".gitignore" />
     <Content Include="legacy\base\core\Activity.js" />
     <Content Include="legacy\base\core\Array.js" />
     <Content Include="legacy\base\core\Batch.js" />
@@ -189,6 +190,12 @@
     <Content Include="lib\model.js\README.md" />
     <Content Include="lib\model.js\tsconfig.json" />
     <Content Include="lib\model.js\.vscode\settings.json" />
+    <Content Include="LICENSE" />
+    <Content Include="package-lock.json" />
+    <Content Include="README.md" />
+    <Content Include="tsconfig.json" />
+    <Content Include="tslint.json" />
+    <Content Include=".vscode\settings.json" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>
@@ -197,6 +204,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="rollup.config.js" />
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
@@ -204,10 +212,8 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
-    <Folder Include="src\" />
   </ItemGroup>
   <ItemGroup>
-    <TypeScriptCompile Include="lib\model.js\dist\model.d.ts" />
     <TypeScriptCompile Include="lib\model.js\out\model.d.ts" />
     <TypeScriptCompile Include="lib\model.js\ref\ste-core.d.ts" />
     <TypeScriptCompile Include="lib\model.js\ref\ste-events.d.ts" />
@@ -244,6 +250,17 @@
     <TypeScriptCompile Include="migration\string-length-rule.ts" />
     <TypeScriptCompile Include="migration\validated-property-rule.ts" />
     <TypeScriptCompile Include="migration\validation-rule.ts" />
+    <TypeScriptCompile Include="ref\model.d.ts" />
+    <TypeScriptCompile Include="ref\ste-core.d.ts" />
+    <TypeScriptCompile Include="ref\ste-events.d.ts" />
+    <TypeScriptCompile Include="ref\vue.d.ts" />
+    <TypeScriptCompile Include="src\entity-observer.ts" />
+    <TypeScriptCompile Include="src\field-adapter.ts" />
+    <TypeScriptCompile Include="src\helpers.ts" />
+    <TypeScriptCompile Include="src\main.ts" />
+    <TypeScriptCompile Include="src\vue-helpers.ts" />
+    <TypeScriptCompile Include="src\vue-model.ts" />
+    <TypeScriptCompile Include="src\vue-plugin.ts" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
