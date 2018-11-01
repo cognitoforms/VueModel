@@ -1,5 +1,5 @@
 /*!
- * VueModel.js v0.0.5
+ * VueModel.js v0.0.6
  * (c) 2018 Cognito LLC
  * Released under the MIT License.
  */
@@ -2060,99 +2060,6 @@
         return dependencies;
     }
 
-    function VueModel$proxyEntityPropertyOntoComponentInstance(vm, rootKey, property) {
-        Object.defineProperty(vm, property.name, {
-            configurable: true,
-            enumerable: true,
-            get: function VueModel$proxyPropertyGet() {
-                return this[rootKey][property.name];
-            },
-            set: function VueModel$proxyPropertySet(value) {
-                this[rootKey][property.name] = value;
-            }
-        });
-    }
-    function VueModel$proxyEntityPropertiesOntoComponentInstance(entity, vm) {
-        // TODO: add proxies onto the component instance
-        // proxy data on instance
-        var properties = entity.meta.type.properties;
-        var props = vm.$options.props;
-        var methods = vm.$options.methods;
-        for (var i = 0; i < properties.length; i++) {
-            var property = properties[i];
-            if (methods && hasOwnProperty(methods, property.name)) {
-                debug("Property '" + property.name + "' is hidden by a component method with the same name.");
-            }
-            else if (props && hasOwnProperty(props, property.name)) {
-                debug("Property '" + property.name + "' is hidden by a component prop with the same name.");
-            }
-            else if (!Vue$isReserved(property.name)) {
-                VueModel$proxyEntityPropertyOntoComponentInstance(vm, '_data', property);
-            }
-        }
-    }
-    function VueModel$installPlugin(Vue, dependencies) {
-        var Model$Entity = dependencies.Model$Entity;
-        Vue.mixin({
-            beforeCreate: function VueModel$beforeCreate() {
-                var vm = this;
-                var replaceEntityData = function (data) {
-                    if (data != null && data instanceof Model$Entity) {
-                        vm._entity = data;
-                        return {};
-                    }
-                    return data;
-                };
-                if (vm.$options.data) {
-                    if (vm.$options.data instanceof Function) {
-                        var dataFn = vm.$options.data;
-                        vm.$options.data = function () {
-                            return replaceEntityData(dataFn.apply(this, arguments));
-                        };
-                    }
-                    else {
-                        var entitiesAreVueObservable = dependencies.entitiesAreVueObservable;
-                        if (!entitiesAreVueObservable) {
-                            // Don't let Vue from getting an Entity prior to setting up Entity observability
-                            vm.$options.data = replaceEntityData(vm.$options.data);
-                        }
-                    }
-                }
-            },
-            created: function VueModel$created() {
-                var vm = this;
-                if (vm._entity) {
-                    dependencies.Vue$Observer = vm._data.__ob__.constructor;
-                    dependencies.Vue$Dep = vm._data.__ob__.dep.constructor;
-                    // Ensure that Model entities are observable objects compatible with Vue's observer
-                    // VueModel$makeEntitiesVueObservable(vm._entity.meta.type.model, { Model$Model, Model$Entity, Vue$Observer, Vue$Dep });
-                    var exports = VueModel$makeEntitiesVueObservable(vm._entity.meta.type.model, dependencies);
-                    var VueModel$observeEntity = exports.VueModel$observeEntity;
-                    // What follows is an attempt to emulate what would have happened to
-                    // the `data` object had it gone through normal component intialization
-                    // Since the entity is now observable, go ahead and let the component see it
-                    vm._data = vm._entity;
-                    // Vue proxies the data objects `Object.keys()` onto the component itself,
-                    // so that the data objects properties can be used directly in templates
-                    VueModel$proxyEntityPropertiesOntoComponentInstance(vm._entity, vm);
-                    // The internal `observe()` method basically makes the given object observable,
-                    // (entities should already be at this point) but it also updates a `vmCount` counter
-                    VueModel$observeEntity(vm._entity, true);
-                    // Null out the field now that we've finished preparing the entity
-                    vm._entity = null;
-                }
-            }
-        });
-    }
-
-    var VueModel = /** @class */ (function () {
-        function VueModel(options) {
-            // Public read-only properties
-            Object.defineProperty(this, "$meta", { enumerable: true, value: new Model.Model(options.createOwnProperties) });
-        }
-        return VueModel;
-    }());
-
     var FieldAdapter = /** @class */ (function () {
         // TODO: Support format options
         // private _format: string;
@@ -2247,6 +2154,111 @@
         return FieldAdapter;
     }());
 
+    function VueModel$proxyPropertyOntoComponentInstance(vm, rootKey, prop) {
+        Object.defineProperty(vm, prop, {
+            configurable: true,
+            enumerable: true,
+            get: function VueModel$proxyPropertyGet() {
+                return this[rootKey][prop];
+            },
+            set: function VueModel$proxyPropertySet(value) {
+                this[rootKey][prop] = value;
+            }
+        });
+    }
+    function VueModel$proxyEntityPropertiesOntoComponentInstance(entity, vm) {
+        // TODO: add proxies onto the component instance
+        // proxy data on instance
+        var properties = entity.meta.type.properties;
+        var props = vm.$options.props;
+        var methods = vm.$options.methods;
+        for (var i = 0; i < properties.length; i++) {
+            var property = properties[i];
+            if (methods && hasOwnProperty(methods, property.name)) {
+                debug("Property '" + property.name + "' is hidden by a component method with the same name.");
+            }
+            else if (props && hasOwnProperty(props, property.name)) {
+                debug("Property '" + property.name + "' is hidden by a component prop with the same name.");
+            }
+            else if (!Vue$isReserved(property.name)) {
+                VueModel$proxyPropertyOntoComponentInstance(vm, '_data', property.name);
+            }
+        }
+    }
+    function VueModel$proxyFieldAdapterPropertiesOntoComponentInstance(entity, vm) {
+        VueModel$proxyPropertyOntoComponentInstance(vm, '_data', "label");
+        VueModel$proxyPropertyOntoComponentInstance(vm, '_data', "helptext");
+        VueModel$proxyPropertyOntoComponentInstance(vm, '_data', "value");
+        VueModel$proxyPropertyOntoComponentInstance(vm, '_data', "displayValue");
+    }
+    function VueModel$installPlugin(Vue, dependencies) {
+        var Model$Entity = dependencies.Model$Entity;
+        Vue.mixin({
+            beforeCreate: function VueModel$beforeCreate() {
+                var vm = this;
+                var replaceEntityData = function (data) {
+                    if (data != null && data instanceof Model$Entity) {
+                        vm._entity = data;
+                        return {};
+                    }
+                    return data;
+                };
+                if (vm.$options.data) {
+                    if (vm.$options.data instanceof Function) {
+                        var dataFn = vm.$options.data;
+                        vm.$options.data = function () {
+                            return replaceEntityData(dataFn.apply(this, arguments));
+                        };
+                    }
+                    else {
+                        var entitiesAreVueObservable = dependencies.entitiesAreVueObservable;
+                        if (!entitiesAreVueObservable) {
+                            // Don't let Vue from getting an Entity prior to setting up Entity observability
+                            vm.$options.data = replaceEntityData(vm.$options.data);
+                        }
+                    }
+                }
+            },
+            created: function VueModel$created() {
+                var vm = this;
+                if (vm._entity) {
+                    dependencies.Vue$Observer = vm._data.__ob__.constructor;
+                    dependencies.Vue$Dep = vm._data.__ob__.dep.constructor;
+                    // Ensure that Model entities are observable objects compatible with Vue's observer
+                    // VueModel$makeEntitiesVueObservable(vm._entity.meta.type.model, { Model$Model, Model$Entity, Vue$Observer, Vue$Dep });
+                    var exports = VueModel$makeEntitiesVueObservable(vm._entity.meta.type.model, dependencies);
+                    var VueModel$observeEntity = exports.VueModel$observeEntity;
+                    // What follows is an attempt to emulate what would have happened to
+                    // the `data` object had it gone through normal component intialization
+                    // Since the entity is now observable, go ahead and let the component see it
+                    vm._data = vm._entity;
+                    // Vue proxies the data objects `Object.keys()` onto the component itself,
+                    // so that the data objects properties can be used directly in templates
+                    VueModel$proxyEntityPropertiesOntoComponentInstance(vm._entity, vm);
+                    // The internal `observe()` method basically makes the given object observable,
+                    // (entities should already be at this point) but it also updates a `vmCount` counter
+                    VueModel$observeEntity(vm._entity, true);
+                    // Null out the field now that we've finished preparing the entity
+                    vm._entity = null;
+                }
+                else if (vm._data instanceof FieldAdapter) {
+                    // Vue proxies the data objects `Object.keys()` onto the component itself,
+                    // so that the data objects properties can be used directly in templates
+                    VueModel$proxyFieldAdapterPropertiesOntoComponentInstance(vm._data, vm);
+                }
+            }
+        });
+    }
+
+    var VueModel = /** @class */ (function () {
+        function VueModel(options) {
+            // Public read-only properties
+            Object.defineProperty(this, "$meta", { enumerable: true, value: new Model.Model(options.createOwnProperties) });
+        }
+        return VueModel;
+    }());
+
+    /// <reference path="../ref/vue.d.ts" />
     var VueModel$Dependencies = {
         entitiesAreVueObservable: false,
         Model$Model: Model.Model,

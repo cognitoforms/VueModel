@@ -1,11 +1,9 @@
-/// <reference path="../ref/vue.d.ts" />
-/// <reference path="../ref/model.d.ts" />
-
 import { ComponentConstructor, ObserverConstructor, DepConstructor, Component } from "vue";
 import { ModelConstructor, Entity, EntityConstructor, Property, PropertyConstructor } from "Model";
 import { debug, hasOwnProperty } from "./helpers";
 import { VueModel$makeEntitiesVueObservable, EntityObserverDependencies } from "./entity-observer";
 import { Vue$isReserved } from "./vue-helpers";
+import { FieldAdapter } from "./field-adapter";
 
 export interface VuePluginDependencies {
     entitiesAreVueObservable: boolean;
@@ -16,21 +14,21 @@ export interface VuePluginDependencies {
     Vue$Dep?: DepConstructor;
 }
 
-function VueModel$proxyEntityPropertyOntoComponentInstance(vm: Component, rootKey: string, property: Property) {
-    debug("BEGIN: VueModel$proxyEntityPropertyOntoComponentInstance");
+function VueModel$proxyPropertyOntoComponentInstance(vm: Component, rootKey: string, prop: string) {
+    debug("BEGIN: VueModel$proxyPropertyOntoComponentInstance");
 
-    Object.defineProperty(vm, property.name, {
+    Object.defineProperty(vm, prop, {
         configurable: true,
         enumerable: true,
         get: function VueModel$proxyPropertyGet() {
-            return this[rootKey][property.name];
+            return this[rootKey][prop];
         },
         set: function VueModel$proxyPropertySet(value) {
-            this[rootKey][property.name] = value;
+            this[rootKey][prop] = value;
         }
     });
 
-    debug("END: VueModel$proxyEntityPropertyOntoComponentInstance");
+    debug("END: VueModel$proxyPropertyOntoComponentInstance");
 }
 
 function VueModel$proxyEntityPropertiesOntoComponentInstance(entity: Entity, vm: Component) {
@@ -49,11 +47,22 @@ function VueModel$proxyEntityPropertiesOntoComponentInstance(entity: Entity, vm:
         } else if (props && hasOwnProperty(props, property.name)) {
             debug("Property '" + property.name + "' is hidden by a component prop with the same name.");
         } else if (!Vue$isReserved(property.name)) {
-            VueModel$proxyEntityPropertyOntoComponentInstance(vm, '_data', property);
+            VueModel$proxyPropertyOntoComponentInstance(vm, '_data', property.name);
         }
     }
 
-    debug("BEGIN: VueModel$proxyEntityPropertiesOntoComponentInstance");
+    debug("END: VueModel$proxyEntityPropertiesOntoComponentInstance");
+}
+
+function VueModel$proxyFieldAdapterPropertiesOntoComponentInstance(entity: Entity, vm: Component) {
+    debug("BEGIN: VueModel$proxyFieldAdapterPropertiesOntoComponentInstance");
+
+    VueModel$proxyPropertyOntoComponentInstance(vm, '_data', "label");
+    VueModel$proxyPropertyOntoComponentInstance(vm, '_data', "helptext");
+    VueModel$proxyPropertyOntoComponentInstance(vm, '_data', "value");
+    VueModel$proxyPropertyOntoComponentInstance(vm, '_data', "displayValue");
+
+    debug("END: VueModel$proxyFieldAdapterPropertiesOntoComponentInstance");
 }
 
 export function VueModel$installPlugin(Vue: ComponentConstructor, dependencies: VuePluginDependencies) {
@@ -129,6 +138,12 @@ export function VueModel$installPlugin(Vue: ComponentConstructor, dependencies: 
 
                 // Null out the field now that we've finished preparing the entity
                 vm._entity = null;
+
+            } else if (vm._data instanceof FieldAdapter) {
+
+                // Vue proxies the data objects `Object.keys()` onto the component itself,
+                // so that the data objects properties can be used directly in templates
+                VueModel$proxyFieldAdapterPropertiesOntoComponentInstance(vm._data, vm);
 
             }
 

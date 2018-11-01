@@ -1,6 +1,8 @@
 /// <reference path="../ref/vue.d.ts" />
 /// <reference path="../ref/model.d.ts" />
 
+// TODO: Currently the generated file includes 'vue' and 'Model'
+
 declare module 'VueModel/helpers' {
 	export function getProp(obj: any, prop: string): any;
 	export function setProp(target: any, key: string, value: any): void;
@@ -35,9 +37,23 @@ declare module 'VueModel/entity-observer' {
 	export function VueModel$makeEntitiesVueObservable(model: Model, dependencies: EntityObserverDependencies): EntityObserverDependencies;
 
 }
+declare module 'VueModel/field-adapter' {
+	import { Entity, Property } from "Model";
+	export class FieldAdapter<TEntity extends Entity, TValue> {
+	    readonly entity: TEntity;
+	    readonly path: string;
+	    constructor(entity: TEntity, path: string);
+	    readonly property: Property;
+	    readonly label: string;
+	    readonly helptext: string;
+	    value: TValue;
+	    displayValue: string;
+	}
+
+}
 declare module 'VueModel/vue-plugin' {
 	import { ComponentConstructor, ObserverConstructor, DepConstructor } from "vue";
-	import { ModelConstructor, EntityConstructor, PropertyConstructor } from "model";
+	import { ModelConstructor, EntityConstructor, PropertyConstructor } from "Model";
 	export interface VuePluginDependencies {
 	    entitiesAreVueObservable: boolean;
 	    Model$Model: ModelConstructor;
@@ -57,20 +73,6 @@ declare module 'VueModel/vue-model' {
 	export class VueModel {
 	    readonly $meta: Model;
 	    constructor(options: VueModelOptions);
-	}
-
-}
-declare module 'VueModel/field-adapter' {
-	import { Entity, Property } from "model";
-	export class FieldAdapter<TEntity extends Entity, TValue> {
-	    readonly entity: TEntity;
-	    readonly path: string;
-	    constructor(entity: TEntity, path: string);
-	    readonly property: Property;
-	    readonly label: string;
-	    readonly helptext: string;
-	    value: TValue;
-	    displayValue: string;
 	}
 
 }

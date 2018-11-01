@@ -1,6 +1,3 @@
-/// <reference path="../ref/vue.d.ts" />
-/// <reference path="../ref/model.d.ts" />
-
 import { Model, ModelConstructor, Entity, EntityConstructor, Type, Property, PropertyConstructor, ModelEntityRegisteredEventArgs, ModelPropertyAddedEventArgs, PropertyAccessEventArgs, PropertyChangeEventArgs } from "Model";
 import { Observer, ObserverConstructor, DepConstructor, Dep } from "vue";
 import { debug, hasOwnProperty, getProp } from "./helpers";

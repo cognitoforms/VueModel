@@ -1,5 +1,3 @@
-/// <reference path="../ref/model.d.ts" />
-
 import { Model } from "Model";
 
 export interface VueModelOptions {
