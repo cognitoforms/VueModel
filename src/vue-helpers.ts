@@ -12,3 +12,16 @@ export function Vue$dependArray(value: Array<any>) {
         }
     }
 }
+
+export function Vue$proxy(target: Object, sourceKey: string, key: string) {
+    Object.defineProperty(target, key, {
+        configurable: true,
+        enumerable: true,
+        get: function VueModel$proxyPropertyGet() {
+            return this[sourceKey][key];
+        },
+        set: function VueModel$proxyPropertySet(value) {
+            this[sourceKey][key] = value;
+        }
+    });
+}

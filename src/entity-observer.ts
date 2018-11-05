@@ -2,8 +2,8 @@ import { Model, ModelConstructor, ModelEntityRegisteredEventArgs, ModelPropertyA
 import { Entity, EntityConstructor } from "../lib/model.js/src/entity";
 import { Type } from "../lib/model.js/src/type";
 import { Property, PropertyConstructor,   PropertyAccessEventArgs, PropertyChangeEventArgs } from "../lib/model.js/src/property";
-import { Observer, ObserverConstructor, DepConstructor, Dep } from "vue";
-import { debug, hasOwnProperty, getProp } from "./helpers";
+import { Observer, ObserverConstructor, DepConstructor, Dep } from "./vue-internals";
+import { hasOwnProperty, getProp } from "./helpers";
 import { Vue$dependArray } from "./vue-helpers";
 
 export interface EntityObserver extends Observer {
@@ -29,17 +29,14 @@ export interface EntityObserverDependencies {
 
 var vueCompatibleModels: Model[] = [];
 
-function VueModel$ensureModelEventsRegistered(model: Model, dependencies: EntityObserverDependencies) {
-    debug("BEGIN: VueModel$ensureModelEventsRegistered");
+function ensureModelEventsRegistered(model: Model, dependencies: EntityObserverDependencies) {
 
     if (model != null) {
         if (vueCompatibleModels.indexOf(model) >= 0) {
-            debug("END: VueModel$ensureModelEventsRegistered");
             return;
         }
 
         let Model$Model = dependencies.Model$Model;
-        let Model$Property = dependencies.Model$Property;
         let VueModel$observeEntity = dependencies.VueModel$observeEntity;
 
         if (model instanceof Model$Model) {
@@ -56,12 +53,12 @@ function VueModel$ensureModelEventsRegistered(model: Model, dependencies: Entity
             });
 
             model.propertyAddedEvent.subscribe(function(sender: Model, args: ModelPropertyAddedEventArgs) {
-                VueModel$ensurePropertyEventsRegistered(args.property, dependencies);
+                ensurePropertyEventsRegistered(args.property, dependencies);
             });
 
             // Register for events for existing properties
             model.types.forEach(function(type) {
-                type.properties.forEach((p: Property) => VueModel$ensurePropertyEventsRegistered(p, dependencies));
+                type.properties.forEach((p: Property) => ensurePropertyEventsRegistered(p, dependencies));
             });
 
             vueCompatibleModels.push(model);
@@ -70,17 +67,14 @@ function VueModel$ensureModelEventsRegistered(model: Model, dependencies: Entity
         }
     }
 
-    debug("BEGIN: VueModel$ensureModelEventsRegistered");
 }
 
 var vueCompatibleProperties: Property[] = [];
 
-function VueModel$ensurePropertyEventsRegistered(property: Property, dependencies: EntityObserverDependencies) {
-    debug("BEGIN: VueModel$ensurePropertyEventsRegistered");
+function ensurePropertyEventsRegistered(property: Property, dependencies: EntityObserverDependencies) {
 
     if (property != null) {
         if (vueCompatibleProperties.indexOf(property) >= 0) {
-            debug("END: VueModel$ensurePropertyEventsRegistered");
             return;
         }
 
@@ -92,7 +86,7 @@ function VueModel$ensurePropertyEventsRegistered(property: Property, dependencie
 
             property.accessedEvent.subscribe(function (entity: Entity, args: PropertyAccessEventArgs) {
                 // Get or initialize the `Dep` object
-                var propertyDep = VueModel$getEntityPropertyDep(entity, args.property, dependencies);
+                var propertyDep = getEntityPropertyDep(entity, args.property, dependencies);
 
                 // Attach dependencies if something is watching
                 if (Vue$Dep.target) {
@@ -111,7 +105,7 @@ function VueModel$ensurePropertyEventsRegistered(property: Property, dependencie
 
             property.changedEvent.subscribe(function (entity: Entity, args: PropertyChangeEventArgs) {
                 // Get or initialize the `Dep` object
-                var propertyDep = VueModel$getEntityPropertyDep(entity, args.property, dependencies);
+                var propertyDep = getEntityPropertyDep(entity, args.property, dependencies);
 
                 // Make sure a new value that is an entity is observable
                 VueModel$observeEntity(args.newValue);
@@ -127,11 +121,9 @@ function VueModel$ensurePropertyEventsRegistered(property: Property, dependencie
         }
     }
 
-    debug("BEGIN: VueModel$ensurePropertyEventsRegistered");
 }
 
-function VueModel$getEntityPropertyDep(entity: Entity, property: Property, dependencies: EntityObserverDependencies): Dep {
-    debug("BEGIN: VueModel$getEntityPropertyDep");
+function getEntityPropertyDep(entity: Entity, property: Property, dependencies: EntityObserverDependencies): Dep {
 
     var depFieldName = property.fieldName + "_Dep";
 
@@ -153,13 +145,10 @@ function VueModel$getEntityPropertyDep(entity: Entity, property: Property, depen
         });
     }
 
-    debug("END: VueModel$getEntityPropertyDep");
-
     return dep;
 }
 
-function VueModel$defineEntityObserver(dependencies: EntityObserverDependencies): EntityObserverConstructor {
-    debug("BEGIN: VueModel$defineEntityObserver");
+function defineEntityObserver(dependencies: EntityObserverDependencies): EntityObserverConstructor {
 
     let Vue$Observer = dependencies.Vue$Observer;
 
@@ -173,19 +162,15 @@ function VueModel$defineEntityObserver(dependencies: EntityObserverDependencies)
     // Prevent walking of entities
     // TODO: Should we allow this to happen?
     ctor.prototype.walk = function EntityObserver$walk() {
-        debug("BEGIN: EntityObserver$walk");
-        debug("END: EntityObserver$walk");
+        // Do nothing?
     };
-
-    debug("END: VueModel$defineEntityObserver");
 
     return dependencies.VueModel$EntityObserver = (ctor as unknown) as ObserverConstructor;
 }
 
-function VueModel$defineObserveEntity(dependencies: EntityObserverDependencies): ObserveEntityMethod {
+function defineObserveEntity(dependencies: EntityObserverDependencies): ObserveEntityMethod {
 
     return dependencies.VueModel$observeEntity = function VueModel$observeEntity(entity: Entity, asRootData: boolean = false): EntityObserver {
-        debug("BEGIN: VueModel$observeEntity");
 
         let Model$Entity = dependencies.Model$Entity;
         let VueModel$EntityObserver = dependencies.VueModel$EntityObserver;
@@ -205,31 +190,26 @@ function VueModel$defineObserveEntity(dependencies: EntityObserverDependencies):
             // TODO: Warn about attempting to observe non-entity?
         }
 
-        debug("END: VueModel$observeEntity");
     };
 
 }
 
 export function VueModel$makeEntitiesVueObservable(model: Model, dependencies: EntityObserverDependencies): EntityObserverDependencies {
-    debug("BEGIN: VueModel$ensureEntitiesAreVueObservable");
 
     let entitiesAreVueObservable = dependencies.entitiesAreVueObservable;
 
     if (entitiesAreVueObservable) {
-        VueModel$ensureModelEventsRegistered(model, dependencies);
-        debug("END: VueModel$ensureEntitiesAreVueObservable");
+        ensureModelEventsRegistered(model, dependencies);
         return dependencies;
     }
 
-    VueModel$defineEntityObserver(dependencies);
+    defineEntityObserver(dependencies);
 
-    VueModel$defineObserveEntity(dependencies);
+    defineObserveEntity(dependencies);
 
-    VueModel$ensureModelEventsRegistered(model, dependencies);
+    ensureModelEventsRegistered(model, dependencies);
 
     dependencies.entitiesAreVueObservable = true;
-
-    debug("END: VueModel$ensureEntitiesAreVueObservable");
 
     return dependencies;
 }

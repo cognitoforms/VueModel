@@ -1,5 +1,5 @@
 /*!
- * VueModel.js v0.0.7
+ * VueModel.js v0.0.8
  * (c) 2018 Cognito LLC
  * Released under the MIT License.
  */
@@ -1836,15 +1836,26 @@
 	        }
 	    }
 	}
+	function Vue$proxy(target, sourceKey, key) {
+	    Object.defineProperty(target, key, {
+	        configurable: true,
+	        enumerable: true,
+	        get: function VueModel$proxyPropertyGet() {
+	            return this[sourceKey][key];
+	        },
+	        set: function VueModel$proxyPropertySet(value) {
+	            this[sourceKey][key] = value;
+	        }
+	    });
+	}
 
 	var vueCompatibleModels = [];
-	function VueModel$ensureModelEventsRegistered(model, dependencies) {
+	function ensureModelEventsRegistered(model, dependencies) {
 	    if (model != null) {
 	        if (vueCompatibleModels.indexOf(model) >= 0) {
 	            return;
 	        }
 	        var Model$Model = dependencies.Model$Model;
-	        var Model$Property = dependencies.Model$Property;
 	        var VueModel$observeEntity_1 = dependencies.VueModel$observeEntity;
 	        if (model instanceof Model$Model) {
 	            model.entityRegisteredEvent.subscribe(function (sender, args) {
@@ -1857,18 +1868,18 @@
 	                });
 	            });
 	            model.propertyAddedEvent.subscribe(function (sender, args) {
-	                VueModel$ensurePropertyEventsRegistered(args.property, dependencies);
+	                ensurePropertyEventsRegistered(args.property, dependencies);
 	            });
 	            // Register for events for existing properties
 	            model.types.forEach(function (type) {
-	                type.properties.forEach(function (p) { return VueModel$ensurePropertyEventsRegistered(p, dependencies); });
+	                type.properties.forEach(function (p) { return ensurePropertyEventsRegistered(p, dependencies); });
 	            });
 	            vueCompatibleModels.push(model);
 	        }
 	    }
 	}
 	var vueCompatibleProperties = [];
-	function VueModel$ensurePropertyEventsRegistered(property, dependencies) {
+	function ensurePropertyEventsRegistered(property, dependencies) {
 	    if (property != null) {
 	        if (vueCompatibleProperties.indexOf(property) >= 0) {
 	            return;
@@ -1879,7 +1890,7 @@
 	        if (property instanceof Model$Property) {
 	            property.accessedEvent.subscribe(function (entity, args) {
 	                // Get or initialize the `Dep` object
-	                var propertyDep = VueModel$getEntityPropertyDep(entity, args.property, dependencies);
+	                var propertyDep = getEntityPropertyDep(entity, args.property, dependencies);
 	                // Attach dependencies if something is watching
 	                if (Vue$Dep_1.target) {
 	                    propertyDep.depend();
@@ -1895,7 +1906,7 @@
 	            });
 	            property.changedEvent.subscribe(function (entity, args) {
 	                // Get or initialize the `Dep` object
-	                var propertyDep = VueModel$getEntityPropertyDep(entity, args.property, dependencies);
+	                var propertyDep = getEntityPropertyDep(entity, args.property, dependencies);
 	                // Make sure a new value that is an entity is observable
 	                VueModel$observeEntity_2(args.newValue);
 	                // Notify of property change
@@ -1905,7 +1916,7 @@
 	        }
 	    }
 	}
-	function VueModel$getEntityPropertyDep(entity, property, dependencies) {
+	function getEntityPropertyDep(entity, property, dependencies) {
 	    var depFieldName = property.fieldName + "_Dep";
 	    var Vue$Dep = dependencies.Vue$Dep;
 	    var dep;
@@ -1924,7 +1935,7 @@
 	    }
 	    return dep;
 	}
-	function VueModel$defineEntityObserver(dependencies) {
+	function defineEntityObserver(dependencies) {
 	    var Vue$Observer = dependencies.Vue$Observer;
 	    var ctor = function EntityObserver() {
 	        Vue$Observer.apply(this, arguments);
@@ -1934,10 +1945,11 @@
 	    // Prevent walking of entities
 	    // TODO: Should we allow this to happen?
 	    ctor.prototype.walk = function EntityObserver$walk() {
+	        // Do nothing?
 	    };
 	    return dependencies.VueModel$EntityObserver = ctor;
 	}
-	function VueModel$defineObserveEntity(dependencies) {
+	function defineObserveEntity(dependencies) {
 	    return dependencies.VueModel$observeEntity = function VueModel$observeEntity(entity, asRootData) {
 	        if (asRootData === void 0) { asRootData = false; }
 	        var Model$Entity = dependencies.Model$Entity;
@@ -1960,64 +1972,228 @@
 	function VueModel$makeEntitiesVueObservable(model, dependencies) {
 	    var entitiesAreVueObservable = dependencies.entitiesAreVueObservable;
 	    if (entitiesAreVueObservable) {
-	        VueModel$ensureModelEventsRegistered(model, dependencies);
+	        ensureModelEventsRegistered(model, dependencies);
 	        return dependencies;
 	    }
-	    VueModel$defineEntityObserver(dependencies);
-	    VueModel$defineObserveEntity(dependencies);
-	    VueModel$ensureModelEventsRegistered(model, dependencies);
+	    defineEntityObserver(dependencies);
+	    defineObserveEntity(dependencies);
+	    ensureModelEventsRegistered(model, dependencies);
 	    dependencies.entitiesAreVueObservable = true;
 	    return dependencies;
 	}
 
-	var FieldAdapter = /** @class */ (function () {
-	    // TODO: Support format options
-	    // private _format: string;
-	    function FieldAdapter(entity, path) {
+	function replaceEntityData(vm, data, dependencies) {
+	    var Model$Entity = dependencies.Model$Entity;
+	    var vm$private = vm;
+	    if (data != null && data instanceof Model$Entity) {
+	        vm$private._entity = data;
+	        return {};
+	    }
+	    return data;
+	}
+	function preprocessDataToInterceptEntities(vm, dependencies) {
+	    if (!vm.$options.data) {
+	        return;
+	    }
+	    if (vm.$options.data instanceof Function) {
+	        var dataFn = vm.$options.data;
+	        vm.$options.data = function () {
+	            return replaceEntityData(vm, dataFn.apply(this, arguments), dependencies);
+	        };
+	    }
+	    else {
+	        var entitiesAreVueObservable = dependencies.entitiesAreVueObservable;
+	        if (!entitiesAreVueObservable) {
+	            // Don't let Vue from getting an Entity prior to setting up Entity observability
+	            vm.$options.data = replaceEntityData(vm, vm.$options.data, dependencies);
+	        }
+	    }
+	}
+	function proxyEntityPropertiesOntoComponentInstance(vm, entity) {
+	    // TODO: add proxies onto the component instance
+	    // proxy data on instance
+	    var properties = entity.meta.type.properties;
+	    var props = vm.$options.props;
+	    var methods = vm.$options.methods;
+	    for (var i = 0; i < properties.length; i++) {
+	        var property = properties[i];
+	        if (methods && hasOwnProperty(methods, property.name)) {
+	            debug("Property '" + property.name + "' is hidden by a component method with the same name.");
+	        }
+	        else if (props && hasOwnProperty(props, property.name)) {
+	            debug("Property '" + property.name + "' is hidden by a component prop with the same name.");
+	        }
+	        else if (!Vue$isReserved(property.name)) {
+	            Vue$proxy(vm, '_data', property.name);
+	        }
+	    }
+	}
+	function restoreComponentEntityData(vm, dependencies) {
+	    var VueModel$observeEntity = dependencies.VueModel$observeEntity;
+	    var vm$private = vm;
+	    // Since the entity is now observable, go ahead and let the component see it
+	    // TODO: Is it necessary to somehow "merge" the object? Or, just not set the data
+	    //      field since we're going to do custom proxying of properties anyway?
+	    vm$private._data = vm$private._entity;
+	    // Vue proxies the data objects `Object.keys()` onto the component itself,
+	    // so that the data objects properties can be used directly in templates
+	    proxyEntityPropertiesOntoComponentInstance(vm, vm$private._entity);
+	    // The internal `observe()` method basically makes the given object observable,
+	    // (entities should already be at this point) but it also updates a `vmCount` counter
+	    VueModel$observeEntity(vm$private._entity, true);
+	    // Null out the field now that we've finished preparing the entity
+	    vm$private._entity = null;
+	}
+
+	function interceptInternalTypes(obj, dependencies) {
+	    if (!dependencies.Vue$Observer && obj.__ob__) {
+	        dependencies.Vue$Observer = obj.__ob__.constructor;
+	    }
+	    if (!dependencies.Vue$Dep && obj.__ob__ && obj.__ob__.dep) {
+	        dependencies.Vue$Dep = obj.__ob__.dep.constructor;
+	    }
+	}
+	function VueModel$installPlugin(Vue, dependencies) {
+	    Vue.mixin({
+	        beforeCreate: function VueModel$Plugin$beforeCreate() {
+	            var vm = this;
+	            if (vm.$options.data) {
+	                // Intercept data that is an entity or data function that returns an entity
+	                // so that this plugin can make the entity observable and create proxy properties
+	                preprocessDataToInterceptEntities(vm, dependencies);
+	            }
+	            // if (vm.$options.propsData) {
+	            //     // Intercept the `source` prop so that it can be marked as having a source
+	            //     // and lazily evaluated if needed, or detected by other components
+	            //     preprocessPropsToInterceptSource(vm);
+	            // }
+	        },
+	        created: function VueModel$Plugin$created() {
+	            var vm = this;
+	            var vm$private = vm;
+	            if (vm$private._data) {
+	                interceptInternalTypes(vm$private._data, dependencies);
+	            }
+	            if (vm$private._entity) {
+	                interceptInternalTypes(vm$private._entity, dependencies);
+	                if (!dependencies.entitiesAreVueObservable) {
+	                    // Ensure that Model entities are observable objects compatible with Vue's observer
+	                    VueModel$makeEntitiesVueObservable(vm$private._entity.meta.type.model, dependencies);
+	                }
+	                // Restore the data by attempting to emulate what would have happened to
+	                // the `data` object had it gone through normal component intialization
+	                restoreComponentEntityData(vm, dependencies);
+	            }
+	            // if (isSourceAdapter(vm$private._data)) {
+	            //     let sourceAdapter = vm$private._data as SourceAdapter<any>;
+	            //     // Define the `$source` property if not already defined
+	            //     defineDollarSourceProperty(vm, sourceAdapter);
+	            //     // Vue proxies the data objects `Object.keys()` onto the component itself,
+	            //     // so that the data objects properties can be used directly in templates
+	            //     proxySourceAdapterPropertiesOntoComponentInstance(vm, '_data');
+	            // }
+	            // Handle computed `source` property that is of type `SourceAdapter`?
+	            // if (vm.$options.propsData) {
+	            //     let props = vm.$options.propsData as any;
+	            //     if (hasOwnProperty(props, 'source')) {
+	            //         establishBindingSource(vm, dependencies as VuePluginSourceBindingDependencies);
+	            //     }
+	            // }
+	        }
+	    });
+	}
+
+	var VueModel = /** @class */ (function () {
+	    function VueModel(options) {
+	        options = VueModel$prepareOptions(options);
+	        // Public read-only properties
+	        Object.defineProperty(this, "$meta", { enumerable: true, value: new Model(options.createOwnProperties) });
+	    }
+	    return VueModel;
+	}());
+	function VueModel$prepareOptions(options) {
+	    if (options === void 0) { options = null; }
+	    var result = { createOwnProperties: false };
+	    if (options) {
+	        if (Object.prototype.hasOwnProperty.call(options, 'createOwnProperties')) {
+	            if (typeof options.createOwnProperties === "boolean") {
+	                result.createOwnProperties = options.createOwnProperties;
+	            }
+	        }
+	    }
+	    return result;
+	}
+
+	var SourceRootAdapter = /** @class */ (function () {
+	    function SourceRootAdapter(entity) {
 	        // Public read-only properties
 	        Object.defineProperty(this, "entity", { enumerable: true, value: entity });
-	        Object.defineProperty(this, "path", { enumerable: true, value: path });
 	    }
-	    Object.defineProperty(FieldAdapter.prototype, "property", {
+	    Object.defineProperty(SourceRootAdapter.prototype, "value", {
 	        get: function () {
-	            // TODO: Support multi-hop path
-	            return this.entity.meta.type.property(this.path);
+	            return this.entity;
 	        },
 	        enumerable: true,
 	        configurable: true
 	    });
-	    Object.defineProperty(FieldAdapter.prototype, "label", {
+	    Object.defineProperty(SourceRootAdapter.prototype, "displayValue", {
+	        get: function () {
+	            // TODO: Use type-level format for entity `displayValue`
+	            return this.entity.meta.type.fullName + "|" + this.entity.meta.id;
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    SourceRootAdapter.prototype.toString = function () {
+	        return this.entity.meta.type.fullName + "|" + this.entity.meta.id;
+	    };
+	    return SourceRootAdapter;
+	}());
+
+	var SourcePathAdapter = /** @class */ (function () {
+	    // TODO: Support format options
+	    // private _format: string;
+	    function SourcePathAdapter(source, path) {
+	        // Public read-only properties
+	        Object.defineProperty(this, "source", { enumerable: true, value: source });
+	        Object.defineProperty(this, "path", { enumerable: true, value: path });
+	    }
+	    Object.defineProperty(SourcePathAdapter.prototype, "property", {
+	        get: function () {
+	            // TODO: Support multi-hop path
+	            return this.source.value.meta.type.property(this.path);
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    Object.defineProperty(SourcePathAdapter.prototype, "label", {
 	        get: function () {
 	            return this.property.label;
 	        },
 	        enumerable: true,
 	        configurable: true
 	    });
-	    Object.defineProperty(FieldAdapter.prototype, "helptext", {
+	    Object.defineProperty(SourcePathAdapter.prototype, "helptext", {
 	        get: function () {
 	            return this.property.helptext;
 	        },
 	        enumerable: true,
 	        configurable: true
 	    });
-	    Object.defineProperty(FieldAdapter.prototype, "value", {
+	    Object.defineProperty(SourcePathAdapter.prototype, "value", {
 	        get: function () {
-	            var value = this.property.value(this.entity);
-	            return value;
+	            return this.property.value(this.source.value);
 	        },
 	        set: function (value) {
-	            this.property.value(this.entity, value);
+	            this.property.value(this.source.value, value);
 	        },
 	        enumerable: true,
 	        configurable: true
 	    });
-	    Object.defineProperty(FieldAdapter.prototype, "displayValue", {
+	    Object.defineProperty(SourcePathAdapter.prototype, "displayValue", {
 	        get: function () {
 	            var _this = this;
-	            var value = this.property.value(this.entity);
-	            if (this.property.format != null) {
-	                return this.property.format.convert(value);
-	            }
+	            var value = this.property.value(this.source.value);
 	            var displayValue;
 	            if (value === null || value === undefined) {
 	                displayValue = "";
@@ -2050,139 +2226,320 @@
 	            return Array.isArray(displayValue) ? displayValue.join(", ") : displayValue;
 	        },
 	        set: function (text) {
-	            if (this.property.format != null) {
-	                var value = this.property.format.convertBack(text);
-	                this.property.value(this.entity, value);
-	            }
-	            else {
-	                this.property.value(this.entity, text);
+	            this.value = this.property.format != null ? this.property.format.convertBack(text) : text;
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
+	    SourcePathAdapter.prototype.toString = function () {
+	        return "Source['" + this.path + "']";
+	    };
+	    return SourcePathAdapter;
+	}());
+
+	var SourceIndexAdapter = /** @class */ (function () {
+	    function SourceIndexAdapter(source, index) {
+	        // Public read-only properties
+	        Object.defineProperty(this, "source", { enumerable: true, value: source });
+	        Object.defineProperty(this, "index", { enumerable: true, value: index });
+	    }
+	    Object.defineProperty(SourceIndexAdapter.prototype, "value", {
+	        get: function () {
+	            var list = this.source.value;
+	            var item = list[this.index];
+	            return item;
+	        },
+	        set: function (value) {
+	            var list = this.source.value;
+	            var currentItem = list[this.index];
+	            if (value !== currentItem) {
+	                var oldItem = currentItem;
+	                var newItem = value;
+	                list[this.index] = newItem;
+	                var eventArgs = { property: this.source.property, newValue: list, oldValue: undefined };
+	                eventArgs['changes'] = [{ newItems: [newItem], oldItems: [oldItem] }];
+	                eventArgs['collectionChanged'] = true;
+	                this.source.property._eventDispatchers.changed.dispatch(this.source.source.value, eventArgs);
 	            }
 	        },
 	        enumerable: true,
 	        configurable: true
 	    });
-	    return FieldAdapter;
-	}());
-
-	function VueModel$proxyPropertyOntoComponentInstance(vm, rootKey, prop) {
-	    Object.defineProperty(vm, prop, {
-	        configurable: true,
+	    Object.defineProperty(SourceIndexAdapter.prototype, "displayValue", {
+	        get: function () {
+	            var list = this.source.value;
+	            var value = list[this.index];
+	            var displayValue;
+	            if (this.source.property.format != null) {
+	                // Use a markup or property format if available
+	                displayValue = this.source.property.format.convert(value);
+	            }
+	            else {
+	                displayValue = value.toString();
+	            }
+	            return displayValue;
+	        },
+	        set: function (text) {
+	            this.value = this.source.property.format != null ? this.source.property.format.convertBack(text) : text;
+	        },
 	        enumerable: true,
-	        get: function VueModel$proxyPropertyGet() {
-	            return this[rootKey][prop];
-	        },
-	        set: function VueModel$proxyPropertySet(value) {
-	            this[rootKey][prop] = value;
-	        }
+	        configurable: true
 	    });
-	}
-	function VueModel$proxyEntityPropertiesOntoComponentInstance(entity, vm) {
-	    // TODO: add proxies onto the component instance
-	    // proxy data on instance
-	    var properties = entity.meta.type.properties;
-	    var props = vm.$options.props;
-	    var methods = vm.$options.methods;
-	    for (var i = 0; i < properties.length; i++) {
-	        var property = properties[i];
-	        if (methods && hasOwnProperty(methods, property.name)) {
-	            debug("Property '" + property.name + "' is hidden by a component method with the same name.");
-	        }
-	        else if (props && hasOwnProperty(props, property.name)) {
-	            debug("Property '" + property.name + "' is hidden by a component prop with the same name.");
-	        }
-	        else if (!Vue$isReserved(property.name)) {
-	            VueModel$proxyPropertyOntoComponentInstance(vm, '_data', property.name);
-	        }
-	    }
-	}
-	function VueModel$proxyFieldAdapterPropertiesOntoComponentInstance(entity, vm) {
-	    VueModel$proxyPropertyOntoComponentInstance(vm, '_data', "label");
-	    VueModel$proxyPropertyOntoComponentInstance(vm, '_data', "helptext");
-	    VueModel$proxyPropertyOntoComponentInstance(vm, '_data', "value");
-	    VueModel$proxyPropertyOntoComponentInstance(vm, '_data', "displayValue");
-	}
-	function VueModel$installPlugin(Vue, dependencies) {
-	    var Model$Entity = dependencies.Model$Entity;
-	    Vue.mixin({
-	        beforeCreate: function VueModel$beforeCreate() {
-	            var vm = this;
-	            var replaceEntityData = function (data) {
-	                if (data != null && data instanceof Model$Entity) {
-	                    vm._entity = data;
-	                    return {};
-	                }
-	                return data;
-	            };
-	            if (vm.$options.data) {
-	                if (vm.$options.data instanceof Function) {
-	                    var dataFn = vm.$options.data;
-	                    vm.$options.data = function () {
-	                        return replaceEntityData(dataFn.apply(this, arguments));
-	                    };
-	                }
-	                else {
-	                    var entitiesAreVueObservable = dependencies.entitiesAreVueObservable;
-	                    if (!entitiesAreVueObservable) {
-	                        // Don't let Vue from getting an Entity prior to setting up Entity observability
-	                        vm.$options.data = replaceEntityData(vm.$options.data);
-	                    }
-	                }
-	            }
-	        },
-	        created: function VueModel$created() {
-	            var vm = this;
-	            if (vm._entity) {
-	                dependencies.Vue$Observer = vm._data.__ob__.constructor;
-	                dependencies.Vue$Dep = vm._data.__ob__.dep.constructor;
-	                // Ensure that Model entities are observable objects compatible with Vue's observer
-	                // VueModel$makeEntitiesVueObservable(vm._entity.meta.type.model, { Model$Model, Model$Entity, Vue$Observer, Vue$Dep });
-	                var exports = VueModel$makeEntitiesVueObservable(vm._entity.meta.type.model, dependencies);
-	                var VueModel$observeEntity = exports.VueModel$observeEntity;
-	                // What follows is an attempt to emulate what would have happened to
-	                // the `data` object had it gone through normal component intialization
-	                // Since the entity is now observable, go ahead and let the component see it
-	                vm._data = vm._entity;
-	                // Vue proxies the data objects `Object.keys()` onto the component itself,
-	                // so that the data objects properties can be used directly in templates
-	                VueModel$proxyEntityPropertiesOntoComponentInstance(vm._entity, vm);
-	                // The internal `observe()` method basically makes the given object observable,
-	                // (entities should already be at this point) but it also updates a `vmCount` counter
-	                VueModel$observeEntity(vm._entity, true);
-	                // Null out the field now that we've finished preparing the entity
-	                vm._entity = null;
-	            }
-	            else if (vm._data instanceof FieldAdapter) {
-	                // Vue proxies the data objects `Object.keys()` onto the component itself,
-	                // so that the data objects properties can be used directly in templates
-	                VueModel$proxyFieldAdapterPropertiesOntoComponentInstance(vm._data, vm);
-	            }
-	        }
-	    });
-	}
-
-	var VueModel = /** @class */ (function () {
-	    function VueModel(options) {
-	        options = VueModel$prepareOptions(options);
-	        // Public read-only properties
-	        Object.defineProperty(this, "$meta", { enumerable: true, value: new Model(options.createOwnProperties) });
-	    }
-	    return VueModel;
+	    SourceIndexAdapter.prototype.toString = function () {
+	        return "Source[" + this.index + "]";
+	    };
+	    return SourceIndexAdapter;
 	}());
-	function VueModel$prepareOptions(options) {
-	    if (options === void 0) { options = null; }
-	    var result = { createOwnProperties: false };
-	    if (options) {
-	        if (Object.prototype.hasOwnProperty.call(options, 'createOwnProperties')) {
-	            if (typeof options.createOwnProperties === "boolean") {
-	                result.createOwnProperties = options.createOwnProperties;
+
+	function isSourceAdapter(obj) {
+	    if (obj instanceof SourceRootAdapter)
+	        return true;
+	    if (obj instanceof SourcePathAdapter)
+	        return true;
+	    if (obj instanceof SourceIndexAdapter)
+	        return true;
+	    return false;
+	}
+	function isSourcePropertyAdapter(obj) {
+	    if (obj instanceof SourcePathAdapter)
+	        return true;
+	    return false;
+	}
+
+	function proxySourceAdapterPropertiesOntoComponentInstance(vm, rootKey) {
+	    var vm$private = vm;
+	    if (!hasOwnProperty(vm$private, rootKey)) {
+	        // TODO: Warn about missing value for `rootKey`?
+	        return;
+	    }
+	    if (!isSourceAdapter(vm$private[rootKey])) {
+	        // TODO: Lazily obtain source adapter if needed?
+	        // TODO: Warn about non-source adapter?
+	        return;
+	    }
+	    var sourceAdapter = vm$private[rootKey];
+	    debug("Proxying source adapter properties for <" + sourceAdapter + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
+	    if (isSourcePropertyAdapter(vm$private[rootKey])) {
+	        Vue$proxy(vm, rootKey, "label");
+	        Vue$proxy(vm, rootKey, "helptext");
+	    }
+	    Vue$proxy(vm, rootKey, "value");
+	    Vue$proxy(vm, rootKey, "displayValue");
+	}
+	function preprocessPropsToInterceptSource(vm) {
+	    var vm$private = vm;
+	    if (vm$private._source) {
+	        // TODO: Warn about _source already defined?
+	        return;
+	    }
+	    var props = vm.$options.propsData;
+	    if (hasOwnProperty(props, 'source')) {
+	        vm$private._source = props.source;
+	    }
+	}
+	function defineDollarSourceProperty(vm, sourceAdapter) {
+	    var vm$private = vm;
+	    if (!hasOwnProperty(vm$private, '_source') || !isSourceAdapter(vm$private._source)) {
+	        vm$private._source = sourceAdapter;
+	    }
+	    if (!hasOwnProperty(vm, '$source')) {
+	        Object.defineProperty(vm, '$source', {
+	            get: function () {
+	                return this._source;
+	            },
+	            set: function () {
+	                // TODO: Warn about setting `$source`?
+	            }
+	        });
+	    }
+	}
+	function getImplicitSource(vm, dependencies, detect) {
+	    if (detect === void 0) { detect = false; }
+	    var vm$private = vm;
+	    var Model$Entity = dependencies.Model$Entity;
+	    if (hasOwnProperty(vm, '$source')) {
+	        // Source is explicit and has been established
+	        return null;
+	    }
+	    if (vm$private._source) {
+	        var source = vm$private._source;
+	        if (typeof source === "string") {
+	            // Source is explicit (but has not been established)
+	            return null;
+	        }
+	        else if (source instanceof Model$Entity) {
+	            // An entity was previously flagged as a potential implicit source
+	            return source;
+	        }
+	        else if (isSourceAdapter(source)) {
+	            // A source adapter was previously flagged as a potential implicit source
+	            return source;
+	        }
+	        // Source of unknown type
+	        return null;
+	    }
+	    if (detect) {
+	        var data = vm$private._data;
+	        if (data) {
+	            if (data instanceof Model$Entity) {
+	                debug("Found implicit source as data of type <" + data.meta.type.fullName + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
+	                vm$private._source = data;
+	                return data;
+	            }
+	            else if (isSourceAdapter(data)) {
+	                debug("Found implicit source as source adapter <" + data + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
+	                vm$private._source = data;
+	                return data;
+	            }
+	        }
+	        if (vm$private._entity) {
+	            var entity = vm$private._entity;
+	            if (entity instanceof Model$Entity) {
+	                // Mark the entity as a potential implicit source
+	                debug("Found implicit source as pending entity of type <" + entity.meta.type.fullName + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
+	                vm$private._source = entity;
+	                return entity;
 	            }
 	        }
 	    }
-	    return result;
+	}
+	function getSourceBindingContainer(vm, dependencies, detectImplicitSource) {
+	    if (detectImplicitSource === void 0) { detectImplicitSource = false; }
+	    var firstImplicitSourceVm = null;
+	    var firstImplicitSourceVmLevel = -1;
+	    var Model$Entity = dependencies.Model$Entity;
+	    for (var parentVm = vm.$parent, parentLevel = 1; parentVm != null; parentVm = parentVm.$parent, parentLevel += 1) {
+	        var parentVm$private = parentVm;
+	        var parentSource = parentVm$private.$source;
+	        if (parentSource) {
+	            // if (process.env.NODE_ENV === "development") {
+	            if (typeof parentSource === "string") {
+	                debug("Found pending source on level " + parentLevel + " parent component of type <" + (parentVm$private.$options._componentTag || "???") + ">.");
+	            }
+	            else if (isSourceAdapter(parentSource)) {
+	                debug("Found established source on level " + parentLevel + " parent component of type <" + (parentVm$private.$options._componentTag || "???") + ">.");
+	            }
+	            else {
+	                debug("Found unknown source on level " + parentLevel + " parent component of type <" + (parentVm$private.$options._componentTag || "???") + ">.");
+	            }
+	            // }
+	            return parentVm;
+	        }
+	        else if (detectImplicitSource) {
+	            var implicitSource = getImplicitSource(parentVm, dependencies, true);
+	            if (implicitSource !== undefined && !firstImplicitSourceVm) {
+	                firstImplicitSourceVm = parentVm;
+	                firstImplicitSourceVmLevel = parentLevel;
+	            }
+	        }
+	    }
+	    if (detectImplicitSource && firstImplicitSourceVm) {
+	        var implicitSource = getImplicitSource(firstImplicitSourceVm, dependencies);
+	        if (implicitSource instanceof Model$Entity) {
+	            debug("Found implicit source on level " + firstImplicitSourceVmLevel + " parent component of type <" + (firstImplicitSourceVm.$options._componentTag || "???") + ">.");
+	            return firstImplicitSourceVm;
+	        }
+	    }
+	}
+	function establishBindingSource(vm, dependencies) {
+	    var vm$private = vm;
+	    if (vm$private._sourcePending) {
+	        // Detect re-entrance
+	        return;
+	    }
+	    if (!vm.$options.propsData) {
+	        return;
+	    }
+	    var props = vm.$options.propsData;
+	    if (!hasOwnProperty(props, 'source')) {
+	        return;
+	    }
+	    vm$private._sourcePending = true;
+	    var Model$Entity = dependencies.Model$Entity;
+	    debug("Found component of type '" + vm$private.$options._componentTag + "' with source '" + props.source + "'.");
+	    var sourceVm = getSourceBindingContainer(vm, dependencies, true);
+	    if (sourceVm) {
+	        var sourceVm$private = sourceVm;
+	        var source = sourceVm$private._source;
+	        if (typeof source === "string") {
+	            establishBindingSource(sourceVm, dependencies);
+	            source = sourceVm$private._source;
+	        }
+	        var sourceIndex = parseInt(props.source, 10);
+	        if (isNaN(sourceIndex)) {
+	            sourceIndex = null;
+	        }
+	        var sourceAdapter = null;
+	        if (source instanceof Model$Entity) {
+	            debug("Found source entity of type <" + source.meta.type.fullName + ">.");
+	            sourceAdapter = new SourcePathAdapter(new SourceRootAdapter(source), props.source);
+	        }
+	        else if (isSourceAdapter(source)) {
+	            if (sourceIndex !== null) {
+	                sourceAdapter = new SourceIndexAdapter(source, parseInt(props.source, 10));
+	            }
+	            else {
+	                sourceAdapter = new SourcePathAdapter(source, props.source);
+	            }
+	        }
+	        if (sourceAdapter != null) {
+	            defineDollarSourceProperty(vm, sourceAdapter);
+	            proxySourceAdapterPropertiesOntoComponentInstance(vm, '_source');
+	        }
+	    }
+	    delete vm$private['_sourcePending'];
 	}
 
-	/// <reference path="../ref/vue.d.ts" />
-	var VueModel$Dependencies = {
+	function SourceProviderMixin(dependencies) {
+	    return {
+	        props: ["source", "sourceIndex"],
+	        beforeCreate: function () {
+	            var vm = this;
+	            if (vm.$options.propsData) {
+	                // Intercept the `source` prop so that it can be marked as having a source
+	                // and lazily evaluated if needed, or detected by other components
+	                preprocessPropsToInterceptSource(vm);
+	            }
+	        },
+	        created: function () {
+	            var vm = this;
+	            var vm$private = vm;
+	            if (isSourceAdapter(vm$private._data)) {
+	                var sourceAdapter = vm$private._data;
+	                // Define the `$source` property if not already defined
+	                defineDollarSourceProperty(vm, sourceAdapter);
+	                // Vue proxies the data objects `Object.keys()` onto the component itself,
+	                // so that the data objects properties can be used directly in templates
+	                proxySourceAdapterPropertiesOntoComponentInstance(vm, '_data');
+	            }
+	            if (vm.$options.propsData) {
+	                var props = vm.$options.propsData;
+	                if (hasOwnProperty(props, 'source')) {
+	                    establishBindingSource(vm, dependencies);
+	                }
+	            }
+	        }
+	    };
+	}
+
+	function SourceConsumerMixin(dependencies) {
+	    return {
+	        created: function () {
+	            var vm = this;
+	            var sourceVm = getSourceBindingContainer(vm, dependencies);
+	            var sourceVm$private = sourceVm;
+	            if (sourceVm$private.$source) {
+	                var source = sourceVm$private.$source;
+	                if (isSourceAdapter(source)) {
+	                    defineDollarSourceProperty(vm, sourceVm$private.$source);
+	                    proxySourceAdapterPropertiesOntoComponentInstance(vm, '_source');
+	                }
+	            }
+	        }
+	    };
+	}
+
+	var dependencies = {
 	    entitiesAreVueObservable: false,
 	    Model$Model: Model,
 	    Model$Entity: Entity,
@@ -2191,9 +2548,16 @@
 	// TODO: Do we need to take `toggleObserving()` into account?
 	// var shouldObserve = true;
 	var api = VueModel;
-	api.FieldAdapter = FieldAdapter;
+	api.SourceRootAdapter = SourceRootAdapter;
+	api.SourcePathAdapter = SourcePathAdapter;
+	api.SourceIndexAdapter = SourceIndexAdapter;
+	// TODO: Implement source-binding mixins
+	api.mixins = {
+	    SourceProvider: SourceProviderMixin(dependencies),
+	    SourceConsumer: SourceConsumerMixin(dependencies),
+	};
 	api.install = function install(Vue) {
-	    return VueModel$installPlugin(Vue, VueModel$Dependencies);
+	    return VueModel$installPlugin(Vue, dependencies);
 	};
 
 	return api;

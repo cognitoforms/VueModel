@@ -24,9 +24,7 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
   <ItemGroup>
     <Content Include=".gitignore" />
-    <Content Include=".vscode\settings.json" />
     <Content Include="lib\model.js\.gitignore" />
-    <Content Include="lib\model.js\.vscode\settings.json" />
     <Content Include="lib\model.js\LICENSE" />
     <Content Include="lib\model.js\package-lock.json" />
     <Content Include="lib\model.js\package.json" />
@@ -38,6 +36,9 @@
     <Content Include="tsconfig.json" />
     <Content Include="tslint.json" />
     <Content Include="README.md" />
+    <TypeScriptCompile Include="dist\model.js.d.ts" />
+    <TypeScriptCompile Include="dist\ste-core.d.ts" />
+    <TypeScriptCompile Include="dist\ste-events.d.ts" />
     <TypeScriptCompile Include="dist\vuemodel.d.ts" />
     <TypeScriptCompile Include="lib\model.js\ref\ste-core.d.ts" />
     <TypeScriptCompile Include="lib\model.js\ref\ste-events.d.ts" />
@@ -52,32 +53,35 @@
     <TypeScriptCompile Include="lib\model.js\src\property.ts" />
     <TypeScriptCompile Include="lib\model.js\src\type.ts" />
     <TypeScriptCompile Include="out\vuemodel.d.ts" />
-    <TypeScriptCompile Include="ref\model.d.ts" />
-    <TypeScriptCompile Include="ref\ste-core.d.ts" />
-    <TypeScriptCompile Include="ref\ste-events.d.ts" />
-    <TypeScriptCompile Include="ref\vue.d.ts" />
     <TypeScriptCompile Include="src\entity-observer.ts" />
-    <TypeScriptCompile Include="src\field-adapter.ts" />
+    <TypeScriptCompile Include="src\source-adapter.ts" />
     <TypeScriptCompile Include="src\helpers.ts" />
     <TypeScriptCompile Include="src\main.ts" />
+    <TypeScriptCompile Include="src\source-binding.ts" />
+    <TypeScriptCompile Include="src\source-consumer.ts" />
+    <TypeScriptCompile Include="src\source-index-adapter.ts" />
+    <TypeScriptCompile Include="src\source-path-adapter.ts" />
+    <TypeScriptCompile Include="src\source-provider.ts" />
+    <TypeScriptCompile Include="src\source-root-adapter.ts" />
     <TypeScriptCompile Include="src\vue-helpers.ts" />
+    <TypeScriptCompile Include="src\vue-internals.ts" />
     <TypeScriptCompile Include="src\vue-model.ts" />
+    <TypeScriptCompile Include="src\vue-plugin-entities.ts" />
     <TypeScriptCompile Include="src\vue-plugin.ts" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include=".vscode\" />
     <Folder Include="dist" />
     <Folder Include="lib\" />
     <Folder Include="lib\model.js\" />
-    <Folder Include="lib\model.js\.vscode\" />
     <Folder Include="lib\model.js\dist\" />
     <Folder Include="lib\model.js\ref\" />
     <Folder Include="lib\model.js\src\" />
     <Folder Include="out" />
-    <Folder Include="ref" />
     <Folder Include="src" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="dist\vuemodel.cjs.js" />
+    <Compile Include="dist\vuemodel.esm.js" />
     <Compile Include="dist\vuemodel.umd.js" />
     <Compile Include="dist\vuemodel.umd.min.js" />
     <Compile Include="lib\model.js\dist\model.cjs.js" />

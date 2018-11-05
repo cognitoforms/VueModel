@@ -1,5 +1,5 @@
 {
-  "version": "0.0.7",
+  "version": "0.0.8",
   "name": "vuemodel",
   "license": "MIT",
   "main": "dist/vuemodel.cjs.js",
@@ -8,7 +8,9 @@
   "types": "dist/vuemodel.d.ts",
   "private": true,
   "scripts": {
-    "build": "rollup -c"
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "def": "dts-generator --project . --out .\\out\\vuemodel.d.ts --name VueModel"
   },
   "devDependencies": {
     "rollup": "^0.66.6",
@@ -16,6 +18,7 @@
     "rollup-plugin-node-resolve": "^3.4.0",
     "rollup-plugin-typescript": "^1.0.0",
     "rollup-plugin-uglify": "^6.0.0",
+    "rollup-watch": "^4.3.1",
     "tslib": "^1.9.3",
     "typescript": "^3.1.3"
   },

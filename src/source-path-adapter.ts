@@ -1,25 +1,26 @@
 import { Entity } from "../lib/model.js/src/entity";
 import { Property } from "../lib/model.js/src/property";
+import { SourceAdapter, SourcePropertyAdapter } from "./source-adapter";
 
-export class FieldAdapter<TEntity extends Entity, TValue> {
+export class SourcePathAdapter<TEntity extends Entity, TValue> implements SourcePropertyAdapter, SourceAdapter<TValue> {
 
-    // Public read-only properties: aspects of the field adapter that cannot be
-    // changed without fundamentally changing what the field adapter is
-    readonly entity: TEntity;
+    // Public read-only properties: aspects of the object that cannot be
+    // changed without fundamentally changing what the object is
+    readonly source: SourceAdapter<TEntity>;
     readonly path: string;
 
     // TODO: Support format options
     // private _format: string;
 
-    constructor(entity: TEntity, path: string) {
+    constructor(source: SourceAdapter<TEntity>, path: string) {
         // Public read-only properties
-        Object.defineProperty(this, "entity", { enumerable: true, value: entity });
+        Object.defineProperty(this, "source", { enumerable: true, value: source });
         Object.defineProperty(this, "path", { enumerable: true, value: path });
     }
 
     get property(): Property {
         // TODO: Support multi-hop path
-        return this.entity.meta.type.property(this.path);
+        return this.source.value.meta.type.property(this.path);
     }
 
     get label(): string {
@@ -31,20 +32,15 @@ export class FieldAdapter<TEntity extends Entity, TValue> {
     }
 
     get value(): TValue {
-        var value = this.property.value(this.entity) as any;
-        return value as TValue;
+        return this.property.value(this.source.value) as any;
     }
 
     set value(value: TValue) {
-        this.property.value(this.entity, value);
+        this.property.value(this.source.value, value);
     }
 
     get displayValue(): string {
-        var value = this.property.value(this.entity) as any;
-
-        if (this.property.format != null) {
-            return this.property.format.convert(value);
-        }
+        let value = this.property.value(this.source.value) as any;
 
         let displayValue: string | Array<string>;
 
@@ -76,11 +72,11 @@ export class FieldAdapter<TEntity extends Entity, TValue> {
     }
 
     set displayValue(text: string) {
-        if (this.property.format != null) {
-            var value = this.property.format.convertBack(text);
-            this.property.value(this.entity, value);
-        } else {
-            this.property.value(this.entity, text);
-        }
+        this.value = this.property.format != null ? this.property.format.convertBack(text) : text;
     }
+
+    toString(): string {
+        return "Source['" + this.path + "']";
+    }
+
 }

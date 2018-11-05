@@ -1,4 +1,4 @@
-/// <reference path="./ste-core.d.ts" />
+/// <reference path="ste-core.d.ts" />
 declare module 'ste-events' {
     import { IEventManagement, ISubscribable, IBaseEventHandling } from "ste-core";
     /**
