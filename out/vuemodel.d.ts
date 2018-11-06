@@ -939,7 +939,7 @@ declare module 'VueModel/src/source-binding' {
 	export interface SourceBindingDependencies {
 	    Model$Entity: EntityConstructor;
 	}
-	export function proxySourceAdapterPropertiesOntoComponentInstance(vm: Vue, rootKey: string): void;
+	export function proxySourceAdapterPropertiesOntoComponentInstance(vm: Vue, rootKey: string, force?: boolean, overwrite?: boolean): void;
 	export function preprocessPropsToInterceptSource(vm: Vue): void;
 	export function defineDollarSourceProperty(vm: Vue, sourceAdapter: SourceAdapter<any>): void;
 	export function getSourceBindingContainer(vm: Vue, dependencies: SourceBindingDependencies, detectImplicitSource?: boolean): Vue;
