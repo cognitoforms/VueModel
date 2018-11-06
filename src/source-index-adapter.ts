@@ -1,18 +1,47 @@
 import { Entity } from "../lib/model.js/src/entity";
 import { SourceAdapter } from "./source-adapter";
 import { SourcePathAdapter } from "./source-path-adapter";
+import { ObservableList } from "../lib/model.js/src/observable-list";
 
 export class SourceIndexAdapter<TEntity extends Entity, TValue> implements SourceAdapter<TValue> {
 
     // Public read-only properties: aspects of the object that cannot be
     // changed without fundamentally changing what the object is
     readonly source: SourcePathAdapter<TEntity, TValue[]>;
-    readonly index: number;
+
+	// Backing fields for properties that are settable and also derived from
+	// other data, calculated in some way, or cannot simply be changed
+    private _index: number;
 
     constructor(source: SourcePathAdapter<TEntity, TValue[]>, index: number) {
         // Public read-only properties
         Object.defineProperty(this, "source", { enumerable: true, value: source });
-        Object.defineProperty(this, "index", { enumerable: true, value: index });
+
+		// Backing fields for properties
+		Object.defineProperty(this, "_index", { enumerable: false, value: index, writable: true });
+
+        // If the source array is modified, then update the index if needed
+        this.subscribeToSourceChanges();
+    }
+
+    private subscribeToSourceChanges() {
+        let _this = this;
+        let list = ObservableList.ensureObservable(this.source.value);
+        list.changed.subscribe((sender, args) => {
+            if (args.addedIndex >= 0) {
+                if (args.addedIndex < _this.index) {
+                    this._index += args.added.length;
+                }
+            } else if (args.removedIndex >= 0) {
+                if (args.removedIndex < _this.index) {
+                    this._index -= args.removed.length;
+                }
+            }
+        });
+    }
+
+	get index(): number {
+        return this._index;
     }
 
     get value(): TValue {

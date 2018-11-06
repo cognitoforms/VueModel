@@ -1,5 +1,5 @@
 /*!
- * VueModel.js v0.0.9
+ * VueModel.js v0.0.10
  * (c) 2018 Cognito LLC
  * Released under the MIT License.
  */
@@ -2242,8 +2242,35 @@
 	    function SourceIndexAdapter(source, index) {
 	        // Public read-only properties
 	        Object.defineProperty(this, "source", { enumerable: true, value: source });
-	        Object.defineProperty(this, "index", { enumerable: true, value: index });
+	        // Backing fields for properties
+	        Object.defineProperty(this, "_index", { enumerable: false, value: index, writable: true });
+	        // If the source array is modified, then update the index if needed
+	        this.subscribeToSourceChanges();
 	    }
+	    SourceIndexAdapter.prototype.subscribeToSourceChanges = function () {
+	        var _this_1 = this;
+	        var _this = this;
+	        var list = ObservableList.ensureObservable(this.source.value);
+	        list.changed.subscribe(function (sender, args) {
+	            if (args.addedIndex >= 0) {
+	                if (args.addedIndex < _this.index) {
+	                    _this_1._index += args.added.length;
+	                }
+	            }
+	            else if (args.removedIndex >= 0) {
+	                if (args.removedIndex < _this.index) {
+	                    _this_1._index -= args.removed.length;
+	                }
+	            }
+	        });
+	    };
+	    Object.defineProperty(SourceIndexAdapter.prototype, "index", {
+	        get: function () {
+	            return this._index;
+	        },
+	        enumerable: true,
+	        configurable: true
+	    });
 	    Object.defineProperty(SourceIndexAdapter.prototype, "value", {
 	        get: function () {
 	            var list = this.source.value;

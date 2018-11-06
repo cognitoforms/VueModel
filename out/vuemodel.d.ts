@@ -891,8 +891,10 @@ declare module 'VueModel/src/source-index-adapter' {
 	import { SourcePathAdapter } from 'VueModel/src/source-path-adapter';
 	export class SourceIndexAdapter<TEntity extends Entity, TValue> implements SourceAdapter<TValue> {
 	    readonly source: SourcePathAdapter<TEntity, TValue[]>;
-	    readonly index: number;
+	    private _index;
 	    constructor(source: SourcePathAdapter<TEntity, TValue[]>, index: number);
+	    private subscribeToSourceChanges;
+	    readonly index: number;
 	    value: TValue;
 	    displayValue: string;
 	    toString(): string;

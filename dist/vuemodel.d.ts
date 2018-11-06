@@ -64,8 +64,8 @@ declare module 'vuemodel' {
 	}
 	export class SourceIndexAdapter<TEntity extends Entity, TValue> implements SourceAdapter<TValue> {
 	    readonly source: SourcePathAdapter<TEntity, TValue[]>;
-	    readonly index: number;
 	    constructor(source: SourcePathAdapter<TEntity, TValue[]>, index: number);
+	    readonly index: number;
 	    value: TValue;
 	    displayValue: string;
 	    toString(): string;
