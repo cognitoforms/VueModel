@@ -33,9 +33,10 @@ export function SourceProviderMixin(dependencies: SourceProviderDependencies) {
                 // Define the `$source` property if not already defined
                 defineDollarSourceProperty(vm, sourceAdapter);
 
+                // TODO: Who wins, props or data?
                 // Vue proxies the data objects `Object.keys()` onto the component itself,
                 // so that the data objects properties can be used directly in templates
-                proxySourceAdapterPropertiesOntoComponentInstance(vm, '_data');
+                proxySourceAdapterPropertiesOntoComponentInstance(vm, '_data', false, false);
             }
 
             if (vm.$options.propsData) {

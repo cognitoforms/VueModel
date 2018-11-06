@@ -24,35 +24,72 @@ declare module 'vuemodel' {
 	export interface Plugin {
 	    install(Vue: VueConstructor): void;
 	}
-	export class EntityObserver extends Observer {
-		constructor(entity: Entity);
+	export interface EntityObserver extends Observer {
 	}
 	export interface EntityObserverConstructor {
-		new(entity: Entity): EntityObserver;
+	    new (entity: Entity): EntityObserver;
 	}
 	export interface VueModelOptions {
-		createOwnProperties: boolean;
+	    createOwnProperties: boolean;
 	}
 	export class VueModel {
-		readonly $meta: Model;
-		constructor(options: VueModelOptions);
+	    readonly $meta: Model;
+	    constructor(options: VueModelOptions);
+	}
+	export interface VueModelMixins {
+		SourceProvider: any;
+		SourceConsumer: any;
 	}
 	export interface VueModelConstructor {
 		new(options: VueModelOptions): VueModel;
 		install(Vue: VueConstructor): void;
-		SourceAdapter: SourceAdapterConstructor;
+		mixins: VueModelMixins;
+		SourceRootAdapter: SourceRootAdapterConstructor;
+		SourcePathAdapter: SourcePathAdapterConstructor;
+		SourceIndexAdapter: SourceIndexAdapterConstructor;
 	}
-	export class SourceAdapter<TEntity extends Entity, TValue> {
-		readonly entity: TEntity;
-		readonly path: string;
-		constructor(entity: TEntity, path: string);
-		readonly property: Property;
-		readonly label: string;
-		readonly helptext: string;
-		value: TValue;
-		displayValue: string;
+	export class SourcePathAdapter<TEntity extends Entity, TValue> implements SourcePropertyAdapter, SourceAdapter<TValue> {
+	    readonly source: SourceAdapter<TEntity>;
+	    readonly path: string;
+	    constructor(source: SourceAdapter<TEntity>, path: string);
+	    readonly property: Property;
+	    readonly label: string;
+	    readonly helptext: string;
+	    value: TValue;
+	    displayValue: string;
+	    toString(): string;
 	}
-	export interface SourceAdapterConstructor {
-		new <TEntity extends Entity, TValue>(entity: TEntity, path: string): SourceAdapter<TEntity, TValue>;
+	export interface SourcePathAdapterConstructor {
+	    new <TEntity extends Entity, TValue>(source: SourceAdapter<TEntity>, path: string): SourcePathAdapter<TEntity, TValue>;
+	}
+	export class SourceIndexAdapter<TEntity extends Entity, TValue> implements SourceAdapter<TValue> {
+	    readonly source: SourcePathAdapter<TEntity, TValue[]>;
+	    readonly index: number;
+	    constructor(source: SourcePathAdapter<TEntity, TValue[]>, index: number);
+	    value: TValue;
+	    displayValue: string;
+	    toString(): string;
+	}
+	export interface SourceIndexAdapterConstructor {
+	    new <TEntity extends Entity, TValue>(source: SourcePathAdapter<TEntity, TValue[]>, index: number): SourceIndexAdapter<TEntity, TValue>;
+	}
+	export interface SourceAdapter<TValue> {
+	    value: TValue;
+	    displayValue: string;
+	}
+	export interface SourcePropertyAdapter {
+	    readonly label: string;
+	    readonly helptext: string;
+	    readonly property: Property;
+	}
+	export class SourceRootAdapter<TEntity extends Entity> implements SourceAdapter<TEntity> {
+	    readonly entity: TEntity;
+	    constructor(entity: TEntity);
+	    readonly value: TEntity;
+	    readonly displayValue: string;
+	    toString(): string;
+	}
+	export interface SourceRootAdapterConstructor {
+	    new <TEntity extends Entity>(entity: TEntity): SourceRootAdapter<TEntity>;
 	}
 }

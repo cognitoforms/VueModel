@@ -11,7 +11,7 @@ export interface SourceBindingDependencies {
     Model$Entity: EntityConstructor;
 }
 
-export function proxySourceAdapterPropertiesOntoComponentInstance(vm: Vue, rootKey: string) {
+export function proxySourceAdapterPropertiesOntoComponentInstance(vm: Vue, rootKey: string, force: boolean = false, overwrite: boolean = false) {
 
     let vm$private: any = vm as any;
 
@@ -30,13 +30,28 @@ export function proxySourceAdapterPropertiesOntoComponentInstance(vm: Vue, rootK
 
     debug("Proxying source adapter properties for <" + sourceAdapter + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
 
+    let props = vm$private.$options.propsData;
+    let propKeys = vm$private.$options._propKeys.slice();
+
     if (isSourcePropertyAdapter(vm$private[rootKey])) {
-        Vue$proxy(vm, rootKey, "label");
-        Vue$proxy(vm, rootKey, "helptext");
+
+        if (force || (propKeys.indexOf("label") >= 0 && (overwrite || !hasOwnProperty(props, "label")))) {
+            Vue$proxy(vm, '_source', "label");
+        }
+
+        if (force || (propKeys.indexOf("helptext") >= 0 && (overwrite || !hasOwnProperty(props, "helptext")))) {
+            Vue$proxy(vm, '_source', "helptext");
+        }
+
     }
 
-    Vue$proxy(vm, rootKey, "value");
-    Vue$proxy(vm, rootKey, "displayValue");
+    if (force || (propKeys.indexOf("value") >= 0 && (overwrite || !hasOwnProperty(props, "value")))) {
+        Vue$proxy(vm, '_source', "value");
+    }
+
+    if (force || (propKeys.indexOf("displayValue") >= 0 && (overwrite || !hasOwnProperty(props, "displayValue")))) {
+        Vue$proxy(vm, '_source', "displayValue");
+    }
 
 }
 
@@ -67,6 +82,8 @@ export function defineDollarSourceProperty(vm: Vue, sourceAdapter: SourceAdapter
 
     if (!hasOwnProperty(vm, '$source')) {
         Object.defineProperty(vm, '$source', {
+            configurable: false,
+            enumerable: true,
             get: function() {
                 return this._source;
             },
@@ -236,7 +253,7 @@ export function establishBindingSource(vm: Vue, dependencies: SourceBindingDepen
 
         if (sourceAdapter != null) {
             defineDollarSourceProperty(vm, sourceAdapter);
-            proxySourceAdapterPropertiesOntoComponentInstance(vm, '_source');
+            proxySourceAdapterPropertiesOntoComponentInstance(vm, '_source', false, false);
         }
 
     } else {

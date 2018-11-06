@@ -80,3 +80,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> implements Source
     }
 
 }
+
+export interface SourcePathAdapterConstructor {
+    new <TEntity extends Entity, TValue>(source: SourceAdapter<TEntity>, path: string): SourcePathAdapter<TEntity, TValue>;
+}

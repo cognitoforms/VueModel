@@ -67,3 +67,7 @@ export class SourceIndexAdapter<TEntity extends Entity, TValue> implements Sourc
     }
 
 }
+
+export interface SourceIndexAdapterConstructor {
+    new <TEntity extends Entity, TValue>(source: SourcePathAdapter<TEntity, TValue[]>, index: number): SourceIndexAdapter<TEntity, TValue>;
+}

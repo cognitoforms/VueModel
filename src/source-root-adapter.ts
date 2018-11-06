@@ -26,3 +26,7 @@ export class SourceRootAdapter<TEntity extends Entity> implements SourceAdapter<
     }
 
 }
+
+export interface SourceRootAdapterConstructor {
+    new <TEntity extends Entity>(entity: TEntity): SourceRootAdapter<TEntity>;
+}

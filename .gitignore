@@ -6,3 +6,5 @@ legacy/
 migration/
 src/*.js
 lib/model.js/src/*.js
+bin/**
+obj/**

@@ -1,5 +1,5 @@
 /*!
- * VueModel.js v0.0.8
+ * VueModel.js v0.0.9
  * (c) 2018 Cognito LLC
  * Released under the MIT License.
  */
@@ -2088,9 +2088,10 @@
 	            //     let sourceAdapter = vm$private._data as SourceAdapter<any>;
 	            //     // Define the `$source` property if not already defined
 	            //     defineDollarSourceProperty(vm, sourceAdapter);
+	            //     // TODO: Who wins, props or data?
 	            //     // Vue proxies the data objects `Object.keys()` onto the component itself,
 	            //     // so that the data objects properties can be used directly in templates
-	            //     proxySourceAdapterPropertiesOntoComponentInstance(vm, '_data');
+	            //     proxySourceAdapterPropertiesOntoComponentInstance(vm, '_data', false, false);
 	            // }
 	            // Handle computed `source` property that is of type `SourceAdapter`?
 	            // if (vm.$options.propsData) {
@@ -2306,7 +2307,9 @@
 	    return false;
 	}
 
-	function proxySourceAdapterPropertiesOntoComponentInstance(vm, rootKey) {
+	function proxySourceAdapterPropertiesOntoComponentInstance(vm, rootKey, force, overwrite) {
+	    if (force === void 0) { force = false; }
+	    if (overwrite === void 0) { overwrite = false; }
 	    var vm$private = vm;
 	    if (!hasOwnProperty(vm$private, rootKey)) {
 	        // TODO: Warn about missing value for `rootKey`?
@@ -2319,12 +2322,22 @@
 	    }
 	    var sourceAdapter = vm$private[rootKey];
 	    debug("Proxying source adapter properties for <" + sourceAdapter + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
+	    var props = vm$private.$options.propsData;
+	    var propKeys = vm$private.$options._propKeys.slice();
 	    if (isSourcePropertyAdapter(vm$private[rootKey])) {
-	        Vue$proxy(vm, rootKey, "label");
-	        Vue$proxy(vm, rootKey, "helptext");
+	        if (force || (propKeys.indexOf("label") >= 0 && (overwrite || !hasOwnProperty(props, "label")))) {
+	            Vue$proxy(vm, '_source', "label");
+	        }
+	        if (force || (propKeys.indexOf("helptext") >= 0 && (overwrite || !hasOwnProperty(props, "helptext")))) {
+	            Vue$proxy(vm, '_source', "helptext");
+	        }
 	    }
-	    Vue$proxy(vm, rootKey, "value");
-	    Vue$proxy(vm, rootKey, "displayValue");
+	    if (force || (propKeys.indexOf("value") >= 0 && (overwrite || !hasOwnProperty(props, "value")))) {
+	        Vue$proxy(vm, '_source', "value");
+	    }
+	    if (force || (propKeys.indexOf("displayValue") >= 0 && (overwrite || !hasOwnProperty(props, "displayValue")))) {
+	        Vue$proxy(vm, '_source', "displayValue");
+	    }
 	}
 	function preprocessPropsToInterceptSource(vm) {
 	    var vm$private = vm;
@@ -2344,6 +2357,8 @@
 	    }
 	    if (!hasOwnProperty(vm, '$source')) {
 	        Object.defineProperty(vm, '$source', {
+	            configurable: false,
+	            enumerable: true,
 	            get: function () {
 	                return this._source;
 	            },
@@ -2484,7 +2499,7 @@
 	        }
 	        if (sourceAdapter != null) {
 	            defineDollarSourceProperty(vm, sourceAdapter);
-	            proxySourceAdapterPropertiesOntoComponentInstance(vm, '_source');
+	            proxySourceAdapterPropertiesOntoComponentInstance(vm, '_source', false, false);
 	        }
 	    }
 	    delete vm$private['_sourcePending'];
@@ -2508,9 +2523,10 @@
 	                var sourceAdapter = vm$private._data;
 	                // Define the `$source` property if not already defined
 	                defineDollarSourceProperty(vm, sourceAdapter);
+	                // TODO: Who wins, props or data?
 	                // Vue proxies the data objects `Object.keys()` onto the component itself,
 	                // so that the data objects properties can be used directly in templates
-	                proxySourceAdapterPropertiesOntoComponentInstance(vm, '_data');
+	                proxySourceAdapterPropertiesOntoComponentInstance(vm, '_data', false, false);
 	            }
 	            if (vm.$options.propsData) {
 	                var props = vm.$options.propsData;
@@ -2532,7 +2548,7 @@
 	                var source = sourceVm$private.$source;
 	                if (isSourceAdapter(source)) {
 	                    defineDollarSourceProperty(vm, sourceVm$private.$source);
-	                    proxySourceAdapterPropertiesOntoComponentInstance(vm, '_source');
+	                    proxySourceAdapterPropertiesOntoComponentInstance(vm, '_source', false, false);
 	                }
 	            }
 	        }

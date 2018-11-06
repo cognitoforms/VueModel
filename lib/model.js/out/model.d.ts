@@ -1,6 +1,6 @@
-declare module 'Model/object-meta' {
-	import { Type } from 'Model/type';
-	import { Entity } from 'Model/entity';
+declare module 'model.js/object-meta' {
+	import { Type } from 'model.js/type';
+	import { Entity } from 'model.js/entity';
 	export class ObjectMeta {
 	    readonly type: Type;
 	    readonly entity: Entity;
@@ -13,9 +13,12 @@ declare module 'Model/object-meta' {
 	    legacyId: string;
 	    destroy(): void;
 	}
+	export interface ObjectMetaConstructor {
+	    new (type: Type, entity: Entity, id: string, isNew: boolean): ObjectMeta;
+	}
 
 }
-declare module 'Model/format' {
+declare module 'model.js/format' {
 	export type FormatConvertFunction = (value: any) => string;
 	export type FormatConvertBackFunction = (value: string) => string;
 	export interface FormatOptions {
@@ -40,10 +43,13 @@ declare module 'Model/format' {
 	    convertBack(val: string): any;
 	    toString(): string;
 	}
+	export interface FormatConstructor {
+	    new (options: FormatOptions): Format;
+	}
 
 }
-declare module 'Model/entity' {
-	import { ObjectMeta } from 'Model/object-meta';
+declare module 'model.js/entity' {
+	import { ObjectMeta } from 'model.js/object-meta';
 	export class Entity {
 	    readonly meta: ObjectMeta;
 	    init(properties: {
@@ -59,9 +65,14 @@ declare module 'Model/entity' {
 	    static toIdString(obj: Entity): string;
 	    static fromIdString(idString: string): any;
 	}
+	export interface EntityConstructor {
+	    new (): Entity;
+	    toIdString(obj: Entity): string;
+	    fromIdString(idString: string): any;
+	}
 
 }
-declare module 'Model/helpers' {
+declare module 'model.js/helpers' {
 	export function ensureNamespace(name: string, parentNamespace: any): any;
 	export function navigateAttribute(obj: any, attr: string, callback: Function, thisPtr?: any): void;
 	export function evalPath(obj: any, path: string, nullValue?: any, undefinedValue?: any): any;
@@ -73,12 +84,12 @@ declare module 'Model/helpers' {
 	export function toTitleCase(input: string): string;
 
 }
-declare module 'Model/internals' {
+declare module 'model.js/internals' {
 	export function createSecret(key: string, len?: number, includeLetters?: boolean, includeDigits?: boolean, prefix?: string): string;
 	export function getSecret(key: string): string;
 
 }
-declare module 'Model/observable-list' {
+declare module 'model.js/observable-list' {
 	import { EventDispatcher, IEvent } from "ste-events";
 	export interface ObservableListChangedArgs<ItemType> {
 	    added: ItemType[];
@@ -122,14 +133,19 @@ declare module 'Model/observable-list' {
 	    /** Expose the changed event */
 	    readonly changed: IEvent<Array<ItemType>, ObservableListChangedArgs<ItemType>>;
 	}
+	export interface ObservableListConstructor {
+	    isObservableList<ItemType>(array: Array<ItemType>): boolean;
+	    ensureObservable<ItemType>(array: Array<ItemType>): ObservableList<ItemType>;
+	    create<ItemType>(items?: ItemType[]): ObservableList<ItemType>;
+	}
 	export {};
 
 }
-declare module 'Model/property' {
-	import { Type } from 'Model/type';
-	import { Entity } from 'Model/entity';
+declare module 'model.js/property' {
+	import { Type } from 'model.js/type';
+	import { Entity } from 'model.js/entity';
 	import { EventDispatcher, IEvent } from "ste-events";
-	import { Format } from 'Model/format';
+	import { Format } from 'model.js/format';
 	export interface PropertyEventArgs {
 	    property: Property;
 	}
@@ -176,6 +192,9 @@ declare module 'Model/property' {
 	    value(obj?: Entity, val?: any, additionalArgs?: any): any;
 	    rootedPath(type: Type): string;
 	}
+	export interface PropertyConstructor {
+	    new (containingType: Type, name: string, jstype: any, label: string, helptext: string, format: Format, isList: boolean, isStatic: boolean, isPersisted: boolean, isCalculated: boolean, defaultValue?: any, origin?: string): Property;
+	}
 	export function Property$_generateShortcuts(property: Property, target: any, recurse?: boolean, overwrite?: boolean): void;
 	export function Property$_generateStaticProperty(property: Property): void;
 	export function Property$_generatePrototypeProperty(property: Property): void;
@@ -184,13 +203,13 @@ declare module 'Model/property' {
 	export {};
 
 }
-declare module 'Model/type' {
-	import { Model } from 'Model/model';
-	import { Entity } from 'Model/entity';
-	import { Property } from 'Model/property';
+declare module 'model.js/type' {
+	import { Model } from 'model.js/model';
+	import { Entity } from 'model.js/entity';
+	import { Property } from 'model.js/property';
 	import { EventDispatcher, IEvent } from "ste-events";
-	import { ObservableList } from 'Model/observable-list';
-	import { Format } from 'Model/format';
+	import { ObservableList } from 'model.js/observable-list';
+	import { Format } from 'model.js/format';
 	export interface TypeEntityInitNewEventArgs {
 	    entity: Entity;
 	}
@@ -245,14 +264,18 @@ declare module 'Model/type' {
 	    isSubclassOf(type: Type): boolean;
 	    toString(): string;
 	}
+	export interface TypeConstructor {
+	    new (model: Model, fullName: string, baseType?: Type, origin?: string): Type;
+	    newIdPrefix: string;
+	}
 	export {};
 
 }
-declare module 'Model/model' {
-	import { Type } from 'Model/type';
+declare module 'model.js/model' {
+	import { Type } from 'model.js/type';
 	import { EventDispatcher, IEvent } from "ste-events";
-	import { Entity } from 'Model/entity';
-	import { Property } from 'Model/property';
+	import { Entity } from 'model.js/entity';
+	import { Property } from 'model.js/property';
 	export interface NamespaceOrConstructor {
 	    [name: string]: NamespaceOrConstructor;
 	}
@@ -298,11 +321,18 @@ declare module 'Model/model' {
 	     */
 	    static getJsType(name: string, allowUndefined?: boolean): any;
 	}
+	export interface ModelConstructor {
+	    new (createOwnProperties?: boolean): Model;
+	    getJsType(name: string, allowUndefined?: boolean): any;
+	}
 	export {};
 
 }
-declare module 'Model/main' {
-	 var api: any;
-	export default api;
+declare module 'model.js/main' {
+	export { Model } from 'model.js/model';
+	export { Type } from 'model.js/type';
+	export { Property } from 'model.js/property';
+	export { Entity } from 'model.js/entity';
+	export { Format } from 'model.js/format';
 
 }

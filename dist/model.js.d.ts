@@ -11,7 +11,7 @@ declare module 'model.js' {
 	    destroy(): void;
 	}
 	export interface ObjectMetaConstructor {
-	    new(type: Type, entity: Entity, id: string, isNew: boolean): ObjectMeta;
+	    new (type: Type, entity: Entity, id: string, isNew: boolean): ObjectMeta;
 	}
 	export type FormatConvertFunction = (value: any) => string;
 	export type FormatConvertBackFunction = (value: string) => string;
@@ -38,7 +38,7 @@ declare module 'model.js' {
 	    toString(): string;
 	}
 	export interface FormatConstructor {
-	    new(options: FormatOptions): Format;
+	    new (options: FormatOptions): Format;
 	}
 	export class Entity {
 	    readonly meta: ObjectMeta;
@@ -52,7 +52,7 @@ declare module 'model.js' {
 	    static fromIdString(idString: string): any;
 	}
 	export interface EntityConstructor {
-		new(): Entity;
+	    new (): Entity;
 	    toIdString(obj: Entity): string;
 	    fromIdString(idString: string): any;
 	}
@@ -108,7 +108,7 @@ declare module 'model.js' {
 	    rootedPath(type: Type): string;
 	}
 	export interface PropertyConstructor {
-	    new(containingType: Type, name: string, jstype: any, label: string, helptext: string, format: Format, isList: boolean, isStatic: boolean, isPersisted: boolean, isCalculated: boolean, defaultValue?: any, origin?: string): Property;
+	    new (containingType: Type, name: string, jstype: any, label: string, helptext: string, format: Format, isList: boolean, isStatic: boolean, isPersisted: boolean, isCalculated: boolean, defaultValue?: any, origin?: string): Property;
 	}
 	export interface TypeEntityInitNewEventArgs {
 	    entity: Entity;
@@ -153,7 +153,7 @@ declare module 'model.js' {
 	    toString(): string;
 	}
 	export interface TypeConstructor {
-	    new(model: Model, fullName: string, baseType?: Type, origin?: string): Type;
+	    new (model: Model, fullName: string, baseType?: Type, origin?: string): Type;
 	    newIdPrefix: string;
 	}
 	export interface NamespaceOrConstructor {
@@ -183,10 +183,10 @@ declare module 'model.js' {
 	    dispose(): void;
 	    readonly types: Array<Type>;
 	    addType(name: string, baseType?: Type, origin?: string): Type;
-		static getJsType(name: string, allowUndefined?: boolean): any;
+	    static getJsType(name: string, allowUndefined?: boolean): any;
 	}
 	export interface ModelConstructor {
-	    new(createOwnProperties?: boolean): Model;
-		getJsType(name: string, allowUndefined?: boolean): any;
+	    new (createOwnProperties?: boolean): Model;
+	    getJsType(name: string, allowUndefined?: boolean): any;
 	}
 }

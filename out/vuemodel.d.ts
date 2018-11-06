@@ -1,4 +1,4 @@
-declare module 'vuemodel/src/vue-internals' {
+declare module 'VueModel/src/vue-internals' {
 	import Vue, { ComponentOptions } from "vue";
 	import { DefaultData, DefaultMethods, DefaultComputed, PropsDefinition, DefaultProps } from "vue/types/options";
 	export interface VueConstructor {
@@ -24,9 +24,9 @@ declare module 'vuemodel/src/vue-internals' {
 	}
 
 }
-declare module 'vuemodel/lib/model.js/src/object-meta' {
-	import { Type } from 'vuemodel/lib/model.js/src/type';
-	import { Entity } from 'vuemodel/lib/model.js/src/entity';
+declare module 'VueModel/lib/model.js/src/object-meta' {
+	import { Type } from 'VueModel/lib/model.js/src/type';
+	import { Entity } from 'VueModel/lib/model.js/src/entity';
 	export class ObjectMeta {
 	    readonly type: Type;
 	    readonly entity: Entity;
@@ -44,7 +44,7 @@ declare module 'vuemodel/lib/model.js/src/object-meta' {
 	}
 
 }
-declare module 'vuemodel/lib/model.js/src/format' {
+declare module 'VueModel/lib/model.js/src/format' {
 	export type FormatConvertFunction = (value: any) => string;
 	export type FormatConvertBackFunction = (value: string) => string;
 	export interface FormatOptions {
@@ -74,8 +74,8 @@ declare module 'vuemodel/lib/model.js/src/format' {
 	}
 
 }
-declare module 'vuemodel/lib/model.js/src/entity' {
-	import { ObjectMeta } from 'vuemodel/lib/model.js/src/object-meta';
+declare module 'VueModel/lib/model.js/src/entity' {
+	import { ObjectMeta } from 'VueModel/lib/model.js/src/object-meta';
 	export class Entity {
 	    readonly meta: ObjectMeta;
 	    init(properties: {
@@ -98,7 +98,7 @@ declare module 'vuemodel/lib/model.js/src/entity' {
 	}
 
 }
-declare module 'vuemodel/lib/model.js/node_modules/ste-core/dist/management' {
+declare module 'VueModel/lib/model.js/node_modules/ste-core/dist/management' {
 	/**
 	 * Manages the event.
 	 *
@@ -134,7 +134,7 @@ declare module 'vuemodel/lib/model.js/node_modules/ste-core/dist/management' {
 	}
 
 }
-declare module 'vuemodel/lib/model.js/node_modules/ste-core/dist/definitions/subscribable' {
+declare module 'VueModel/lib/model.js/node_modules/ste-core/dist/definitions/subscribable' {
 	/**
 	 * Indicates the object implements generic subscriptions.
 	 */
@@ -179,7 +179,7 @@ declare module 'vuemodel/lib/model.js/node_modules/ste-core/dist/definitions/sub
 	}
 
 }
-declare module 'vuemodel/lib/model.js/node_modules/ste-core/dist/subscription' {
+declare module 'VueModel/lib/model.js/node_modules/ste-core/dist/subscription' {
 	/**
 	 * Stores a handler. Manages execution meta data.
 	 * @class Subscription
@@ -210,9 +210,9 @@ declare module 'vuemodel/lib/model.js/node_modules/ste-core/dist/subscription' {
 	}
 
 }
-declare module 'vuemodel/lib/model.js/node_modules/ste-core/dist/dispatching' {
-	import { ISubscribable } from 'vuemodel/lib/model.js/node_modules/ste-core/dist/definitions/subscribable';
-	import { Subscription } from 'vuemodel/lib/model.js/node_modules/ste-core/dist/subscription';
+declare module 'VueModel/lib/model.js/node_modules/ste-core/dist/dispatching' {
+	import { ISubscribable } from 'VueModel/lib/model.js/node_modules/ste-core/dist/definitions/subscribable';
+	import { Subscription } from 'VueModel/lib/model.js/node_modules/ste-core/dist/subscription';
 	/**
 	 * Base class for implementation of the dispatcher. It facilitates the subscribe
 	 * and unsubscribe methods based on generic handlers. The TEventType specifies
@@ -352,7 +352,7 @@ declare module 'vuemodel/lib/model.js/node_modules/ste-core/dist/dispatching' {
 	}
 
 }
-declare module 'vuemodel/lib/model.js/node_modules/ste-core/dist/definitions/handling' {
+declare module 'VueModel/lib/model.js/node_modules/ste-core/dist/definitions/handling' {
 	/**
 	 * Base interface for event handling.
 	 */
@@ -396,7 +396,7 @@ declare module 'vuemodel/lib/model.js/node_modules/ste-core/dist/definitions/han
 	}
 
 }
-declare module 'vuemodel/lib/model.js/node_modules/ste-core/dist/index' {
+declare module 'VueModel/lib/model.js/node_modules/ste-core/dist/index' {
 	/*!
 	 * Strongly Typed Events for TypeScript - Core
 	 * https://github.com/KeesCBakker/StronlyTypedEvents/
@@ -405,14 +405,14 @@ declare module 'vuemodel/lib/model.js/node_modules/ste-core/dist/index' {
 	 * Copyright Kees C. Bakker / KeesTalksTech
 	 * Released under the MIT license
 	 */
-	export { IEventManagement } from 'vuemodel/lib/model.js/node_modules/ste-core/dist/management';
-	export { ISubscribable } from 'vuemodel/lib/model.js/node_modules/ste-core/dist/definitions/subscribable';
-	export { DispatcherBase, DispatcherWrapper, EventListBase } from 'vuemodel/lib/model.js/node_modules/ste-core/dist/dispatching';
-	export { Subscription } from 'vuemodel/lib/model.js/node_modules/ste-core/dist/subscription';
-	export { IBaseEventHandling } from 'vuemodel/lib/model.js/node_modules/ste-core/dist/definitions/handling';
+	export { IEventManagement } from 'VueModel/lib/model.js/node_modules/ste-core/dist/management';
+	export { ISubscribable } from 'VueModel/lib/model.js/node_modules/ste-core/dist/definitions/subscribable';
+	export { DispatcherBase, DispatcherWrapper, EventListBase } from 'VueModel/lib/model.js/node_modules/ste-core/dist/dispatching';
+	export { Subscription } from 'VueModel/lib/model.js/node_modules/ste-core/dist/subscription';
+	export { IBaseEventHandling } from 'VueModel/lib/model.js/node_modules/ste-core/dist/definitions/handling';
 
 }
-declare module 'vuemodel/lib/model.js/node_modules/ste-events/dist/definitions' {
+declare module 'VueModel/lib/model.js/node_modules/ste-events/dist/definitions' {
 	import { IEventManagement, ISubscribable, IBaseEventHandling } from "ste-core";
 	/**
 	 * Models an event with a generic sender and generic argument.
@@ -437,9 +437,9 @@ declare module 'vuemodel/lib/model.js/node_modules/ste-events/dist/definitions' 
 	}
 
 }
-declare module 'vuemodel/lib/model.js/node_modules/ste-events/dist/events' {
+declare module 'VueModel/lib/model.js/node_modules/ste-events/dist/events' {
 	import { DispatcherBase, EventListBase } from "ste-core";
-	import { IEventHandler, IEvent, IEventHandling } from 'vuemodel/lib/model.js/node_modules/ste-events/dist/definitions';
+	import { IEventHandler, IEvent, IEventHandling } from 'VueModel/lib/model.js/node_modules/ste-events/dist/definitions';
 	/**
 	 * Dispatcher implementation for events. Can be used to subscribe, unsubscribe
 	 * or dispatch events. Use the ToEvent() method to expose the event.
@@ -529,12 +529,12 @@ declare module 'vuemodel/lib/model.js/node_modules/ste-events/dist/events' {
 	}
 
 }
-declare module 'vuemodel/lib/model.js/node_modules/ste-events/dist/index' {
-	export { EventDispatcher, EventHandlingBase, EventList } from 'vuemodel/lib/model.js/node_modules/ste-events/dist/events';
-	export { IEventHandler, IEventHandling, IEvent } from 'vuemodel/lib/model.js/node_modules/ste-events/dist/definitions';
+declare module 'VueModel/lib/model.js/node_modules/ste-events/dist/index' {
+	export { EventDispatcher, EventHandlingBase, EventList } from 'VueModel/lib/model.js/node_modules/ste-events/dist/events';
+	export { IEventHandler, IEventHandling, IEvent } from 'VueModel/lib/model.js/node_modules/ste-events/dist/definitions';
 
 }
-declare module 'vuemodel/lib/model.js/src/helpers' {
+declare module 'VueModel/lib/model.js/src/helpers' {
 	export function ensureNamespace(name: string, parentNamespace: any): any;
 	export function navigateAttribute(obj: any, attr: string, callback: Function, thisPtr?: any): void;
 	export function evalPath(obj: any, path: string, nullValue?: any, undefinedValue?: any): any;
@@ -546,12 +546,12 @@ declare module 'vuemodel/lib/model.js/src/helpers' {
 	export function toTitleCase(input: string): string;
 
 }
-declare module 'vuemodel/lib/model.js/src/internals' {
+declare module 'VueModel/lib/model.js/src/internals' {
 	export function createSecret(key: string, len?: number, includeLetters?: boolean, includeDigits?: boolean, prefix?: string): string;
 	export function getSecret(key: string): string;
 
 }
-declare module 'vuemodel/lib/model.js/src/observable-list' {
+declare module 'VueModel/lib/model.js/src/observable-list' {
 	import { EventDispatcher, IEvent } from "ste-events";
 	export interface ObservableListChangedArgs<ItemType> {
 	    added: ItemType[];
@@ -603,11 +603,11 @@ declare module 'vuemodel/lib/model.js/src/observable-list' {
 	export {};
 
 }
-declare module 'vuemodel/lib/model.js/src/property' {
-	import { Type } from 'vuemodel/lib/model.js/src/type';
-	import { Entity } from 'vuemodel/lib/model.js/src/entity';
+declare module 'VueModel/lib/model.js/src/property' {
+	import { Type } from 'VueModel/lib/model.js/src/type';
+	import { Entity } from 'VueModel/lib/model.js/src/entity';
 	import { EventDispatcher, IEvent } from "ste-events";
-	import { Format } from 'vuemodel/lib/model.js/src/format';
+	import { Format } from 'VueModel/lib/model.js/src/format';
 	export interface PropertyEventArgs {
 	    property: Property;
 	}
@@ -665,13 +665,13 @@ declare module 'vuemodel/lib/model.js/src/property' {
 	export {};
 
 }
-declare module 'vuemodel/lib/model.js/src/type' {
-	import { Model } from 'vuemodel/lib/model.js/src/model';
-	import { Entity } from 'vuemodel/lib/model.js/src/entity';
-	import { Property } from 'vuemodel/lib/model.js/src/property';
+declare module 'VueModel/lib/model.js/src/type' {
+	import { Model } from 'VueModel/lib/model.js/src/model';
+	import { Entity } from 'VueModel/lib/model.js/src/entity';
+	import { Property } from 'VueModel/lib/model.js/src/property';
 	import { EventDispatcher, IEvent } from "ste-events";
-	import { ObservableList } from 'vuemodel/lib/model.js/src/observable-list';
-	import { Format } from 'vuemodel/lib/model.js/src/format';
+	import { ObservableList } from 'VueModel/lib/model.js/src/observable-list';
+	import { Format } from 'VueModel/lib/model.js/src/format';
 	export interface TypeEntityInitNewEventArgs {
 	    entity: Entity;
 	}
@@ -733,11 +733,11 @@ declare module 'vuemodel/lib/model.js/src/type' {
 	export {};
 
 }
-declare module 'vuemodel/lib/model.js/src/model' {
-	import { Type } from 'vuemodel/lib/model.js/src/type';
+declare module 'VueModel/lib/model.js/src/model' {
+	import { Type } from 'VueModel/lib/model.js/src/type';
 	import { EventDispatcher, IEvent } from "ste-events";
-	import { Entity } from 'vuemodel/lib/model.js/src/entity';
-	import { Property } from 'vuemodel/lib/model.js/src/property';
+	import { Entity } from 'VueModel/lib/model.js/src/entity';
+	import { Property } from 'VueModel/lib/model.js/src/property';
 	export interface NamespaceOrConstructor {
 	    [name: string]: NamespaceOrConstructor;
 	}
@@ -786,28 +786,28 @@ declare module 'vuemodel/lib/model.js/src/model' {
 	export interface ModelConstructor {
 	    new (createOwnProperties?: boolean): Model;
 	    getJsType(name: string, allowUndefined?: boolean): any;
-	    Model: ModelConstructor;
 	}
 	export {};
 
 }
-declare module 'vuemodel/src/helpers' {
+declare module 'VueModel/src/helpers' {
 	export function getProp(obj: any, prop: string): any;
 	export function setProp(target: any, key: string, value: any): void;
 	export function hasOwnProperty(obj: any, prop: string): any;
 	export function debug(message: string): void;
 
 }
-declare module 'vuemodel/src/vue-helpers' {
+declare module 'VueModel/src/vue-helpers' {
 	export function Vue$isReserved(str: string): boolean;
 	export function Vue$dependArray(value: Array<any>): void;
+	export function Vue$proxy(target: Object, sourceKey: string, key: string): void;
 
 }
-declare module 'vuemodel/src/entity-observer' {
-	import { Model, ModelConstructor } from 'vuemodel/lib/model.js/src/model';
-	import { Entity, EntityConstructor } from 'vuemodel/lib/model.js/src/entity';
-	import { PropertyConstructor } from 'vuemodel/lib/model.js/src/property';
-	import { Observer, ObserverConstructor, DepConstructor } from 'vuemodel/src/vue-internals';
+declare module 'VueModel/src/entity-observer' {
+	import { Model, ModelConstructor } from 'VueModel/lib/model.js/src/model';
+	import { Entity, EntityConstructor } from 'VueModel/lib/model.js/src/entity';
+	import { PropertyConstructor } from 'VueModel/lib/model.js/src/property';
+	import { Observer, ObserverConstructor, DepConstructor } from 'VueModel/src/vue-internals';
 	export interface EntityObserver extends Observer {
 	}
 	export interface EntityObserverConstructor {
@@ -827,39 +827,35 @@ declare module 'vuemodel/src/entity-observer' {
 	export function VueModel$makeEntitiesVueObservable(model: Model, dependencies: EntityObserverDependencies): EntityObserverDependencies;
 
 }
-declare module 'vuemodel/src/source-adapter' {
-	import { Entity } from 'vuemodel/lib/model.js/src/entity';
-	import { Property } from 'vuemodel/lib/model.js/src/property';
-	export class SourceAdapter<TEntity extends Entity, TValue> {
-	    readonly entity: TEntity;
-	    readonly path: string;
-	    constructor(entity: TEntity, path: string);
-	    readonly property: Property;
-	    readonly label: string;
-	    readonly helptext: string;
-	    value: TValue;
-	    displayValue: string;
+declare module 'VueModel/src/vue-plugin-entities' {
+	import Vue from "vue";
+	import { Entity, EntityConstructor } from 'VueModel/lib/model.js/src/entity';
+	import { ObserveEntityMethod } from 'VueModel/src/entity-observer';
+	import { VuePluginDependencies } from 'VueModel/src/vue-plugin';
+	export interface VuePluginEntitiesDependencies {
+	    entitiesAreVueObservable: boolean;
+	    Model$Entity: EntityConstructor;
+	    VueModel$observeEntity: ObserveEntityMethod;
 	}
+	export function preprocessDataToInterceptEntities(vm: Vue, dependencies: VuePluginDependencies): void;
+	export function proxyEntityPropertiesOntoComponentInstance(vm: Vue, entity: Entity): void;
+	export function restoreComponentEntityData(vm: Vue, dependencies: VuePluginEntitiesDependencies): void;
 
 }
-declare module 'vuemodel/src/vue-plugin' {
-	import { VueConstructor, ObserverConstructor, DepConstructor } from 'vuemodel/src/vue-internals';
-	import { ModelConstructor } from 'vuemodel/lib/model.js/src/model';
-	import { EntityConstructor } from 'vuemodel/lib/model.js/src/entity';
-	import { PropertyConstructor } from 'vuemodel/lib/model.js/src/property';
+declare module 'VueModel/src/vue-plugin' {
+	import { VueConstructor, ObserverConstructor, DepConstructor } from 'VueModel/src/vue-internals';
+	import { EntityConstructor } from 'VueModel/lib/model.js/src/entity';
 	export interface VuePluginDependencies {
 	    entitiesAreVueObservable: boolean;
-	    Model$Model: ModelConstructor;
 	    Model$Entity: EntityConstructor;
-	    Model$Property: PropertyConstructor;
 	    Vue$Observer?: ObserverConstructor;
 	    Vue$Dep?: DepConstructor;
 	}
 	export function VueModel$installPlugin(Vue: VueConstructor, dependencies: VuePluginDependencies): void;
 
 }
-declare module 'vuemodel/src/vue-model' {
-	import { Model } from 'vuemodel/lib/model.js/src/model';
+declare module 'VueModel/src/vue-model' {
+	import { Model } from 'VueModel/lib/model.js/src/model';
 	export interface VueModelOptions {
 	    createOwnProperties: boolean;
 	}
@@ -869,7 +865,110 @@ declare module 'vuemodel/src/vue-model' {
 	}
 
 }
-declare module 'vuemodel/src/main' {
+declare module 'VueModel/src/source-path-adapter' {
+	import { Entity } from 'VueModel/lib/model.js/src/entity';
+	import { Property } from 'VueModel/lib/model.js/src/property';
+	import { SourceAdapter, SourcePropertyAdapter } from 'VueModel/src/source-adapter';
+	export class SourcePathAdapter<TEntity extends Entity, TValue> implements SourcePropertyAdapter, SourceAdapter<TValue> {
+	    readonly source: SourceAdapter<TEntity>;
+	    readonly path: string;
+	    constructor(source: SourceAdapter<TEntity>, path: string);
+	    readonly property: Property;
+	    readonly label: string;
+	    readonly helptext: string;
+	    value: TValue;
+	    displayValue: string;
+	    toString(): string;
+	}
+	export interface SourcePathAdapterConstructor {
+	    new <TEntity extends Entity, TValue>(source: SourceAdapter<TEntity>, path: string): SourcePathAdapter<TEntity, TValue>;
+	}
+
+}
+declare module 'VueModel/src/source-index-adapter' {
+	import { Entity } from 'VueModel/lib/model.js/src/entity';
+	import { SourceAdapter } from 'VueModel/src/source-adapter';
+	import { SourcePathAdapter } from 'VueModel/src/source-path-adapter';
+	export class SourceIndexAdapter<TEntity extends Entity, TValue> implements SourceAdapter<TValue> {
+	    readonly source: SourcePathAdapter<TEntity, TValue[]>;
+	    readonly index: number;
+	    constructor(source: SourcePathAdapter<TEntity, TValue[]>, index: number);
+	    value: TValue;
+	    displayValue: string;
+	    toString(): string;
+	}
+	export interface SourceIndexAdapterConstructor {
+	    new <TEntity extends Entity, TValue>(source: SourcePathAdapter<TEntity, TValue[]>, index: number): SourceIndexAdapter<TEntity, TValue>;
+	}
+
+}
+declare module 'VueModel/src/source-adapter' {
+	import { Property } from 'VueModel/lib/model.js/src/property';
+	export interface SourceAdapter<TValue> {
+	    value: TValue;
+	    displayValue: string;
+	}
+	export interface SourcePropertyAdapter {
+	    readonly label: string;
+	    readonly helptext: string;
+	    readonly property: Property;
+	}
+	export function isSourceAdapter(obj: any): boolean;
+	export function isSourcePropertyAdapter(obj: any): boolean;
+
+}
+declare module 'VueModel/src/source-root-adapter' {
+	import { Entity } from 'VueModel/lib/model.js/src/entity';
+	import { SourceAdapter } from 'VueModel/src/source-adapter';
+	export class SourceRootAdapter<TEntity extends Entity> implements SourceAdapter<TEntity> {
+	    readonly entity: TEntity;
+	    constructor(entity: TEntity);
+	    readonly value: TEntity;
+	    readonly displayValue: string;
+	    toString(): string;
+	}
+	export interface SourceRootAdapterConstructor {
+	    new <TEntity extends Entity>(entity: TEntity): SourceRootAdapter<TEntity>;
+	}
+
+}
+declare module 'VueModel/src/source-binding' {
+	import Vue from "vue";
+	import { EntityConstructor } from 'VueModel/lib/model.js/src/entity';
+	import { SourceAdapter } from 'VueModel/src/source-adapter';
+	export interface SourceBindingDependencies {
+	    Model$Entity: EntityConstructor;
+	}
+	export function proxySourceAdapterPropertiesOntoComponentInstance(vm: Vue, rootKey: string): void;
+	export function preprocessPropsToInterceptSource(vm: Vue): void;
+	export function defineDollarSourceProperty(vm: Vue, sourceAdapter: SourceAdapter<any>): void;
+	export function getSourceBindingContainer(vm: Vue, dependencies: SourceBindingDependencies, detectImplicitSource?: boolean): Vue;
+	export function establishBindingSource(vm: Vue, dependencies: SourceBindingDependencies): void;
+
+}
+declare module 'VueModel/src/source-provider' {
+	import { EntityConstructor } from 'VueModel/lib/model.js/src/entity';
+	export interface SourceProviderDependencies {
+	    Model$Entity: EntityConstructor;
+	}
+	export function SourceProviderMixin(dependencies: SourceProviderDependencies): {
+	    props: string[];
+	    beforeCreate: () => void;
+	    created: () => void;
+	};
+
+}
+declare module 'VueModel/src/source-consumer' {
+	import { EntityConstructor } from 'VueModel/lib/model.js/src/entity';
+	export interface SourceConsumerDependencies {
+	    Model$Entity: EntityConstructor;
+	}
+	export function SourceConsumerMixin(dependencies: SourceConsumerDependencies): {
+	    created: () => void;
+	};
+
+}
+declare module 'VueModel/src/main' {
 	 let api: any;
 	export default api;
 

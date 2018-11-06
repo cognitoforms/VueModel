@@ -20,7 +20,7 @@ export function SourceConsumerMixin(dependencies: SourceConsumerDependencies) {
                 let source = sourceVm$private.$source;
                 if (isSourceAdapter(source)) {
                     defineDollarSourceProperty(vm, sourceVm$private.$source);
-                    proxySourceAdapterPropertiesOntoComponentInstance(vm, '_source');
+                    proxySourceAdapterPropertiesOntoComponentInstance(vm, '_source', false, false);
                 } else {
                     // TODO: Warn about non-source adapter value of `$source`?
                 }
