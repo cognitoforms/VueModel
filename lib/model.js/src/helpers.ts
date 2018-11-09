@@ -1,3 +1,7 @@
+import { EventDispatcher, IEventHandler } from "ste-events";
+import { EventSubscription } from "./interfaces";
+import { Functor, Functor$create } from "./functor";
+
 export function ensureNamespace(name: string, parentNamespace: any) {
     var result, nsTokens, target = parentNamespace;
 
@@ -107,6 +111,10 @@ export function getTypeName(obj: any) {
     return Object.prototype.toString.call(obj).match(typeNameExpr)[1].toLowerCase();
 }
 
+export function isNumber(obj: any) {
+	return getTypeName(obj) === "number" && !isNaN(obj);
+}
+
 export function getDefaultValue(isList: boolean, jstype: any): any {
     if (isList) return [];
     if (jstype === Boolean) return false;
@@ -166,4 +174,25 @@ export function toTitleCase(input: string) {
 	}
 
 	return str;
+}
+
+export function hasOwnProperty(obj: any, prop: string): boolean {
+	return Object.prototype.hasOwnProperty.call(obj, prop);
+}
+
+export function getEventSubscriptions<TSender, TArgs>(dispatcher: EventDispatcher<TSender, TArgs>): EventSubscription<IEventHandler<TSender, TArgs>>[] {
+	let disp = dispatcher as any;
+	let subs: EventSubscription<IEventHandler<TSender, TArgs>>[] = disp._subscriptions;
+	return subs;
+}
+
+// export function getEventHandlersFunctor<TSender, TArgs>(dispatcher: EventDispatcher<TSender, TArgs>): Functor & IEventHandler<TSender, TArgs> {
+// 	let subs = getEventSubscriptions(dispatcher);
+// 	if (subs.length > 0) {
+// 		return Functor$create(subs) as Functor & IEventHandler<TSender, TArgs>;
+// 	}
+// }
+
+export interface ObjectLiteral<T> {
+	[key: string]: T;
 }

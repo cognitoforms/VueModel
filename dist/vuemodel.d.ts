@@ -1,7 +1,7 @@
 /// <reference path="model.js.d.ts" />
 import Vue from "vue";
 import { DefaultData, DefaultMethods, DefaultComputed, PropsDefinition, DefaultProps, ComponentOptions } from "vue/types/options";
-import { Model, ModelConstructor, Entity, EntityConstructor, Property, PropertyConstructor } from "model.js";
+import { Model, Property, Entity } from "model.js";
 declare module 'vuemodel' {
 	export interface VueConstructor {
 	    mixin<V extends Vue, Data = DefaultData<V>, Methods = DefaultMethods<V>, Computed = DefaultComputed, PropsDef = PropsDefinition<DefaultProps>, Props = DefaultProps>(options: ComponentOptions<V, Data, Methods, Computed, PropsDef, Props>): void;
@@ -15,6 +15,7 @@ declare module 'vuemodel' {
 	    target: any;
 	}
 	export class Observer {
+	    value: any;
 	    dep: Dep;
 	    vmCount: number;
 	}
@@ -25,28 +26,21 @@ declare module 'vuemodel' {
 	    install(Vue: VueConstructor): void;
 	}
 	export interface EntityObserver extends Observer {
+	    value: Entity;
+	    ensureObservable(): void;
 	}
 	export interface EntityObserverConstructor {
 	    new (entity: Entity): EntityObserver;
 	}
 	export interface VueModelOptions {
-	    createOwnProperties: boolean;
+	    createOwnProperties?: boolean;
+	    extendModel?: (model: Model) => void;
 	}
 	export class VueModel {
 	    readonly $meta: Model;
 	    constructor(options: VueModelOptions);
-	}
-	export interface VueModelMixins {
-		SourceProvider: any;
-		SourceConsumer: any;
-	}
-	export interface VueModelConstructor {
-		new(options: VueModelOptions): VueModel;
-		install(Vue: VueConstructor): void;
-		mixins: VueModelMixins;
-		SourceRootAdapter: SourceRootAdapterConstructor;
-		SourcePathAdapter: SourcePathAdapterConstructor;
-		SourceIndexAdapter: SourceIndexAdapterConstructor;
+	    perform(fn: Function): void;
+	    onExit(fn: Function): void;
 	}
 	export class SourcePathAdapter<TEntity extends Entity, TValue> implements SourcePropertyAdapter, SourceAdapter<TValue> {
 	    readonly source: SourceAdapter<TEntity>;
@@ -91,5 +85,16 @@ declare module 'vuemodel' {
 	}
 	export interface SourceRootAdapterConstructor {
 	    new <TEntity extends Entity>(entity: TEntity): SourceRootAdapter<TEntity>;
+	}
+	export interface VueModelApi extends VueModel {
+	    SourceRootAdapter: SourceRootAdapterConstructor;
+	    SourcePathAdapter: SourcePathAdapterConstructor;
+	    SourceIndexAdapter: SourceIndexAdapterConstructor;
+	    mixins: VueModelMixins;
+	    install: (Vue: VueConstructor) => void;
+	}
+	export interface VueModelMixins {
+	    SourceProvider: any;
+	    SourceConsumer: any;
 	}
 }

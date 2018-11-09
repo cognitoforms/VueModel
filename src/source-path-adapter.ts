@@ -1,5 +1,5 @@
-import { Entity } from "../lib/model.js/src/entity";
-import { Property } from "../lib/model.js/src/property";
+import { Entity } from "../lib/model.js/src/interfaces";
+import { Property } from "../lib/model.js/src/interfaces";
 import { SourceAdapter, SourcePropertyAdapter } from "./source-adapter";
 
 export class SourcePathAdapter<TEntity extends Entity, TValue> implements SourcePropertyAdapter, SourceAdapter<TValue> {
@@ -20,7 +20,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> implements Source
 
     get property(): Property {
         // TODO: Support multi-hop path
-        return this.source.value.meta.type.property(this.path);
+        return this.source.value.meta.type.getProperty(this.path);
     }
 
     get label(): string {

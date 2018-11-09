@@ -1,12 +1,13 @@
 import Vue from "vue";
 import { VueConstructor, ObserverConstructor, DepConstructor } from "./vue-internals";
-import { VueModel$makeEntitiesVueObservable, EntityObserverDependencies } from "./entity-observer";
+import { VueModel$makeEntitiesVueObservable, EntityObserverDependencies, Entity$getObserver } from "./entity-observer";
 import { preprocessDataToInterceptEntities, restoreComponentEntityData, VuePluginEntitiesDependencies } from "./vue-plugin-entities";
-import { EntityConstructor } from "../lib/model.js/src/entity";
+import { EntityConstructor, TypeConstructor } from "../lib/model.js/src/interfaces";
 
 export interface VuePluginDependencies {
     entitiesAreVueObservable: boolean;
     Model$Entity: EntityConstructor;
+    Model$Type: TypeConstructor;
     Vue$Observer?: ObserverConstructor;
     Vue$Dep?: DepConstructor;
 }
@@ -60,6 +61,8 @@ export function VueModel$installPlugin(Vue: VueConstructor, dependencies: VuePlu
                     // Ensure that Model entities are observable objects compatible with Vue's observer
                     VueModel$makeEntitiesVueObservable(vm$private._entity.meta.type.model, dependencies as EntityObserverDependencies);
                 }
+
+                Entity$getObserver(vm$private._entity, dependencies as EntityObserverDependencies, true).ensureObservable();
 
                 // Restore the data by attempting to emulate what would have happened to
                 // the `data` object had it gone through normal component intialization

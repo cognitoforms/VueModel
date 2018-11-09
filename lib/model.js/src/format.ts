@@ -1,18 +1,6 @@
-export type FormatConvertFunction = (value: any) => string;
+import { Format as IFormat, FormatOptions, FormatConvertFunction, FormatConvertBackFunction } from "./interfaces";
 
-export type FormatConvertBackFunction = (value: string) => string;
-
-export interface FormatOptions {
-	specifier: string;
-	convert: FormatConvertFunction;
-	convertBack?: FormatConvertBackFunction;
-	formatEval?: (value: string) => string;
-	description?: string;
-	nullString?: string;
-	undefinedString?: string;
-}
-
-export class Format {
+export class Format implements IFormat {
 
 	specifier: string;
 	convertFn: FormatConvertFunction;
@@ -102,8 +90,4 @@ export class Format {
 		return this.specifier;
 	}
 
-}
-
-export interface FormatConstructor {
-	new(options: FormatOptions): Format;
 }

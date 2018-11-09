@@ -1,5 +1,5 @@
 import Vue from "vue";
-import { EntityConstructor } from "../lib/model.js/src/entity";
+import { EntityConstructor } from "../lib/model.js/src/interfaces";
 import { getSourceBindingContainer, defineDollarSourceProperty, proxySourceAdapterPropertiesOntoComponentInstance } from "./source-binding";
 import { isSourceAdapter } from "./source-adapter";
 

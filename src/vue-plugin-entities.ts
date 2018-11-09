@@ -1,5 +1,6 @@
 import Vue from "vue";
-import { Entity, EntityConstructor } from "../lib/model.js/src/entity";
+import { Entity } from "../lib/model.js/src/entity";
+import { EntityConstructor } from "../lib/model.js/src/interfaces";
 import { debug, hasOwnProperty } from "./helpers";
 import { Vue$isReserved, Vue$proxy } from "./vue-helpers";
 import { ObserveEntityMethod } from "./entity-observer";

@@ -1,50 +1,28 @@
-import { Type } from "./type";
-import { Entity } from "./entity";
 import { EventDispatcher, IEvent } from "ste-events";
-import { getTypeName, getDefaultValue, parseFunctionName, toTitleCase } from "./helpers";
+import { Entity as IEntity } from "./interfaces";
+import { Format as IFormat } from "./interfaces";
+import { ObjectMeta as IObjectMeta } from "./interfaces";
+import { ObjectMeta } from "./object-meta";
+import { EventRegistration } from "./interfaces";
+import { Property as IProperty, PropertyGetMethod, PropertySetMethod, PropertyEventDispatchers, PropertyChangeEventArgs, PropertyAccessEventArgs, PropertyAccessEventHandler, PropertyChangeEventHandler } from "./interfaces";
+import { PropertyChain as IPropertyChain } from "./interfaces";
+import { Type as IType } from "./interfaces";
+import { Type$isType } from "./type";
+import { getTypeName, getDefaultValue, parseFunctionName, toTitleCase, ObjectLiteral } from "./helpers";
 import { createSecret } from "./internals";
 import { ObservableList } from "./observable-list";
-import { Format } from "./format";
+import { PropertyChain$_addChangedHandler, PropertyChain$_addAccessedHandler, PropertyChain$isPropertyChain } from "./property-chain";
+import { Entity$_getEventDispatchers } from "./entity";
 
 let fieldNamePrefix = createSecret('Property.fieldNamePrefix', 3, false, true, "_fN");
 
-export interface PropertyEventArgs {
-	property: Property,
-}
+export class Property implements IProperty {
 
-export interface PropertyAccessEventArgs extends PropertyEventArgs {
-	value: any,
-}
-
-export interface PropertyChangeEventArgs extends PropertyEventArgs {
-	newValue: any,
-	oldValue: any,
-}
-
-class PropertyEventDispatchers {
-
-	readonly changed: EventDispatcher<Entity, PropertyChangeEventArgs>;
-
-	readonly accessed: EventDispatcher<Entity, PropertyAccessEventArgs>;
-
-	constructor() {
-		this.changed = new EventDispatcher<Entity, PropertyChangeEventArgs>();
-		this.accessed = new EventDispatcher<Entity, PropertyAccessEventArgs>();
-	}
-
-}
-
-type PropertyGetMethod = (property: Property, entity: Entity, additionalArgs: any) => any;
-
-type PropertySetMethod = (property: Property, entity: Entity, val: any, additionalArgs: any, skipTypeCheck: boolean) => void;
-
-export class Property {
-
-	// Public read-only properties: aspects of the property that cannot be
-	// changed without fundamentally changing what the property is
-	readonly containingType: Type;
+	// Public read-only properties: aspects of the object that cannot be
+	// changed without fundamentally changing what the object is
+	readonly containingType: IType;
 	readonly name: string;
-	readonly jstype: any;
+	readonly propertyType: any;
 	readonly isList: boolean;
 	readonly isStatic: boolean;
 
@@ -56,21 +34,23 @@ export class Property {
 	// Backing fields for properties that are settable and also derived from
 	// other data, calculated in some way, or cannot simply be changed
 	private _label: string;
-	private _format: Format;
+	private _format: IFormat;
 	private _origin: string;
 	private _defaultValue: any;
 
+	readonly _propertyAccessSubscriptions: EventRegistration<IEntity, PropertyAccessEventHandler>[];
+	readonly _propertyChangeSubscriptions: EventRegistration<IEntity, PropertyChangeEventHandler>[];
 	readonly _eventDispatchers: PropertyEventDispatchers;
 
-	readonly _getter: (args?: any) => any;
-	readonly _setter: (value: any, args?: any) => void;
+	readonly getter: (args?: any) => any;
+	readonly setter: (value: any, args?: any) => void;
 
-	constructor(containingType: Type, name: string, jstype: any, label: string, helptext: string, format: Format, isList: boolean, isStatic: boolean, isPersisted: boolean, isCalculated: boolean, defaultValue: any = undefined, origin: string = containingType.originForNewProperties) {
+	constructor(containingType: IType, name: string, jstype: any, label: string, helptext: string, format: IFormat, isList: boolean, isStatic: boolean, isPersisted: boolean, isCalculated: boolean, defaultValue: any = undefined, origin: string = containingType.originForNewProperties) {
 
 		// Public read-only properties
 		Object.defineProperty(this, "containingType", { enumerable: true, value: containingType });
 		Object.defineProperty(this, "name", { enumerable: true, value: name });
-		Object.defineProperty(this, "jstype", { enumerable: true, value: jstype });
+		Object.defineProperty(this, "propertyType", { enumerable: true, value: jstype });
 		Object.defineProperty(this, "isList", { enumerable: true, value: isList === true });
 		Object.defineProperty(this, "isStatic", { enumerable: true, value: isStatic === true });
 
@@ -85,10 +65,12 @@ export class Property {
 		if (origin) Object.defineProperty(this, "_origin", { enumerable: false, value: containingType.originForNewProperties, writable: true });
 		if (defaultValue) Object.defineProperty(this, "_defaultValue", { enumerable: false, value: defaultValue, writable: true });
 
-		Object.defineProperty(this, "_eventDispatchers", { value: new PropertyEventDispatchers() });
+		Object.defineProperty(this, "_propertyAccessSubscriptions", { value: [] });
+		Object.defineProperty(this, "_propertyChangeSubscriptions", { value: [] });
+		Object.defineProperty(this, "_eventDispatchers", { value: new PropertyEventDispatchersImplementation() });
 
-		Object.defineProperty(this, "_getter", { value: Property$_makeGetter(this, Property$_getter) });
-		Object.defineProperty(this, "_setter", { value: Property$_makeSetter(this, Property$_setter) });
+		Object.defineProperty(this, "getter", { value: Property$_makeGetter(this, Property$_getter) });
+		Object.defineProperty(this, "setter", { value: Property$_makeSetter(this, Property$_setter) });
 
 		if (this.origin === "client" && this.isPersisted) {
 			// TODO: Warn about client-origin property marked as persisted?
@@ -100,25 +82,28 @@ export class Property {
 		return fieldNamePrefix + "_" + this.name;
 	}
 
-	get changedEvent(): IEvent<Entity, PropertyChangeEventArgs> {
-		return this._eventDispatchers.changed.asEvent();
+	get changedEvent(): IEvent<IEntity, PropertyChangeEventArgs> {
+		return this._eventDispatchers.changedEvent.asEvent();
 	}
 
-	get accessedEvent(): IEvent<Entity, PropertyAccessEventArgs> {
-		return this._eventDispatchers.accessed.asEvent();
+	get accessedEvent(): IEvent<IEntity, PropertyAccessEventArgs> {
+		return this._eventDispatchers.accessedEvent.asEvent();
 	}
 
-	equals(prop: Property /* | PropertyChain */ ) {
-		if (prop !== undefined && prop !== null) {
-			if (prop instanceof Property) {
-				return this === prop;
-			}
-			// TODO: Implement property chain
-			// else if (prop instanceof PropertyChain) {
-			// 	var props = prop.all();
-			// 	return props.length === 1 && this.equals(props[0]);
-			// }
+	equals(prop: IProperty | IPropertyChain): boolean {
+
+		if (prop === null || prop === undefined) {
+			return;
 		}
+
+		if (PropertyChain$isPropertyChain(prop)) {
+			return (prop as IPropertyChain).equals(this);
+		}
+
+		if (prop instanceof Property) {
+			return this === prop;
+		}
+
 	}
 
 	toString() {
@@ -129,15 +114,11 @@ export class Property {
 		}
 	}
 
-	isDefinedBy(type: Type) {
-		return this.containingType === type || type.isSubclassOf(this.containingType);
-	}
-
 	get label(): string {
 		return this._label || toTitleCase(this.name.replace(/([^A-Z]+)([A-Z])/g, "$1 $2"));
 	}
 
-	get format(): Format {
+	get format(): IFormat {
 		// TODO: Compile format from specifier if needed
 		return this._format;
 	}
@@ -156,7 +137,7 @@ export class Property {
 						this._defaultValue instanceof Function ? this._defaultValue() :
 							this._defaultValue;
 		} else {
-			return getDefaultValue(this.isList, this.jstype);
+			return getDefaultValue(this.isList, this.propertyType);
 		}
 	}
 
@@ -164,7 +145,7 @@ export class Property {
 		return this.isStatic ? (this.containingType.fullName + "." + this.name) : this.name;
 	}
 
-	canSetValue(obj: Entity, val: any) {
+	canSetValue(obj: IEntity, val: any): boolean {
 		// NOTE: only allow values of the correct data type to be set in the model
 
 		if (val === undefined) {
@@ -180,8 +161,8 @@ export class Property {
 
 		// for entities check base types as well
 		if (val.constructor && val.constructor.meta) {
-			for (var valType: Type = val.constructor.meta; valType; valType = valType.baseType) {
-				if (valType.jstype === this.jstype) {
+			for (var valType: IType = val.constructor.meta; valType; valType = valType.baseType) {
+				if (valType.ctor === this.propertyType) {
 					return true;
 				}
 			}
@@ -213,7 +194,7 @@ export class Property {
 			}
 
 			// value property type check
-			return valObjectType === this.jstype ||
+			return valObjectType === this.propertyType ||
 
 				// entity array type check
 				(valObjectType === Array && this.isList && val.every(function (child: any) {
@@ -230,8 +211,8 @@ export class Property {
 		}
 	}
 
-	value(obj: Entity = null, val: any = null, additionalArgs: any = null) {
-		var target = (this.isStatic ? this.containingType.jstype : obj);
+	value(obj: IEntity = null, val: any = null, additionalArgs: any = null): any {
+		var target = (this.isStatic ? this.containingType.ctor : obj);
 
 		if (target === undefined || target === null) {
 			throw new Error(`Cannot ${(arguments.length > 1 ? "set" : "get")} value for ${(this.isStatic ? "" : "non-")}static property \"${this.getPath()}\" on type \"${this.containingType.fullName}\": target is null or undefined.`)
@@ -244,19 +225,72 @@ export class Property {
 		}
 	}
 
-	rootedPath(type: Type) {
-		if (this.isDefinedBy(type)) {
-			return this.isStatic ? this.containingType.fullName + "." + this.name : this.name;
+	// rootedPath(type: Type) {
+	// 	if (this.isDefinedBy(type)) {
+	// 		return this.isStatic ? this.containingType.fullName + "." + this.name : this.name;
+	// 	}
+	// }
+
+	isInited(obj: IEntity): boolean {
+
+		var target = (this.isStatic ? this.containingType.ctor : obj);
+
+		if (!target.hasOwnProperty(this.fieldName)) {
+			// If the backing field has not been created, then property is not initialized
+			return false;
 		}
+
+		/*
+		// TODO: Implement list lazy loading?
+		if (this.isList) {
+			var value = target[this.fieldName];
+			if (value === undefined || !LazyLoader.isLoaded(value)) {
+				// If the list is not-loaded, then the property is not initialized
+				return false;
+			}
+		}
+		*/
+
+		return true;
+
 	}
 
 }
 
-export interface PropertyConstructor {
-	new(containingType: Type, name: string, jstype: any, label: string, helptext: string, format: Format, isList: boolean, isStatic: boolean, isPersisted: boolean, isCalculated: boolean, defaultValue?: any, origin?: string): Property;
+class PropertyEventDispatchersImplementation implements PropertyEventDispatchers {
+	readonly changedEvent: EventDispatcher<IEntity, PropertyChangeEventArgs>;
+	readonly accessedEvent: EventDispatcher<IEntity, PropertyAccessEventArgs>;
+	constructor() {
+		this.changedEvent = new EventDispatcher<IEntity, PropertyChangeEventArgs>();
+		this.accessedEvent = new EventDispatcher<IEntity, PropertyAccessEventArgs>();
+	}
 }
 
-export function Property$_generateShortcuts(property: Property, target: any, recurse: boolean = true, overwrite: boolean = null) {
+export function Property$isProperty(obj: any) {
+	return obj instanceof Property;
+}
+
+export function Property$equals(prop1: IProperty | IPropertyChain, prop2: IProperty | IPropertyChain): boolean {
+
+	if (prop1 === null || prop1 === undefined || prop2 === null || prop2 === undefined) {
+		return;
+	}
+
+	if (PropertyChain$isPropertyChain(prop1)) {
+		return (prop1 as IPropertyChain).equals(prop2);
+	}
+
+	if (PropertyChain$isPropertyChain(prop2)) {
+		return (prop2 as IPropertyChain).equals(prop1);
+	}
+
+	if (prop1 instanceof Property && prop2 instanceof Property) {
+		return prop1 === prop2;
+	}
+
+}
+
+export function Property$_generateShortcuts(property: IProperty, target: any, recurse: boolean = true, overwrite: boolean = null) {
 	var shortcutName = "$" + property.name;
 
 	if (!(Object.prototype.hasOwnProperty.call(target, shortcutName)) || overwrite) {
@@ -268,47 +302,57 @@ export function Property$_generateShortcuts(property: Property, target: any, rec
 			overwrite = false;
 		}
 
-		property.containingType.derivedTypes.forEach(function (t) {
+		property.containingType.derivedTypes.forEach(function (t: IType) {
 			Property$_generateShortcuts(property, t, true, overwrite);
 		});
 	}
 }
 
-export function Property$_generateStaticProperty(property: Property) {
+export function Property$_generateStaticProperty(property: IProperty) {
 
-	Object.defineProperty(property.containingType.jstype, property.name, {
+	Object.defineProperty(property.containingType.ctor, property.name, {
 		configurable: false,
 		enumerable: true,
-		get: property._getter,
-		set: property._setter
+		get: property.getter,
+		set: property.setter
 	});
 
 }
 
-export function Property$_generatePrototypeProperty(property: Property) {
+export function Property$_generatePrototypeProperty(property: IProperty) {
 
-	Object.defineProperty(property.containingType.jstype.prototype, property.name, {
+	Object.defineProperty(property.containingType.ctor.prototype, property.name, {
 		configurable: false,
 		enumerable: true,
-		get: property._getter,
-		set: property._setter
+		get: property.getter,
+		set: property.setter
 	});
 
 }
 
-export function Property$_generateOwnProperty(property: Property, obj: Entity) {
+export function Property$_generateOwnProperty(property: IProperty, obj: IEntity) {
 
 	Object.defineProperty(obj, property.name, {
 		configurable: false,
 		enumerable: true,
-		get: property._getter,
-		set: property._setter
+		get: property.getter,
+		set: property.setter
 	});
 
 }
 
+export function Property$_getEventDispatchers(prop: IProperty): PropertyEventDispatchers {
+	return (prop as any)._eventDispatchers as PropertyEventDispatchers;
+}
+
+export function Property$_dispatchEvent<TSender, TArgs>(prop: IProperty, eventName: string, sender: TSender, args: TArgs): void {
+	let dispatchers = Property$_getEventDispatchers(prop) as { [eventName: string]: any };
+	let dispatcher = dispatchers[eventName + "Event"] as EventDispatcher<TSender, TArgs>;
+	dispatcher.dispatch(sender, args);
+}
+
 // TODO: Get rid of `Property$_generateOwnPropertyWithClosure`...
-export function Property$_generateOwnPropertyWithClosure(property: Property, obj: Entity) {
+export function Property$_generateOwnPropertyWithClosure(property: Property, obj: IEntity) {
 
 	let val: any = null;
 
@@ -318,8 +362,7 @@ export function Property$_generateOwnPropertyWithClosure(property: Property, obj
 		if (!isInitialized) {
 			// Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.  
 			if (!property.isCalculated) {
-				// TODO: Implement pendingInit
-				// target.meta.pendingInit(property, false);
+				Property$pendingInit(obj.meta, property, false);
 
 				val = Property$_getInitialValue(property);
 
@@ -328,12 +371,11 @@ export function Property$_generateOwnPropertyWithClosure(property: Property, obj
 				}
 
 				// TODO: Implement observer?
-				// Observer.raisePropertyChanged(obj, property._name);
+				Entity$_getEventDispatchers(obj).changedEvent.dispatch(property, { entity: obj, property: property });
 			}
 
-			// TODO: Implement pendingInit
 			// Mark the property as pending initialization
-			// obj.meta.pendingInit(property, true);
+			Property$pendingInit(obj.meta, property, true);
 
 			isInitialized = true;
 		}
@@ -346,7 +388,7 @@ export function Property$_generateOwnPropertyWithClosure(property: Property, obj
 			_ensureInited();
 
 			// Raise get events
-			property._eventDispatchers.accessed.dispatch(obj, { property, value: val });
+			Property$_dispatchEvent<IEntity, PropertyAccessEventArgs>(property, "accessed", obj, { property, value: val });
 
 			return val;
 		},
@@ -366,12 +408,11 @@ export function Property$_generateOwnPropertyWithClosure(property: Property, obj
 				} else {
 					val = newVal;
 
-					// TODO: Implement pendingInit
-					// obj.meta.pendingInit(property, false);
+					Property$pendingInit(obj.meta, property, false);
 
 					// Do not raise change if the property has not been initialized. 
 					if (old !== undefined) {
-						property._eventDispatchers.changed.dispatch(obj, { property, newValue: val, oldValue: old });
+						Property$_dispatchEvent<IEntity, PropertyChangeEventArgs>(property, "changed", obj, { property, newValue: val, oldValue: old });
 					}
 				}
 			}	
@@ -380,7 +421,34 @@ export function Property$_generateOwnPropertyWithClosure(property: Property, obj
 
 }
 
-function Property$_subListEvents(obj: Entity, property: Property, list: ObservableList<any>) {
+export function Property$pendingInit(target: IType | IObjectMeta, prop: IProperty, value: boolean = null): boolean | void {
+	let pendingInit: ObjectLiteral<boolean>;
+
+	if (Object.prototype.hasOwnProperty.call(target, "_pendingInit")) {
+		pendingInit = (target as any)._pendingInit;
+	} else {
+		Object.defineProperty(target, "_pendingInit", { enumerable: false, value: (pendingInit = {}), writable: true });
+	}
+
+	if (arguments.length > 2) {
+		if (value === false) {
+			delete pendingInit[prop.name];
+		} else {
+			pendingInit[prop.name] = value;
+		}
+	} else {
+		let storage: any;
+		if (Type$isType(target)) {
+			storage = (target as IType).ctor;
+		} else if (target instanceof ObjectMeta) {
+			storage = (target as IObjectMeta).entity;
+		}
+		let currentValue = storage[prop.fieldName];
+		return currentValue === undefined || pendingInit[prop.name] === true;
+	}
+}
+
+function Property$_subListEvents(obj: IEntity, property: IProperty, list: ObservableList<any>) {
 
 	list.changed.subscribe(function (sender, args) {
 		if ((args.added && args.added.length > 0) || (args.removed && args.removed.length > 0)) {
@@ -395,16 +463,16 @@ function Property$_subListEvents(obj: Entity, property: Property, list: Observab
 			(eventArgs as any)['changes'] = [{ newItems: args.added, oldItems: args.removed }];
 			(eventArgs as any)['collectionChanged'] = true;
 
-			property._eventDispatchers.changed.dispatch(obj, eventArgs);
+			Property$_getEventDispatchers(property).changedEvent.dispatch(obj, eventArgs);
 
 			// TODO: Implement observer?
-			// Observer.raisePropertyChanged(target, property._name);
+			Entity$_getEventDispatchers(obj).changedEvent.dispatch(property, { entity: obj, property: property });
 		}
 	});
 
 }
 
-function Property$_getInitialValue(property: Property) {
+function Property$_getInitialValue(property: IProperty) {
 	var val = property.defaultValue;
 
     if (Array.isArray(val)) {
@@ -418,17 +486,16 @@ function Property$_getInitialValue(property: Property) {
 	return val;
 }
 
-function Property$_ensureInited(property: Property, obj: Entity) {
+function Property$_ensureInited(property: Property, obj: IEntity) {
     // Determine if the property has been initialized with a value
     // and initialize the property if necessary
     if (!obj.hasOwnProperty(property.fieldName)) {
 
         // Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.  
         if (!property.isCalculated) {
-			var target = (property.isStatic ? property.containingType.jstype : obj);
+			var target = (property.isStatic ? property.containingType.ctor : obj);
 
-			// TODO: Implement pendingInit
-			// target.meta.pendingInit(property, false);
+			Property$pendingInit(target.meta, property, false);
 
 			let val = Property$_getInitialValue(property);
 
@@ -439,7 +506,7 @@ function Property$_ensureInited(property: Property, obj: Entity) {
 			}
 
 			// TODO: Implement observable?
-			// Observer.raisePropertyChanged(target, property._name);
+			Entity$_getEventDispatchers(obj).changedEvent.dispatch(property, { entity: obj, property: property });
         }
 
         // TODO: Implement pendingInit
@@ -448,21 +515,20 @@ function Property$_ensureInited(property: Property, obj: Entity) {
     }
 }
 
-function Property$_getter(property: Property, obj: Entity) {
+function Property$_getter(property: Property, obj: IEntity) {
 
     // Ensure that the property has an initial (possibly default) value
 	Property$_ensureInited(property, obj);
 
-	var eventArgs: PropertyAccessEventArgs = { property: property, value: (obj as any)[property.fieldName] };
-
-	// Raise get events
-	property._eventDispatchers.accessed.dispatch(obj, eventArgs);
+	// Raise access events
+	Property$_getEventDispatchers(property).accessedEvent.dispatch(obj, { property: property, value: (obj as any)[property.fieldName] });
+	Entity$_getEventDispatchers(obj).accessedEvent.dispatch(property, { entity: obj, property: property });
 
     // Return the property value
     return (obj as any)[property.fieldName];
 }
 
-function Property$_setter(property: Property, obj: Entity, val: any, additionalArgs: any = null, skipTypeCheck: boolean = false) {
+function Property$_setter(property: Property, obj: IEntity, val: any, additionalArgs: any = null, skipTypeCheck: boolean = false) {
 
     // Ensure that the property has an initial (possibly default) value
 	Property$_ensureInited(property, obj);
@@ -475,10 +541,10 @@ function Property$_setter(property: Property, obj: Entity, val: any, additionalA
 
 }
 
-function Property$_shouldSetValue(property: Property, obj: Entity, old: any, val: any, skipTypeCheck: boolean = false) {
+function Property$_shouldSetValue(property: Property, obj: IEntity, old: any, val: any, skipTypeCheck: boolean = false) {
 
     if (!property.canSetValue(obj, val)) {
-        throw new Error("Cannot set " + property.name + "=" + (val === undefined ? "<undefined>" : val) + " for instance " + obj.meta.type.fullName + "|" + obj.meta.id + ": a value of type " + (property.jstype && property.jstype.meta ? property.jstype.meta.fullName : parseFunctionName(property.jstype)) + " was expected.");
+        throw new Error("Cannot set " + property.name + "=" + (val === undefined ? "<undefined>" : val) + " for instance " + obj.meta.type.fullName + "|" + obj.meta.id + ": a value of type " + (property.propertyType && property.propertyType.meta ? property.propertyType.meta.fullName : parseFunctionName(property.propertyType)) + " was expected.");
     }
 
     // Update lists as batch remove/add operations
@@ -493,12 +559,12 @@ function Property$_shouldSetValue(property: Property, obj: Entity, old: any, val
         // Do nothing if the new value is the same as the old value. Account for NaN numbers, which are
         // not equivalent (even to themselves). Although isNaN returns true for non-Number values, we won't
         // get this far for Number properties unless the value is actually of type Number (a number or NaN).
-        return (oldValue !== newValue && !(property.jstype === Number && isNaN(oldValue) && isNaN(newValue)));
+        return (oldValue !== newValue && !(property.propertyType === Number && isNaN(oldValue) && isNaN(newValue)));
 	}
 
 }
 
-function Property$_setValue(property: Property, obj: Entity, old: any, val: any, additionalArgs: any = null) {
+function Property$_setValue(property: Property, obj: IEntity, old: any, val: any, additionalArgs: any = null) {
 
     // Update lists as batch remove/add operations
     if (property.isList) {
@@ -527,7 +593,7 @@ function Property$_setValue(property: Property, obj: Entity, old: any, val: any,
 				}
 			}
 
-			property._eventDispatchers.changed.dispatch(obj, eventArgs);
+			Property$_getEventDispatchers(property).changedEvent.dispatch(obj, eventArgs);
 		}
     }
 }
@@ -562,4 +628,86 @@ function Property$_makeSetter(prop: Property, setter: PropertySetMethod, skipTyp
     return function (val: any, additionalArgs: any = null) {
         setter(prop, this, val, additionalArgs, skipTypeCheck);
     };
+}
+
+function Property$_addAccessedHandler(prop: IProperty, handler: (sender: IEntity, args: PropertyAccessEventArgs) => void, obj: IEntity = null): () => void {
+	
+	let property = prop as Property;
+
+	let unsubscribe: () => void;
+
+	let sender: IEntity = null;
+
+	if (obj) {
+		let innerHandler = handler;
+		handler = (sender: IEntity, args: PropertyAccessEventArgs) => {
+			if (sender === obj) {
+				innerHandler(sender, args);
+			}
+		};
+
+		sender = obj;
+	}
+
+	unsubscribe = property._eventDispatchers.accessedEvent.subscribe(handler);
+
+	property._propertyAccessSubscriptions.push({ handler, sender, unsubscribe });
+
+	return unsubscribe;
+
+}
+
+export function Property$addAccessed(prop: IProperty | IPropertyChain, handler: (sender: IEntity, args: any) => void, obj: IEntity = null, toleratePartial: boolean = false): () => void {
+	if (prop instanceof Property) {
+		return Property$_addAccessedHandler(prop, handler, obj);
+	} else if (PropertyChain$isPropertyChain(prop)) {
+		return PropertyChain$_addAccessedHandler(prop as any, handler, obj, toleratePartial);
+	} else {
+		throw new Error("Invalid property passed to `Property$addAccessed(prop)`.");
+	}
+}
+
+export function Property$_addChangedHandler(prop: IProperty, handler: (sender: IEntity, args: PropertyChangeEventArgs) => void, obj: IEntity = null): () => void {
+
+	let property = prop as Property;
+
+	let unsubscribe: () => void;
+
+	let sender: IEntity = null;
+
+	if (obj) {
+		let innerHandler = handler;
+		handler = (sender: IEntity, args: PropertyChangeEventArgs) => {
+			if (sender === obj) {
+				innerHandler(sender, args);
+			}
+		};
+
+		sender = obj;
+	}
+
+	unsubscribe = property._eventDispatchers.changedEvent.subscribe(handler);
+
+	(prop as any)._propertyChangeSubscriptions.push({ handler, sender, unsubscribe });
+
+	return unsubscribe;
+
+}
+
+// starts listening for change events along the property chain on any known instances. Use obj argument to
+// optionally filter the events to a specific object
+export function Property$addChanged(prop: IProperty | IPropertyChain, handler: (sender: IEntity, args: any) => void, obj: IEntity = null, toleratePartial: boolean = false): () => void {
+	if (prop instanceof Property) {
+		return Property$_addChangedHandler(prop, handler, obj);
+	} else if (PropertyChain$isPropertyChain(prop)) {
+		return PropertyChain$_addChangedHandler(prop as any, handler, obj, toleratePartial);
+	} else {
+		throw new Error("Invalid property passed to `Property$addChanged(prop)`.");
+	}
+}
+
+export function hasPropertyChangedSubscribers(prop: IProperty, obj: IEntity) {
+	let property = prop as Property;
+	let subscriptions = property._propertyChangeSubscriptions;
+	return subscriptions.length > 0 && subscriptions.some(s => s.sender === obj);
 }

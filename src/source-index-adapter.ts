@@ -1,4 +1,4 @@
-import { Entity } from "../lib/model.js/src/entity";
+import { Entity, PropertyEventDispatchers } from "../lib/model.js/src/interfaces";
 import { SourceAdapter } from "./source-adapter";
 import { SourcePathAdapter } from "./source-path-adapter";
 import { ObservableList } from "../lib/model.js/src/observable-list";
@@ -66,7 +66,7 @@ export class SourceIndexAdapter<TEntity extends Entity, TValue> implements Sourc
             (eventArgs as any)['changes'] = [{ newItems: [newItem], oldItems: [oldItem] }];
             (eventArgs as any)['collectionChanged'] = true;
 
-            this.source.property._eventDispatchers.changed.dispatch(this.source.source.value, eventArgs);
+            ((this.source.property as any)._eventDispatchers as PropertyEventDispatchers).changedEvent.dispatch(this.source.source.value, eventArgs);
         }
     }
 

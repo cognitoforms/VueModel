@@ -1,6 +1,6 @@
 import Vue from "vue";
 import { hasOwnProperty, debug } from "./helpers";
-import { Entity, EntityConstructor } from "../lib/model.js/src/entity";
+import { Entity, EntityConstructor } from "../lib/model.js/src/interfaces";
 import { SourceAdapter, isSourceAdapter, isSourcePropertyAdapter } from "./source-adapter";
 import { SourceRootAdapter } from "./source-root-adapter";
 import { SourcePathAdapter } from "./source-path-adapter";

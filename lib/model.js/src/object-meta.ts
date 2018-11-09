@@ -1,13 +1,15 @@
-import { Type } from "./type";
-import { Entity } from "./entity";
+import { Type as IType } from "./interfaces";
+import { Entity as IEntity } from "./interfaces";
+import { ObjectMeta as IObjectMeta } from "./interfaces";
+import { Type$_getEventDispatchers } from "./type";
 
-export class ObjectMeta {
+export class ObjectMeta implements IObjectMeta {
 
 	// Public read-only properties: aspects of the object that cannot be
 	// changed without fundamentally changing what it represents
-	readonly type: Type;
+	readonly type: IType;
 	// TODO: Is this needed? Technically you can look it up by id if needed...
-	readonly entity: Entity;
+	readonly entity: IEntity;
 	
 	// Backing fields for properties that are settable and also derived from
 	// other data, calculated in some way, or cannot simply be changed
@@ -15,7 +17,7 @@ export class ObjectMeta {
 	private _isNew: boolean;
 	private _legacyId: string;
 
-	constructor(type: Type, entity: Entity, id: string, isNew: boolean) {
+	constructor(type: IType, entity: IEntity, id: string, isNew: boolean) {
 		// Public read-only properties
 		Object.defineProperty(this, "type", { enumerable: true, value: type });
 		Object.defineProperty(this, "entity", { enumerable: true, value: entity });
@@ -56,12 +58,8 @@ export class ObjectMeta {
 		this.type.unregister(this.entity);
 
 		// Raise the destroy event on this type and all base types
-		for (var t: Type = this.type; t; t = t.baseType) {
-			t._eventDispatchers.destroy.dispatch(t, { entity: this.entity });
+		for (var t: IType = this.type; t; t = t.baseType) {
+			Type$_getEventDispatchers(t).destroyEvent.dispatch(t, { entity: this.entity });
 		}
 	}
-}
-
-export interface ObjectMetaConstructor {
-	new(type: Type, entity: Entity, id: string, isNew: boolean): ObjectMeta;
 }

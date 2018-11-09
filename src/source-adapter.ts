@@ -1,4 +1,4 @@
-import { Property } from "../lib/model.js/src/property";
+import { Property } from "../lib/model.js/src/interfaces";
 import { SourceRootAdapter } from "./source-root-adapter";
 import { SourcePathAdapter } from "./source-path-adapter";
 import { SourceIndexAdapter } from "./source-index-adapter";

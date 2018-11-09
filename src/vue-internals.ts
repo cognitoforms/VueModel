@@ -16,6 +16,7 @@ export interface DepConstructor {
 }
 
 export declare class Observer {
+    value: any;
     dep: Dep;
     vmCount: number;
 }
