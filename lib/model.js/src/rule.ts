@@ -1,8 +1,8 @@
 import { Entity as IEntity } from "./interfaces";
-import { Property as IProperty, PropertyChangeEventArgs, PropertyAccessEventArgs } from "./interfaces";
+import { Property as IProperty, PropertyRule, PropertyChangeEventArgs, PropertyAccessEventArgs } from "./interfaces";
 import { Rule as IRule, RuleOptions } from "./interfaces";
 import { PropertyChain as IPropertyChain } from "./interfaces";
-import { Property$addChanged, Property$addAccessed, hasPropertyChangedSubscribers, Property$pendingInit, Property$isProperty } from "./property";
+import { Property$addChanged, Property$addAccessed, hasPropertyChangedSubscribers, Property$pendingInit, Property$isProperty, Property$getRules, Property$_getEventDispatchers } from "./property";
 import { PropertyChain$isPropertyChain } from "./property-chain";
 import { Type as IType } from "./interfaces";
 import { Type } from "./type";
@@ -13,6 +13,7 @@ import { Signal } from "./signal";
 import { ObjectMeta as IObjectMeta } from "./interfaces";
 import { PathTokens$normalizePaths } from "./path-tokens";
 import { Entity$_getEventDispatchers } from "./entity";
+import { getEventSubscriptions } from "./helpers";
 
 // TODO: Make `detectRunawayRules` an editable configuration value
 const detectRunawayRules = true;
@@ -33,7 +34,7 @@ export class Rule implements IRule {
 	readonly rootType: IType;
 	readonly name: string;
 
-	execute: (entity: IEntity) => void;
+	executeFn: (entity: IEntity) => void;
 	invocationTypes: RuleInvocationType = 0;
 	predicates: (IProperty | IPropertyChain)[] = [];
 	returnValues: IProperty[] = [];
@@ -45,7 +46,7 @@ export class Rule implements IRule {
 	 * @param rootType The model type the rule is for.
 	 * @param options The options for the rule.
 	 */
-	constructor(rootType: IType, name: string, options: RuleOptions) {
+	constructor(rootType: IType, name: string, options: RuleOptions, skipRegistration: boolean = false) {
 
 		// Track the root type
 		this.rootType = rootType;
@@ -54,24 +55,34 @@ export class Rule implements IRule {
 
 		// Configure the rule based on the specified options
 		if (options) {
-			options = normalizeRuleOptions(options);
+			let thisOptions = extractRuleOptions(options);
 
-			if (options.onInit)
+			if (thisOptions.onInit)
 				this.onInit();
-			if (options.onInitNew)
+			if (thisOptions.onInitNew)
 				this.onInitNew();
-			if (options.onInitExisting)
+			if (thisOptions.onInitExisting)
 				this.onInitExisting();
-			if (options.onChangeOf)
-				this.onChangeOf(options.onChangeOf);
-			if (options.returns)
-				this.returns(options.returns);
-			if (options.execute instanceof Function)
-				this.execute = options.execute;
+			if (thisOptions.onChangeOf)
+				this.onChangeOf(thisOptions.onChangeOf);
+			if (thisOptions.returns)
+				this.returns(thisOptions.returns);
+			if (thisOptions.execute instanceof Function)
+				this.executeFn = thisOptions.execute;
 		}
 
-		// Register the rule after loading has completed
-		rootType.model.registerRule(this);
+		if (!skipRegistration) {
+			// Register the rule after loading has completed
+			rootType.model.registerRule(this);
+		}
+	}
+
+	execute(entity: IEntity): void {
+		if (this.executeFn) {
+			this.executeFn(entity);
+		} else {
+			// TODO: Warn about execute function not implemented?
+		}
 	}
 
 	// Indicates that the rule should run only for new instances when initialized
@@ -432,7 +443,23 @@ function registerRule (rule: Rule) {
 	}
 }
 
-function normalizeRuleOptions(obj: any): RuleOptions {
+// registers a rule with a specific property
+export function registerPropertyRule(rule: PropertyRule) {
+
+	let propRules = Property$getRules(rule.property);
+
+	propRules.push(rule);
+
+	// Raise events if registered.
+	let dispatchers = Property$_getEventDispatchers(rule.property);
+	let subscriptions = getEventSubscriptions(dispatchers.ruleRegisteredEvent);
+	if (subscriptions && subscriptions.length > 0) {
+		dispatchers.ruleRegisteredEvent.dispatch(rule, { property: rule.property, rule: rule });
+	}
+
+}
+
+function extractRuleOptions(obj: any): RuleOptions {
 
 	if (!obj) {
 		return;
@@ -442,55 +469,85 @@ function normalizeRuleOptions(obj: any): RuleOptions {
 
 	let keys = Object.keys(obj);
 
-	let values = keys.map(key => {
+	keys.filter(key => {
 		let value = obj[key];
 		if (key === 'onInit') {
 			if (typeof value === "boolean") {
-				return options.onInit = value;
+				options.onInit = value;
+				return true;
 			}
 		} else if (key === 'onInitNew') {
 			if (typeof value === "boolean") {
-				return options.onInitNew = value;
+				options.onInitNew = value;
+				return true;
 			}
 		} else if (key === 'onInitExisting') {
 			if (typeof value === "boolean") {
-				return options.onInitExisting = value;
+				options.onInitExisting = value;
+				return true;
 			}
 		} else if (key === 'onChangeOf') {
 			if (Array.isArray(value)) {
-				return options.onChangeOf = (value as any[]).filter(p => {
+				let invalidOnChangeOf: any[] = null;
+				options.onChangeOf = (value as any[]).filter(p => {
 					if (typeof p === "string" || PropertyChain$isPropertyChain(p) || Property$isProperty(p)) {
 						return true;
 					} else {
 						// TODO: Warn about invalid 'onChangeOf' item?
+						if (!invalidOnChangeOf) {
+							invalidOnChangeOf = [];
+						}
+						invalidOnChangeOf.push(p);
 						return false;
 					}
 				});
+				if (invalidOnChangeOf) {
+					obj.onChangeOf = invalidOnChangeOf;
+					return false;
+				} else {
+					return true;
+				}
 			} else if (typeof value === "string") {
-				return options.onChangeOf = [value] as string[];
+				options.onChangeOf = [value] as string[];
+				return true;
 			} else if (PropertyChain$isPropertyChain(value)) {
-				return options.onChangeOf = [value] as IPropertyChain[];
+				options.onChangeOf = [value] as IPropertyChain[];
+				return true;
 			} else if (Property$isProperty(value)) {
-				return options.onChangeOf = [value] as IProperty[];
+				options.onChangeOf = [value] as IProperty[];
+				return true;
 			}
 		} else if (key === 'returns') {
 			if (Array.isArray(value)) {
-				return options.returns = (value as any[]).filter(p => {
+				let invalidReturns: any[] = null;
+				options.returns = (value as any[]).filter(p => {
 					if (typeof p === "string" || PropertyChain$isPropertyChain(p) || Property$isProperty(p)) {
 						return true;
 					} else {
 						// TODO: Warn about invalid 'returns' item?
+						if (!invalidReturns) {
+							invalidReturns = [];
+						}
 						return false;
 					}
 				});
+				if (invalidReturns) {
+					obj.returns = invalidReturns;
+					return false;
+				} else {
+					return true;
+				}
 			} else if (typeof value === "string") {
-				return options.returns = [value] as string[];
+				options.returns = [value] as string[];
+				return true;
 			} else if (Property$isProperty(value)) {
-				return options.returns = [value] as IProperty[];
+				options.returns = [value] as IProperty[];
+				return true;
 			}
 		} else if (key === 'execute') {
 			if (value instanceof Function) {
-				return options.execute = value as (entity: IEntity) => void;
+				options.execute = value as (entity: IEntity) => void;
+				return true;
 			}
 		} else {
 			// TODO: Warn about unsupported rule options?
@@ -499,6 +556,8 @@ function normalizeRuleOptions(obj: any): RuleOptions {
 
 		// TODO: Warn about invalid rule option value?
 		return;
+	}).forEach(key => {
+		delete obj[key];
 	});
 
 	return options;

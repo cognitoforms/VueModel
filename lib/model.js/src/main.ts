@@ -36,13 +36,19 @@ import { Property as PropertyInterface } from "./interfaces";
 export type Property = PropertyInterface;
 import { Property as PropertyClass } from "./property";
 export const Property = PropertyClass;
-import { PropertyConstructor, PropertyEventArgs, PropertyAccessEventArgs, PropertyAccessEventHandler, PropertyChangeEventArgs, PropertyChangeEventHandler } from "./interfaces";
+import { PropertyConstructor } from "./interfaces";
 export type PropertyConstructor = PropertyConstructor;
+import { PropertyEventArgs } from "./interfaces";
 export type PropertyEventArgs = PropertyEventArgs;
+import { PropertyAccessEventArgs, PropertyAccessEventHandler } from "./interfaces";
 export type PropertyAccessEventArgs = PropertyAccessEventArgs;
 export type PropertyAccessEventHandler = PropertyAccessEventHandler;
+import { PropertyChangeEventArgs, PropertyChangeEventHandler } from "./interfaces";
 export type PropertyChangeEventArgs = PropertyChangeEventArgs;
 export type PropertyChangeEventHandler = PropertyChangeEventHandler;
+import { PropertyRuleRegisteredEventArgs, PropertyRuleRegisteredEventHandler } from "./interfaces";
+export type PropertyRuleRegisteredEventArgs = PropertyRuleRegisteredEventArgs;
+export type PropertyRuleRegisteredEventHandler = PropertyRuleRegisteredEventHandler;
 
 // Export for type `PropertyChain`:
 import { PropertyChain as PropertyChainInterface } from "./interfaces";
@@ -92,3 +98,17 @@ export const Rule = RuleClass;
 import { RuleConstructor, RuleOptions } from "./interfaces";
 export type RuleConstructor = RuleConstructor;
 export type RuleOptions = RuleOptions;
+
+// Export for type `PropertyRule`:
+import { PropertyRule } from "./interfaces";
+export type PropertyRule = PropertyRule;
+
+// Export for type `Rule`:
+import { CalculatedPropertyRule as CalculatedPropertyRuleInterface } from "./interfaces";
+export type CalculatedPropertyRule = CalculatedPropertyRuleInterface;
+import { CalculatedPropertyRule as CalculatedPropertyRuleClass } from "./calculated-property-rule";
+export const CalculatedPropertyRule = CalculatedPropertyRuleClass;
+import { CalculatedPropertyRuleConstructor } from "./interfaces";
+export type CalculatedPropertyRuleConstructor = CalculatedPropertyRuleConstructor;
+import { CalculatedPropertyRuleOptions } from "./interfaces";
+export type CalculatedPropertyRuleOptions = CalculatedPropertyRuleOptions;

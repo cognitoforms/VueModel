@@ -119,6 +119,7 @@ export interface PropertyConstructor {
 export interface PropertyEventDispatchers {
 	readonly changedEvent: EventDispatcher<Entity, PropertyChangeEventArgs>;
 	readonly accessedEvent: EventDispatcher<Entity, PropertyAccessEventArgs>;
+	readonly ruleRegisteredEvent: EventDispatcher<Rule, PropertyRuleRegisteredEventArgs>;
 }
 
 export interface PropertyEventArgs {
@@ -140,6 +141,14 @@ export interface PropertyChangeEventHandler {
 export interface PropertyChangeEventArgs extends PropertyEventArgs {
 	newValue: any,
 	oldValue: any,
+}
+
+export interface PropertyRuleRegisteredEventHandler {
+    (sender: Rule, args: PropertyRuleRegisteredEventArgs): void;
+}
+
+export interface PropertyRuleRegisteredEventArgs extends PropertyEventArgs {
+	rule: Rule;
 }
 
 export type PropertyGetMethod = (property: Property, entity: Entity, additionalArgs: any) => any;
@@ -303,6 +312,12 @@ export interface RuleOptions {
 
 }
 
+export interface RuleTypeOptions {
+
+	rootType?: Type;
+
+}
+
 /**
  * Encapsulates a function that executes automatically in response to model change events.
  */
@@ -329,6 +344,46 @@ export interface Rule {
 
 export interface RuleConstructor {
 	new(rootType: Type, name: string, options: RuleOptions): Rule;
+}
+
+export interface PropertyRule extends Rule {
+
+	/** The property that the rule targets */
+	readonly property: Property;
+
+}
+
+export interface CalculatedPropertyRule extends PropertyRule {
+
+	/** The value to return if an error occurs, or undefined to cause an exception to be thrown */
+	defaultIfError: any;
+
+}
+
+export interface CalculatedPropertyRuleOptions {
+
+	/** The property being calculated (either a Property instance or string property name) */
+	property?: string | Property;
+
+	/** A function that returns the value to assign to the property, or undefined if the value cannot be calculated */
+	calculate?: string | ((this: Entity) => any);
+
+	/** A function that returns the value to assign to the property, or undefined if the value cannot be calculated */
+	fn?: string | ((this: Entity) => any);
+
+	/** The value to return if an error occurs, or undefined to cause an exception to be thrown */
+	defaultIfError?: any;
+
+}
+
+export interface CalculatedPropertyRuleConstructor {
+	/**
+	 * Creates a rule that calculates the value of a property in the model
+	 * @param rootType The model type the rule is for
+	 * @param name The name of the rule
+	 * @param options The options of the rule of type 'CalculatedPropertyRuleOptions'
+	 */
+	new(rootType: Type, name: string, options: CalculatedPropertyRuleOptions): Rule;
 }
 
 export interface EventRegistration<TSender, THandler> {

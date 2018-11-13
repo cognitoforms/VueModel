@@ -1,5 +1,5 @@
 import { EventDispatcher, IEvent } from "ste-events";
-import { Entity as IEntity } from "./interfaces";
+import { Entity as IEntity, PropertyRuleRegisteredEventArgs } from "./interfaces";
 import { Format as IFormat } from "./interfaces";
 import { ObjectMeta as IObjectMeta } from "./interfaces";
 import { ObjectMeta } from "./object-meta";
@@ -8,11 +8,14 @@ import { Property as IProperty, PropertyGetMethod, PropertySetMethod, PropertyEv
 import { PropertyChain as IPropertyChain } from "./interfaces";
 import { Type as IType } from "./interfaces";
 import { Type$isType } from "./type";
+import { Rule as IRule, RuleOptions, RuleTypeOptions } from "./interfaces";
 import { getTypeName, getDefaultValue, parseFunctionName, toTitleCase, ObjectLiteral, merge } from "./helpers";
 import { createSecret } from "./internals";
 import { ObservableList } from "./observable-list";
 import { PropertyChain$_addChangedHandler, PropertyChain$_addAccessedHandler, PropertyChain$isPropertyChain } from "./property-chain";
 import { Entity$_getEventDispatchers } from "./entity";
+import { CalcualatedPropertyRule$create } from "./calculated-property-rule";
+import { CalculatedPropertyRuleOptions } from "./interfaces";
 
 let fieldNamePrefix = createSecret('Property.fieldNamePrefix', 3, false, true, "_fN");
 
@@ -37,6 +40,7 @@ export class Property implements IProperty {
 	private _format: IFormat;
 	private _origin: string;
 	private _defaultValue: any;
+	private _rules: IRule[];
 
 	readonly _propertyAccessSubscriptions: EventRegistration<IEntity, PropertyAccessEventHandler>[];
 	readonly _propertyChangeSubscriptions: EventRegistration<IEntity, PropertyChangeEventHandler>[];
@@ -255,14 +259,31 @@ export class Property implements IProperty {
 
 	}
 
+	calculated(options: RuleOptions & RuleTypeOptions & CalculatedPropertyRuleOptions): void {
+
+		let rootType = this.containingType;
+
+		if (options.rootType) {
+			rootType = options.rootType;
+			delete options.rootType;
+		}
+
+		options.property = this;
+
+		CalcualatedPropertyRule$create(rootType, this, options);
+
+	}
+
 }
 
 class PropertyEventDispatchersImplementation implements PropertyEventDispatchers {
 	readonly changedEvent: EventDispatcher<IEntity, PropertyChangeEventArgs>;
 	readonly accessedEvent: EventDispatcher<IEntity, PropertyAccessEventArgs>;
+	readonly ruleRegisteredEvent: EventDispatcher<IRule, PropertyRuleRegisteredEventArgs>;
 	constructor() {
 		this.changedEvent = new EventDispatcher<IEntity, PropertyChangeEventArgs>();
 		this.accessedEvent = new EventDispatcher<IEntity, PropertyAccessEventArgs>();
+		this.ruleRegisteredEvent = new EventDispatcher<IRule, PropertyRuleRegisteredEventArgs>();
 	}
 }
 
@@ -421,6 +442,18 @@ export function Property$_generateOwnPropertyWithClosure(property: Property, obj
 
 }
 
+export function Property$getRules(property: IProperty): IRule[] {
+	let prop = property as any;
+	let propRules: IRule[];
+	if (prop._rules) {
+		propRules = prop._rules;
+	} else {
+		propRules = [];
+		Object.defineProperty(prop, "_rules", { enumerable: false, value: propRules, writable: false });
+	}
+	return propRules;
+}
+
 export function Property$pendingInit(target: IType | IObjectMeta, prop: IProperty, value: boolean = null): boolean | void {
 	let pendingInit: ObjectLiteral<boolean>;
 
@@ -574,8 +607,12 @@ function Property$_setValue(property: Property, obj: IEntity, old: any, val: any
         throw new Error("Property set on lists is not implemented.");
     } else {
 
-		// Set the backing field value
-		(obj as any)[property.fieldName] = val;
+		// Set or create the backing field value
+		if (obj.hasOwnProperty(property.fieldName)) {
+			(obj as any)[property.fieldName] = val;
+		} else {
+			Object.defineProperty(obj, property.fieldName, { value: val, writable: true });
+		}
 
 		Property$pendingInit(obj.meta, property, false);
 

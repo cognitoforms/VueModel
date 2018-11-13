@@ -102,6 +102,7 @@ declare module 'model.js/interfaces' {
 	export interface PropertyEventDispatchers {
 	    readonly changedEvent: EventDispatcher<Entity, PropertyChangeEventArgs>;
 	    readonly accessedEvent: EventDispatcher<Entity, PropertyAccessEventArgs>;
+	    readonly ruleRegisteredEvent: EventDispatcher<Rule, PropertyRuleRegisteredEventArgs>;
 	}
 	export interface PropertyEventArgs {
 	    property: PropertySpec;
@@ -118,6 +119,12 @@ declare module 'model.js/interfaces' {
 	export interface PropertyChangeEventArgs extends PropertyEventArgs {
 	    newValue: any;
 	    oldValue: any;
+	}
+	export interface PropertyRuleRegisteredEventHandler {
+	    (sender: Rule, args: PropertyRuleRegisteredEventArgs): void;
+	}
+	export interface PropertyRuleRegisteredEventArgs extends PropertyEventArgs {
+	    rule: Rule;
 	}
 	export type PropertyGetMethod = (property: Property, entity: Entity, additionalArgs: any) => any;
 	export type PropertySetMethod = (property: Property, entity: Entity, val: any, additionalArgs: any, skipTypeCheck: boolean) => void;
@@ -249,6 +256,9 @@ declare module 'model.js/interfaces' {
 	    /** Array of properties (strings or Property instances) that the rule is responsible for calculating */
 	    returns?: (string | Property)[];
 	}
+	export interface RuleTypeOptions {
+	    rootType?: Type;
+	}
 	/**
 	 * Encapsulates a function that executes automatically in response to model change events.
 	 */
@@ -267,6 +277,33 @@ declare module 'model.js/interfaces' {
 	}
 	export interface RuleConstructor {
 	    new (rootType: Type, name: string, options: RuleOptions): Rule;
+	}
+	export interface PropertyRule extends Rule {
+	    /** The property that the rule targets */
+	    readonly property: Property;
+	}
+	export interface CalculatedPropertyRule extends PropertyRule {
+	    /** The value to return if an error occurs, or undefined to cause an exception to be thrown */
+	    defaultIfError: any;
+	}
+	export interface CalculatedPropertyRuleOptions {
+	    /** The property being calculated (either a Property instance or string property name) */
+	    property?: string | Property;
+	    /** A function that returns the value to assign to the property, or undefined if the value cannot be calculated */
+	    calculate?: string | ((this: Entity) => any);
+	    /** A function that returns the value to assign to the property, or undefined if the value cannot be calculated */
+	    fn?: string | ((this: Entity) => any);
+	    /** The value to return if an error occurs, or undefined to cause an exception to be thrown */
+	    defaultIfError?: any;
+	}
+	export interface CalculatedPropertyRuleConstructor {
+	    /**
+	     * Creates a rule that calculates the value of a property in the model
+	     * @param rootType The model type the rule is for
+	     * @param name The name of the rule
+	     * @param options The options of the rule of type 'CalculatedPropertyRuleOptions'
+	     */
+	    new (rootType: Type, name: string, options: CalculatedPropertyRuleOptions): Rule;
 	}
 	export interface EventRegistration<TSender, THandler> {
 	    handler: THandler;
@@ -339,6 +376,7 @@ declare module 'model.js/helpers' {
 	export function randomText(len: number, includeDigits?: boolean): string;
 	export function toTitleCase(input: string): string;
 	export function hasOwnProperty(obj: any, prop: string): boolean;
+	export function merge<T>(obj1: T, ...objs: any[]): T;
 	export function getEventSubscriptions<TSender, TArgs>(dispatcher: EventDispatcher<TSender, TArgs>): EventSubscription<IEventHandler<TSender, TArgs>>[];
 	export interface ObjectLiteral<T> {
 	    [key: string]: T;
@@ -536,64 +574,6 @@ declare module 'model.js/entity' {
 	export function Entity$_dispatchEvent<TSender, TArgs>(entity: IEntity, eventName: string, sender: TSender, args: TArgs): void;
 
 }
-declare module 'model.js/property' {
-	import { IEvent } from "ste-events";
-	import { Entity as IEntity } from 'model.js/interfaces';
-	import { Format as IFormat } from 'model.js/interfaces';
-	import { ObjectMeta as IObjectMeta } from 'model.js/interfaces';
-	import { EventRegistration } from 'model.js/interfaces';
-	import { Property as IProperty, PropertyEventDispatchers, PropertyChangeEventArgs, PropertyAccessEventArgs, PropertyAccessEventHandler, PropertyChangeEventHandler } from 'model.js/interfaces';
-	import { PropertyChain as IPropertyChain } from 'model.js/interfaces';
-	import { Type as IType } from 'model.js/interfaces';
-	export class Property implements IProperty {
-	    readonly containingType: IType;
-	    readonly name: string;
-	    readonly propertyType: any;
-	    readonly isList: boolean;
-	    readonly isStatic: boolean;
-	    helptext: string;
-	    isPersisted: boolean;
-	    isCalculated: boolean;
-	    private _label;
-	    private _format;
-	    private _origin;
-	    private _defaultValue;
-	    readonly _propertyAccessSubscriptions: EventRegistration<IEntity, PropertyAccessEventHandler>[];
-	    readonly _propertyChangeSubscriptions: EventRegistration<IEntity, PropertyChangeEventHandler>[];
-	    readonly _eventDispatchers: PropertyEventDispatchers;
-	    readonly getter: (args?: any) => any;
-	    readonly setter: (value: any, args?: any) => void;
-	    constructor(containingType: IType, name: string, jstype: any, label: string, helptext: string, format: IFormat, isList: boolean, isStatic: boolean, isPersisted: boolean, isCalculated: boolean, defaultValue?: any, origin?: string);
-	    readonly fieldName: string;
-	    readonly changedEvent: IEvent<IEntity, PropertyChangeEventArgs>;
-	    readonly accessedEvent: IEvent<IEntity, PropertyAccessEventArgs>;
-	    equals(prop: IProperty | IPropertyChain): boolean;
-	    toString(): string;
-	    readonly label: string;
-	    readonly format: IFormat;
-	    readonly origin: string;
-	    readonly defaultValue: any;
-	    getPath(): string;
-	    canSetValue(obj: IEntity, val: any): boolean;
-	    value(obj?: IEntity, val?: any, additionalArgs?: any): any;
-	    isInited(obj: IEntity): boolean;
-	}
-	export function Property$isProperty(obj: any): boolean;
-	export function Property$equals(prop1: IProperty | IPropertyChain, prop2: IProperty | IPropertyChain): boolean;
-	export function Property$_generateShortcuts(property: IProperty, target: any, recurse?: boolean, overwrite?: boolean): void;
-	export function Property$_generateStaticProperty(property: IProperty): void;
-	export function Property$_generatePrototypeProperty(property: IProperty): void;
-	export function Property$_generateOwnProperty(property: IProperty, obj: IEntity): void;
-	export function Property$_getEventDispatchers(prop: IProperty): PropertyEventDispatchers;
-	export function Property$_dispatchEvent<TSender, TArgs>(prop: IProperty, eventName: string, sender: TSender, args: TArgs): void;
-	export function Property$_generateOwnPropertyWithClosure(property: Property, obj: IEntity): void;
-	export function Property$pendingInit(target: IType | IObjectMeta, prop: IProperty, value?: boolean): boolean | void;
-	export function Property$addAccessed(prop: IProperty | IPropertyChain, handler: (sender: IEntity, args: any) => void, obj?: IEntity, toleratePartial?: boolean): () => void;
-	export function Property$_addChangedHandler(prop: IProperty, handler: (sender: IEntity, args: PropertyChangeEventArgs) => void, obj?: IEntity): () => void;
-	export function Property$addChanged(prop: IProperty | IPropertyChain, handler: (sender: IEntity, args: any) => void, obj?: IEntity, toleratePartial?: boolean): () => void;
-	export function hasPropertyChangedSubscribers(prop: IProperty, obj: IEntity): boolean;
-
-}
 declare module 'model.js/rule-invocation-type' {
 	export const enum RuleInvocationType {
 	    /** Occurs when an existing instance is initialized.*/
@@ -640,7 +620,7 @@ declare module 'model.js/event-scope' {
 }
 declare module 'model.js/rule' {
 	import { Entity as IEntity } from 'model.js/interfaces';
-	import { Property as IProperty } from 'model.js/interfaces';
+	import { Property as IProperty, PropertyRule } from 'model.js/interfaces';
 	import { Rule as IRule, RuleOptions } from 'model.js/interfaces';
 	import { PropertyChain as IPropertyChain } from 'model.js/interfaces';
 	import { Type as IType } from 'model.js/interfaces';
@@ -648,7 +628,7 @@ declare module 'model.js/rule' {
 	export class Rule implements IRule {
 	    readonly rootType: IType;
 	    readonly name: string;
-	    execute: (entity: IEntity) => void;
+	    executeFn: (entity: IEntity) => void;
 	    invocationTypes: RuleInvocationType;
 	    predicates: (IProperty | IPropertyChain)[];
 	    returnValues: IProperty[];
@@ -658,7 +638,8 @@ declare module 'model.js/rule' {
 	     * @param rootType The model type the rule is for.
 	     * @param options The options for the rule.
 	     */
-	    constructor(rootType: IType, name: string, options: RuleOptions);
+	    constructor(rootType: IType, name: string, options: RuleOptions, skipRegistration?: boolean);
+	    execute(entity: IEntity): void;
 	    onInitNew(): this;
 	    onInitExisting(): this;
 	    onInit(): this;
@@ -677,6 +658,89 @@ declare module 'model.js/rule' {
 	    register(): void;
 	}
 	export function Rule$create(rootType: IType, optionsOrFunction: ((entity: IEntity) => void) | RuleOptions): Rule;
+	export function registerPropertyRule(rule: PropertyRule): void;
+
+}
+declare module 'model.js/calculated-property-rule' {
+	import { Rule } from 'model.js/rule';
+	import { CalculatedPropertyRule as ICalculatedPropertyRule, CalculatedPropertyRuleOptions } from 'model.js/interfaces';
+	import { RuleOptions } from 'model.js/interfaces';
+	import { Type as IType } from 'model.js/interfaces';
+	import { Property as IProperty } from 'model.js/interfaces';
+	import { Entity as IEntity } from 'model.js/interfaces';
+	export class CalculatedPropertyRule extends Rule implements ICalculatedPropertyRule {
+	    readonly property: IProperty;
+	    defaultIfError: any;
+	    private _calculateFn;
+	    constructor(rootType: IType, name: string, options: CalculatedPropertyRuleOptions & RuleOptions, skipRegistration?: boolean);
+	    execute(obj: IEntity): void;
+	    toString(): string;
+	    onRegister(): void;
+	}
+	export function CalcualatedPropertyRule$create(rootType: IType, property: IProperty, optionsOrFunction: ((this: IEntity) => any) | (CalculatedPropertyRuleOptions & RuleOptions)): CalculatedPropertyRule;
+
+}
+declare module 'model.js/property' {
+	import { IEvent } from "ste-events";
+	import { Entity as IEntity } from 'model.js/interfaces';
+	import { Format as IFormat } from 'model.js/interfaces';
+	import { ObjectMeta as IObjectMeta } from 'model.js/interfaces';
+	import { EventRegistration } from 'model.js/interfaces';
+	import { Property as IProperty, PropertyEventDispatchers, PropertyChangeEventArgs, PropertyAccessEventArgs, PropertyAccessEventHandler, PropertyChangeEventHandler } from 'model.js/interfaces';
+	import { PropertyChain as IPropertyChain } from 'model.js/interfaces';
+	import { Type as IType } from 'model.js/interfaces';
+	import { Rule as IRule, RuleOptions, RuleTypeOptions } from 'model.js/interfaces';
+	import { CalculatedPropertyRuleOptions } from 'model.js/interfaces';
+	export class Property implements IProperty {
+	    readonly containingType: IType;
+	    readonly name: string;
+	    readonly propertyType: any;
+	    readonly isList: boolean;
+	    readonly isStatic: boolean;
+	    helptext: string;
+	    isPersisted: boolean;
+	    isCalculated: boolean;
+	    private _label;
+	    private _format;
+	    private _origin;
+	    private _defaultValue;
+	    private _rules;
+	    readonly _propertyAccessSubscriptions: EventRegistration<IEntity, PropertyAccessEventHandler>[];
+	    readonly _propertyChangeSubscriptions: EventRegistration<IEntity, PropertyChangeEventHandler>[];
+	    readonly _eventDispatchers: PropertyEventDispatchers;
+	    readonly getter: (args?: any) => any;
+	    readonly setter: (value: any, args?: any) => void;
+	    constructor(containingType: IType, name: string, jstype: any, label: string, helptext: string, format: IFormat, isList: boolean, isStatic: boolean, isPersisted: boolean, isCalculated: boolean, defaultValue?: any, origin?: string);
+	    readonly fieldName: string;
+	    readonly changedEvent: IEvent<IEntity, PropertyChangeEventArgs>;
+	    readonly accessedEvent: IEvent<IEntity, PropertyAccessEventArgs>;
+	    equals(prop: IProperty | IPropertyChain): boolean;
+	    toString(): string;
+	    readonly label: string;
+	    readonly format: IFormat;
+	    readonly origin: string;
+	    readonly defaultValue: any;
+	    getPath(): string;
+	    canSetValue(obj: IEntity, val: any): boolean;
+	    value(obj?: IEntity, val?: any, additionalArgs?: any): any;
+	    isInited(obj: IEntity): boolean;
+	    calculated(options: RuleOptions & RuleTypeOptions & CalculatedPropertyRuleOptions): void;
+	}
+	export function Property$isProperty(obj: any): boolean;
+	export function Property$equals(prop1: IProperty | IPropertyChain, prop2: IProperty | IPropertyChain): boolean;
+	export function Property$_generateShortcuts(property: IProperty, target: any, recurse?: boolean, overwrite?: boolean): void;
+	export function Property$_generateStaticProperty(property: IProperty): void;
+	export function Property$_generatePrototypeProperty(property: IProperty): void;
+	export function Property$_generateOwnProperty(property: IProperty, obj: IEntity): void;
+	export function Property$_getEventDispatchers(prop: IProperty): PropertyEventDispatchers;
+	export function Property$_dispatchEvent<TSender, TArgs>(prop: IProperty, eventName: string, sender: TSender, args: TArgs): void;
+	export function Property$_generateOwnPropertyWithClosure(property: Property, obj: IEntity): void;
+	export function Property$getRules(property: IProperty): IRule[];
+	export function Property$pendingInit(target: IType | IObjectMeta, prop: IProperty, value?: boolean): boolean | void;
+	export function Property$addAccessed(prop: IProperty | IPropertyChain, handler: (sender: IEntity, args: any) => void, obj?: IEntity, toleratePartial?: boolean): () => void;
+	export function Property$_addChangedHandler(prop: IProperty, handler: (sender: IEntity, args: PropertyChangeEventArgs) => void, obj?: IEntity): () => void;
+	export function Property$addChanged(prop: IProperty | IPropertyChain, handler: (sender: IEntity, args: any) => void, obj?: IEntity, toleratePartial?: boolean): () => void;
+	export function hasPropertyChangedSubscribers(prop: IProperty, obj: IEntity): boolean;
 
 }
 declare module 'model.js/type' {
@@ -820,13 +884,19 @@ declare module 'model.js/main' {
 	export type Property = PropertyInterface;
 	import { Property as PropertyClass } from 'model.js/property';
 	export const Property: typeof PropertyClass;
-	import { PropertyConstructor, PropertyEventArgs, PropertyAccessEventArgs, PropertyAccessEventHandler, PropertyChangeEventArgs, PropertyChangeEventHandler } from 'model.js/interfaces';
+	import { PropertyConstructor } from 'model.js/interfaces';
 	export type PropertyConstructor = PropertyConstructor;
+	import { PropertyEventArgs } from 'model.js/interfaces';
 	export type PropertyEventArgs = PropertyEventArgs;
+	import { PropertyAccessEventArgs, PropertyAccessEventHandler } from 'model.js/interfaces';
 	export type PropertyAccessEventArgs = PropertyAccessEventArgs;
 	export type PropertyAccessEventHandler = PropertyAccessEventHandler;
+	import { PropertyChangeEventArgs, PropertyChangeEventHandler } from 'model.js/interfaces';
 	export type PropertyChangeEventArgs = PropertyChangeEventArgs;
 	export type PropertyChangeEventHandler = PropertyChangeEventHandler;
+	import { PropertyRuleRegisteredEventArgs, PropertyRuleRegisteredEventHandler } from 'model.js/interfaces';
+	export type PropertyRuleRegisteredEventArgs = PropertyRuleRegisteredEventArgs;
+	export type PropertyRuleRegisteredEventHandler = PropertyRuleRegisteredEventHandler;
 	import { PropertyChain as PropertyChainInterface } from 'model.js/interfaces';
 	export type PropertyChain = PropertyChainInterface;
 	import { PropertyChain as PropertyChainClass } from 'model.js/property-chain';
@@ -866,5 +936,15 @@ declare module 'model.js/main' {
 	import { RuleConstructor, RuleOptions } from 'model.js/interfaces';
 	export type RuleConstructor = RuleConstructor;
 	export type RuleOptions = RuleOptions;
+	import { PropertyRule } from 'model.js/interfaces';
+	export type PropertyRule = PropertyRule;
+	import { CalculatedPropertyRule as CalculatedPropertyRuleInterface } from 'model.js/interfaces';
+	export type CalculatedPropertyRule = CalculatedPropertyRuleInterface;
+	import { CalculatedPropertyRule as CalculatedPropertyRuleClass } from 'model.js/calculated-property-rule';
+	export const CalculatedPropertyRule: typeof CalculatedPropertyRuleClass;
+	import { CalculatedPropertyRuleConstructor } from 'model.js/interfaces';
+	export type CalculatedPropertyRuleConstructor = CalculatedPropertyRuleConstructor;
+	import { CalculatedPropertyRuleOptions } from 'model.js/interfaces';
+	export type CalculatedPropertyRuleOptions = CalculatedPropertyRuleOptions;
 
 }
