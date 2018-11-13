@@ -20,6 +20,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> implements Source
 
     get property(): Property {
         // TODO: Support multi-hop path
+        // TODO: Detect invalid property or path
         return this.source.value.meta.type.getProperty(this.path);
     }
 

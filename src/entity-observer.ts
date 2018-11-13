@@ -35,7 +35,7 @@ function EntityObserver$_ensureChildEntitiesObservable(this: EntityObserver, arr
     }
 }
 
-function EntityObserver$_getPropertyDep(this: EntityObserver, property: Property): Dep {
+export function EntityObserver$_getPropertyDep(this: EntityObserver, property: Property): Dep {
     let dependencies = (this as any)._dependencies as EntityObserverDependencies;
     let Vue$Dep = dependencies.Vue$Dep;
 

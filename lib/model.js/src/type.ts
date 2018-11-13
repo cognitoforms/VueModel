@@ -214,6 +214,10 @@ export class Type implements IType {
 	}
 
 	get(id: string, exactTypeOnly: boolean = false) {
+		if (!id) {
+			throw new Error(`Method "${this.fullName}.meta.get()" was called without a valid id argument.`);
+		}
+
 		var key = id.toLowerCase();
 		var obj = this._pool[key] || this._legacyPool[key];
 

@@ -1,5 +1,5 @@
 /*!
- * VueModel.js v0.0.11
+ * VueModel.js v0.0.12
  * (c) 2018 Cognito LLC
  * Released under the MIT License.
  */
@@ -676,6 +676,30 @@ function toTitleCase(input) {
         str = str.replace(new RegExp('\\b' + uppers[i] + '\\b', 'g'), uppers[i].toUpperCase());
     }
     return str;
+}
+function hasOwnProperty(obj, prop) {
+    return Object.prototype.hasOwnProperty.call(obj, prop);
+}
+function merge(obj1) {
+    var objs = [];
+    for (var _i = 1; _i < arguments.length; _i++) {
+        objs[_i - 1] = arguments[_i];
+    }
+    var target = {};
+    for (var arg in obj1) {
+        if (hasOwnProperty(obj1, arg)) {
+            target[arg] = obj1[arg];
+        }
+    }
+    for (var i = 0; i < objs.length; i++) {
+        var obj = objs[i];
+        for (var arg in obj) {
+            if (hasOwnProperty(obj, arg)) {
+                target[arg] = obj[arg];
+            }
+        }
+    }
+    return target;
 }
 function getEventSubscriptions(dispatcher) {
     var disp = dispatcher;
@@ -2101,12 +2125,12 @@ function Property$_getInitialValue(property) {
     return val;
 }
 function Property$_ensureInited(property, obj) {
+    var target = (property.isStatic ? property.containingType.ctor : obj);
     // Determine if the property has been initialized with a value
     // and initialize the property if necessary
     if (!obj.hasOwnProperty(property.fieldName)) {
         // Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.  
         if (!property.isCalculated) {
-            var target = (property.isStatic ? property.containingType.ctor : obj);
             Property$pendingInit(target.meta, property, false);
             var val = Property$_getInitialValue(property);
             Object.defineProperty(target, property.fieldName, { value: val, writable: true });
@@ -2116,9 +2140,8 @@ function Property$_ensureInited(property, obj) {
             // TODO: Implement observable?
             Entity$_getEventDispatchers(obj).changedEvent.dispatch(property, { entity: obj, property: property });
         }
-        // TODO: Implement pendingInit
         // Mark the property as pending initialization
-        // obj.meta.pendingInit(property, true);
+        Property$pendingInit(target.meta, property, true);
     }
 }
 function Property$_getter(property, obj) {
@@ -2172,19 +2195,12 @@ function Property$_setValue(property, obj, old, val, additionalArgs) {
     else {
         // Set the backing field value
         obj[property.fieldName] = val;
-        // TODO: Implement pendingInit
-        // obj.meta.pendingInit(property, false);
+        Property$pendingInit(obj.meta, property, false);
         // Do not raise change if the property has not been initialized. 
         if (old !== undefined) {
             var eventArgs = { property: property, newValue: val, oldValue: old };
-            if (additionalArgs) {
-                for (var arg in additionalArgs) {
-                    if (additionalArgs.hasOwnProperty(arg)) {
-                        eventArgs[arg] = additionalArgs[arg];
-                    }
-                }
-            }
-            Property$_getEventDispatchers(property).changedEvent.dispatch(obj, eventArgs);
+            Property$_getEventDispatchers(property).changedEvent.dispatch(obj, additionalArgs ? merge(eventArgs, additionalArgs) : eventArgs);
+            Entity$_getEventDispatchers(obj).changedEvent.dispatch(property, { entity: obj, property: property });
         }
     }
 }
@@ -3085,6 +3101,9 @@ var Type = /** @class */ (function () {
     };
     Type.prototype.get = function (id, exactTypeOnly) {
         if (exactTypeOnly === void 0) { exactTypeOnly = false; }
+        if (!id) {
+            throw new Error("Method \"" + this.fullName + ".meta.get()\" was called without a valid id argument.");
+        }
         var key = id.toLowerCase();
         var obj = this._pool[key] || this._legacyPool[key];
         // If exactTypeOnly is specified, don't return sub-types.
@@ -3974,6 +3993,7 @@ var SourcePathAdapter = /** @class */ (function () {
     Object.defineProperty(SourcePathAdapter.prototype, "property", {
         get: function () {
             // TODO: Support multi-hop path
+            // TODO: Detect invalid property or path
             return this.source.value.meta.type.getProperty(this.path);
         },
         enumerable: true,
@@ -4140,55 +4160,7 @@ function isSourceAdapter(obj) {
         return true;
     return false;
 }
-function isSourcePropertyAdapter(obj) {
-    if (obj instanceof SourcePathAdapter)
-        return true;
-    return false;
-}
 
-function proxySourceAdapterPropertiesOntoComponentInstance(vm, rootKey, force, overwrite) {
-    if (force === void 0) { force = false; }
-    if (overwrite === void 0) { overwrite = false; }
-    var vm$private = vm;
-    if (!hasOwnProperty$1(vm$private, rootKey)) {
-        // TODO: Warn about missing value for `rootKey`?
-        return;
-    }
-    if (!isSourceAdapter(vm$private[rootKey])) {
-        // TODO: Lazily obtain source adapter if needed?
-        // TODO: Warn about non-source adapter?
-        return;
-    }
-    var sourceAdapter = vm$private[rootKey];
-    debug("Proxying source adapter properties for <" + sourceAdapter + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
-    var props = vm$private.$options.propsData;
-    var propKeys = vm$private.$options._propKeys.slice();
-    if (isSourcePropertyAdapter(vm$private[rootKey])) {
-        if (force || (propKeys.indexOf("label") >= 0 && (overwrite || !hasOwnProperty$1(props, "label")))) {
-            Vue$proxy(vm, '_source', "label");
-        }
-        if (force || (propKeys.indexOf("helptext") >= 0 && (overwrite || !hasOwnProperty$1(props, "helptext")))) {
-            Vue$proxy(vm, '_source', "helptext");
-        }
-    }
-    if (force || (propKeys.indexOf("value") >= 0 && (overwrite || !hasOwnProperty$1(props, "value")))) {
-        Vue$proxy(vm, '_source', "value");
-    }
-    if (force || (propKeys.indexOf("displayValue") >= 0 && (overwrite || !hasOwnProperty$1(props, "displayValue")))) {
-        Vue$proxy(vm, '_source', "displayValue");
-    }
-}
-function preprocessPropsToInterceptSource(vm) {
-    var vm$private = vm;
-    if (vm$private._source) {
-        // TODO: Warn about _source already defined?
-        return;
-    }
-    var props = vm.$options.propsData;
-    if (hasOwnProperty$1(props, 'source')) {
-        vm$private._source = props.source;
-    }
-}
 function defineDollarSourceProperty(vm, sourceAdapter) {
     var vm$private = vm;
     if (!hasOwnProperty$1(vm$private, '_source') || !isSourceAdapter(vm$private._source)) {
@@ -4295,6 +4267,18 @@ function getSourceBindingContainer(vm, dependencies, detectImplicitSource) {
         }
     }
 }
+
+function preprocessPropsToInterceptSource(vm) {
+    var vm$private = vm;
+    if (vm$private._source) {
+        // TODO: Warn about _source already defined?
+        return;
+    }
+    var props = vm.$options.propsData;
+    if (hasOwnProperty$1(props, 'source')) {
+        vm$private._source = props.source;
+    }
+}
 function establishBindingSource(vm, dependencies) {
     var vm$private = vm;
     if (vm$private._sourcePending) {
@@ -4338,15 +4322,22 @@ function establishBindingSource(vm, dependencies) {
         }
         if (sourceAdapter != null) {
             defineDollarSourceProperty(vm, sourceAdapter);
-            proxySourceAdapterPropertiesOntoComponentInstance(vm, '_source', false, false);
+            // proxySourceAdapterPropertiesOntoComponentInstance(vm, '_source', false, false);
         }
     }
     delete vm$private['_sourcePending'];
 }
-
 function SourceProviderMixin(dependencies) {
     return {
-        props: ["source", "sourceIndex"],
+        props: {
+            source: {},
+            sourceIndex: {
+                type: Number,
+                validator: function (value) {
+                    return value >= 0;
+                }
+            }
+        },
         beforeCreate: function () {
             var vm = this;
             if (vm.$options.propsData) {
@@ -4365,7 +4356,7 @@ function SourceProviderMixin(dependencies) {
                 // TODO: Who wins, props or data?
                 // Vue proxies the data objects `Object.keys()` onto the component itself,
                 // so that the data objects properties can be used directly in templates
-                proxySourceAdapterPropertiesOntoComponentInstance(vm, '_data', false, false);
+                // proxySourceAdapterPropertiesOntoComponentInstance(vm, '_data', false, false);
             }
             if (vm.$options.propsData) {
                 var props = vm.$options.propsData;
@@ -4377,18 +4368,45 @@ function SourceProviderMixin(dependencies) {
     };
 }
 
+function establishBindingSource$1(vm, dependencies) {
+    var sourceVm = getSourceBindingContainer(vm, dependencies);
+    var sourceVm$private = sourceVm;
+    if (sourceVm$private.$source) {
+        var source = sourceVm$private.$source;
+        if (isSourceAdapter(source)) {
+            defineDollarSourceProperty(vm, source);
+        }
+    }
+}
 function SourceConsumerMixin(dependencies) {
     return {
+        beforeCreate: function () {
+            var vm = this;
+            var vm$private = vm;
+            var originalData = vm.$options.data;
+            vm$private.$options.data = function () {
+                // Establish the `$source` variable
+                establishBindingSource$1(vm, dependencies);
+                if (originalData) {
+                    // Return the original data
+                    if (originalData instanceof Function) {
+                        var dataFn = originalData;
+                        return dataFn.apply(this, arguments);
+                    }
+                    else {
+                        return originalData;
+                    }
+                }
+                else {
+                    return {};
+                }
+            };
+        },
         created: function () {
             var vm = this;
-            var sourceVm = getSourceBindingContainer(vm, dependencies);
-            var sourceVm$private = sourceVm;
-            if (sourceVm$private.$source) {
-                var source = sourceVm$private.$source;
-                if (isSourceAdapter(source)) {
-                    defineDollarSourceProperty(vm, sourceVm$private.$source);
-                    proxySourceAdapterPropertiesOntoComponentInstance(vm, '_source', false, false);
-                }
+            var vm$private = vm;
+            if (!vm$private.$source) {
+                establishBindingSource$1(vm, dependencies);
             }
         }
     };

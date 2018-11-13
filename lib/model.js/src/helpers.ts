@@ -180,6 +180,29 @@ export function hasOwnProperty(obj: any, prop: string): boolean {
 	return Object.prototype.hasOwnProperty.call(obj, prop);
 }
 
+export function merge<T>(obj1: T, ...objs: any[]): T {
+
+	let target = {};
+
+	for (let arg in obj1) {
+		if (hasOwnProperty(obj1, arg)) {
+			(target as any)[arg] = obj1[arg];
+		}
+	}
+
+	for (let i = 0; i < objs.length; i++) {
+		let obj = objs[i];
+		for (let arg in obj) {
+			if (hasOwnProperty(obj, arg)) {
+				(target as any)[arg] = obj[arg];
+			}
+		}
+	}
+
+	return target as T;
+
+}
+
 export function getEventSubscriptions<TSender, TArgs>(dispatcher: EventDispatcher<TSender, TArgs>): EventSubscription<IEventHandler<TSender, TArgs>>[] {
 	let disp = dispatcher as any;
 	let subs: EventSubscription<IEventHandler<TSender, TArgs>>[] = disp._subscriptions;

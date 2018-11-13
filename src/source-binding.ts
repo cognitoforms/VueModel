@@ -2,9 +2,6 @@ import Vue from "vue";
 import { hasOwnProperty, debug } from "./helpers";
 import { Entity, EntityConstructor } from "../lib/model.js/src/interfaces";
 import { SourceAdapter, isSourceAdapter, isSourcePropertyAdapter } from "./source-adapter";
-import { SourceRootAdapter } from "./source-root-adapter";
-import { SourcePathAdapter } from "./source-path-adapter";
-import { SourceIndexAdapter } from "./source-index-adapter";
 import { Vue$proxy } from "./vue-helpers";
 
 export interface SourceBindingDependencies {
@@ -55,23 +52,6 @@ export function proxySourceAdapterPropertiesOntoComponentInstance(vm: Vue, rootK
 
 }
 
-export function preprocessPropsToInterceptSource(vm: Vue) {
-
-    let vm$private: any = vm as any;
-
-    if (vm$private._source) {
-        // TODO: Warn about _source already defined?
-        return;
-    }
-
-    let props = vm.$options.propsData as any;
-
-    if (hasOwnProperty(props, 'source')) {
-        vm$private._source = props.source;
-    }
-
-}
-
 export function defineDollarSourceProperty(vm: Vue, sourceAdapter: SourceAdapter<any>) {
 
     let vm$private: any = vm as any;
@@ -95,7 +75,7 @@ export function defineDollarSourceProperty(vm: Vue, sourceAdapter: SourceAdapter
 
 }
 
-function getImplicitSource(vm: Vue, dependencies: SourceBindingDependencies, detect: boolean = false): Entity | SourceAdapter<any> {
+export function getImplicitSource(vm: Vue, dependencies: SourceBindingDependencies, detect: boolean = false): Entity | SourceAdapter<any> {
 
     let vm$private = vm as any;
 
@@ -190,76 +170,5 @@ export function getSourceBindingContainer(vm: Vue, dependencies: SourceBindingDe
             return firstImplicitSourceVm;
         }
     }
-
-}
-
-export function establishBindingSource(vm: Vue, dependencies: SourceBindingDependencies) {
-
-    let vm$private: any = vm as any;
-
-    if (vm$private._sourcePending) {
-        // Detect re-entrance
-        return;
-    }
-
-    if (!vm.$options.propsData) {
-        return;
-    }
-
-    let props = vm.$options.propsData as any;
-
-    if (!hasOwnProperty(props, 'source')) {
-        return;
-    }
-
-    vm$private._sourcePending = true;
-
-    let Model$Entity = dependencies.Model$Entity;
-
-    debug("Found component of type '" + vm$private.$options._componentTag + "' with source '" + props.source + "'.");
-
-    let sourceVm: Vue = getSourceBindingContainer(vm, dependencies, true);
-
-    if (sourceVm) {
-
-        let sourceVm$private = sourceVm as any;
-
-        let source = sourceVm$private._source;
-        if (typeof source === "string") {
-            establishBindingSource(sourceVm, dependencies);
-            source = sourceVm$private._source;
-        }
-
-        let sourceIndex: number = parseInt(props.source, 10);
-        if (isNaN(sourceIndex)) {
-            sourceIndex = null;
-        }
-
-        let sourceAdapter: SourceAdapter<any> = null;
-
-        if (source instanceof Model$Entity) {
-            debug("Found source entity of type <" + (source as Entity).meta.type.fullName + ">.");
-            sourceAdapter = new SourcePathAdapter<Entity, any>(new SourceRootAdapter(source as Entity), props.source);
-        } else if (isSourceAdapter(source)) {
-            debug("Found source adapter <" + source + ">.");
-            if (sourceIndex !== null) {
-                sourceAdapter = new SourceIndexAdapter<Entity, any>(source as SourcePathAdapter<Entity, any>, parseInt(props.source, 10));
-            } else {
-                sourceAdapter = new SourcePathAdapter<Entity, any>(source as SourceAdapter<Entity>, props.source);
-            }
-        } else {
-            // TODO: Warn about non-entity or adaper source context?
-        }
-
-        if (sourceAdapter != null) {
-            defineDollarSourceProperty(vm, sourceAdapter);
-            proxySourceAdapterPropertiesOntoComponentInstance(vm, '_source', false, false);
-        }
-
-    } else {
-        // TODO: Warn about absence of binding source?
-    }
-
-    delete vm$private['_sourcePending'];
 
 }

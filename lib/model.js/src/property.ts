@@ -8,7 +8,7 @@ import { Property as IProperty, PropertyGetMethod, PropertySetMethod, PropertyEv
 import { PropertyChain as IPropertyChain } from "./interfaces";
 import { Type as IType } from "./interfaces";
 import { Type$isType } from "./type";
-import { getTypeName, getDefaultValue, parseFunctionName, toTitleCase, ObjectLiteral } from "./helpers";
+import { getTypeName, getDefaultValue, parseFunctionName, toTitleCase, ObjectLiteral, merge } from "./helpers";
 import { createSecret } from "./internals";
 import { ObservableList } from "./observable-list";
 import { PropertyChain$_addChangedHandler, PropertyChain$_addAccessedHandler, PropertyChain$isPropertyChain } from "./property-chain";
@@ -487,14 +487,14 @@ function Property$_getInitialValue(property: IProperty) {
 }
 
 function Property$_ensureInited(property: Property, obj: IEntity) {
+	var target = (property.isStatic ? property.containingType.ctor : obj);
+
     // Determine if the property has been initialized with a value
     // and initialize the property if necessary
     if (!obj.hasOwnProperty(property.fieldName)) {
 
         // Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.  
         if (!property.isCalculated) {
-			var target = (property.isStatic ? property.containingType.ctor : obj);
-
 			Property$pendingInit(target.meta, property, false);
 
 			let val = Property$_getInitialValue(property);
@@ -509,9 +509,8 @@ function Property$_ensureInited(property: Property, obj: IEntity) {
 			Entity$_getEventDispatchers(obj).changedEvent.dispatch(property, { entity: obj, property: property });
         }
 
-        // TODO: Implement pendingInit
-        // Mark the property as pending initialization
-        // obj.meta.pendingInit(property, true);
+		// Mark the property as pending initialization
+		Property$pendingInit(target.meta, property, true);
     }
 }
 
@@ -578,22 +577,13 @@ function Property$_setValue(property: Property, obj: IEntity, old: any, val: any
 		// Set the backing field value
 		(obj as any)[property.fieldName] = val;
 
-		// TODO: Implement pendingInit
-		// obj.meta.pendingInit(property, false);
+		Property$pendingInit(obj.meta, property, false);
 
 		// Do not raise change if the property has not been initialized. 
 		if (old !== undefined) {
 			var eventArgs: PropertyChangeEventArgs = { property: property, newValue: val, oldValue: old };
-
-			if (additionalArgs) {
-				for (var arg in additionalArgs) {
-					if (additionalArgs.hasOwnProperty(arg)) {
-						(eventArgs as any)[arg] = additionalArgs[arg];
-					}
-				}
-			}
-
-			Property$_getEventDispatchers(property).changedEvent.dispatch(obj, eventArgs);
+			Property$_getEventDispatchers(property).changedEvent.dispatch(obj, additionalArgs ? merge(eventArgs, additionalArgs) : eventArgs);
+			Entity$_getEventDispatchers(obj).changedEvent.dispatch(property, { entity: obj, property: property });
 		}
     }
 }

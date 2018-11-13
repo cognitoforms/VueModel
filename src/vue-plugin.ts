@@ -66,7 +66,7 @@ export function VueModel$installPlugin(Vue: VueConstructor, dependencies: VuePlu
 
                 // Restore the data by attempting to emulate what would have happened to
                 // the `data` object had it gone through normal component intialization
-                restoreComponentEntityData(vm, dependencies as VuePluginEntitiesDependencies);
+                restoreComponentEntityData(vm, (dependencies as any) as VuePluginEntitiesDependencies);
 
             }
 
