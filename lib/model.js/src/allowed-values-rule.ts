@@ -8,6 +8,7 @@ import { Array$indexOf } from "./helpers";
 import { ConditionRuleOptions } from "./condition-rule";
 import { RuleOptions } from "./rule";
 import { Model$getPropertyOrPropertyChain } from "./model";
+import { Resource } from "./resource";
 
 export class AllowedValuesRule extends ValidatedPropertyRule {
 
@@ -29,7 +30,7 @@ export class AllowedValuesRule extends ValidatedPropertyRule {
 
 		// ensure the error message is specified
 		// options.message = options.message || Resource.get("allowed-values");
-		options.message = options.message || ("is not in the list of allowed values.");
+		options.message = options.message || Resource.get("allowed-values");
 
 		let source: Property | PropertyChain;
 		let sourcePath: string;

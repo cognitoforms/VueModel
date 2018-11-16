@@ -62,6 +62,9 @@
     <TypeScriptCompile Include="lib\model.js\src\path-tokens.ts" />
     <TypeScriptCompile Include="lib\model.js\src\property-chain.ts" />
     <TypeScriptCompile Include="lib\model.js\src\property.ts" />
+    <TypeScriptCompile Include="lib\model.js\src\required-if-rule.ts" />
+    <TypeScriptCompile Include="lib\model.js\src\required-rule.ts" />
+    <TypeScriptCompile Include="lib\model.js\src\resource.ts" />
     <TypeScriptCompile Include="lib\model.js\src\rule-invocation-type.ts" />
     <TypeScriptCompile Include="lib\model.js\src\rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\signal.ts" />

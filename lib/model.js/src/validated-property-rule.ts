@@ -80,8 +80,13 @@ export class ValidatedPropertyRule extends ConditionRule implements PropertyRule
 	}
 
 	// returns false if the property is valid, true if invalid, or undefined if unknown
+	isValid(obj: Entity, prop: Property, val: any): boolean {
+		return this._isValid(obj, prop, val);
+	}
+
+	// returns false if the property is valid, true if invalid, or undefined if unknown
 	assert(obj: Entity): boolean {
-		var isValid = this._isValid(obj, this.property as Property, this.property.value(obj));
+		var isValid = this.isValid(obj, this.property as Property, this.property.value(obj));
 		return isValid === undefined ? isValid : !isValid;
 	}
 
