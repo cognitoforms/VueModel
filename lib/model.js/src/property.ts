@@ -301,9 +301,11 @@ export interface PropertyRule extends Rule {
 
 }
 
-// export function Property$isProperty(obj: any) {
-// 	return obj instanceof Property;
-// }
+export function Property$format(prop: Property, val: any): string {
+	if (prop.format) {
+		return prop.format.convert(val);
+	}
+}
 
 // export function Property$equals(prop1: Property | IPropertyChain, prop2: Property | IPropertyChain): boolean {
 

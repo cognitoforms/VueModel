@@ -55,6 +55,7 @@
     <TypeScriptCompile Include="lib\model.js\src\functor.ts" />
     <TypeScriptCompile Include="lib\model.js\src\helpers.ts" />
     <TypeScriptCompile Include="lib\model.js\src\legacy-api.ts" />
+    <TypeScriptCompile Include="lib\model.js\src\list-length-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\main.ts" />
     <TypeScriptCompile Include="lib\model.js\src\model.ts" />
     <TypeScriptCompile Include="lib\model.js\src\object-meta.ts" />
@@ -62,14 +63,18 @@
     <TypeScriptCompile Include="lib\model.js\src\path-tokens.ts" />
     <TypeScriptCompile Include="lib\model.js\src\property-chain.ts" />
     <TypeScriptCompile Include="lib\model.js\src\property.ts" />
+    <TypeScriptCompile Include="lib\model.js\src\range-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\required-if-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\required-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\resource.ts" />
     <TypeScriptCompile Include="lib\model.js\src\rule-invocation-type.ts" />
     <TypeScriptCompile Include="lib\model.js\src\rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\signal.ts" />
+    <TypeScriptCompile Include="lib\model.js\src\string-format-rule.ts" />
+    <TypeScriptCompile Include="lib\model.js\src\string-length-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\type.ts" />
     <TypeScriptCompile Include="lib\model.js\src\validated-property-rule.ts" />
+    <TypeScriptCompile Include="lib\model.js\src\validation-rule.ts" />
     <TypeScriptCompile Include="out\vuemodel.d.ts" />
     <TypeScriptCompile Include="src\entity-observer.ts" />
     <TypeScriptCompile Include="src\source-adapter.ts" />

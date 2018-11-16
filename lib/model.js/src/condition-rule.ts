@@ -8,8 +8,12 @@ import { ConditionTypeSet } from "./condition-type-set";
 
 export class ConditionRule extends Rule {
 
+	_message: string | ((this: Entity) => string);
+
+	_assert: (obj: Entity) => boolean;
+
 	// an array of property paths the validation condition should be attached to when asserted, in addition to the target property
-	private readonly _properties: Property[];
+	_properties: Property[];
 
 	// The condition type to raise when asserted
 	conditionType: ConditionType;
@@ -46,20 +50,22 @@ export class ConditionRule extends Rule {
 		// store the condition predicate
 		var assert = options.assert || options.fn;
 		if (assert) {
-			this.assert = assert;
+			this._assert = assert;
+		}
+
+		if (!conditionType) {
+			// create a condition type if not passed in, defaulting to Error if a condition category was not specified
+			conditionType = Rule$ensureConditionType(options.name, rootType, options.category || "ErrorConditionType");
 		}
 	
-		// create a condition type if not passed in, defaulting to Error if a condition category was not specified
-		Object.defineProperty(this, "conditionType", {
-			value: conditionType || Rule$ensureConditionType(options.name, rootType, options.category || "ErrorConditionType")
-		});
+		Object.defineProperty(this, "conditionType", { enumerable: true, value: conditionType });
 
 		// store the condition message and properties
 		if (options.message) {
-			Object.defineProperty(this, "message", { value: options.message, writable: true });
+			Object.defineProperty(this, "_message", { value: options.message, writable: true });
 		}
 
-		Object.defineProperty(this, "properties", { value: options.properties || [], writable: true });
+		Object.defineProperty(this, "_properties", { value: options.properties || [], writable: true });
 
 		if (!skipRegistration) {
 			// Register the rule after loading has completed
@@ -69,12 +75,23 @@ export class ConditionRule extends Rule {
 	}
 
 	// subclasses may override this function to return the set of properties to attach conditions to for this rule
-	get properties(): Property[] {
+	getProperties(): Property[] {
 		return hasOwnProperty(this, "_properties") ? this._properties : [];
 	}
 
 	// subclasses may override this function to calculate an appropriate message for this rule during the registration process
-	get message(): string {
+	getMessage(obj: Entity): string {
+		if (hasOwnProperty(this, "_message")) {
+			if (typeof this._message === "string") {
+				let compiledMessageFn = new Function(this._message);
+				this._message = compiledMessageFn as ((this: Entity) => string);
+			}
+
+			if (this._message instanceof Function) {
+				return this._message.call(obj);
+			}
+		}
+
 		return this.conditionType.message;
 	}
 
@@ -104,30 +121,22 @@ export class ConditionRule extends Rule {
 			assert = this.assert(obj);
 		}
 
-		var message = this.message as any;
+		let message: ((entity: Entity) => string);
 		if (hasOwnProperty(this, "message")) {
-			if (message instanceof Function) {
-				if (this.hasOwnProperty("message")) {
-					// When message is overriden, use the root object as this
-					message = message.bind(obj);
-				}
-				else {
-					message = message.bind(this);
-				}
-			}
+			message = ConditionRule.prototype.getMessage.bind(this);
 		}
 
 		// create or remove the condition if necessary
 		if (assert !== undefined) {
 			this.conditionType.when(assert, obj,
-				this.properties instanceof Function ? this.properties(obj) : this.properties,
+				this._properties instanceof Function ? this._properties.call(obj) : this._properties,
 				message);
 		}
 	}
 
 	// gets the string representation of the condition rule
 	toString() {
-		return this.message || this.conditionType.message;
+		return typeof this._message === "string" ? this._message : this.conditionType.message;
 	}
 
 }
