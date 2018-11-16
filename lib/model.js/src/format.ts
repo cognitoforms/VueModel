@@ -1,6 +1,4 @@
-import { Format as IFormat, FormatOptions, FormatConvertFunction, FormatConvertBackFunction } from "./interfaces";
-
-export class Format implements IFormat {
+export class Format {
 
 	specifier: string;
 	convertFn: FormatConvertFunction;
@@ -91,3 +89,21 @@ export class Format implements IFormat {
 	}
 
 }
+
+export interface FormatOptions {
+	specifier: string;
+	convert: FormatConvertFunction;
+	convertBack?: FormatConvertBackFunction;
+	formatEval?: (value: string) => string;
+	description?: string;
+	nullString?: string;
+	undefinedString?: string;
+}
+
+export interface FormatConstructor {
+	new(options: FormatOptions): Format;
+}
+
+export type FormatConvertFunction = (value: any) => string;
+
+export type FormatConvertBackFunction = (value: string) => string;

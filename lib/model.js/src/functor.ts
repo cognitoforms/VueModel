@@ -20,13 +20,9 @@ export interface FunctorItem {
 	once?: boolean;
 }
 
-export function Functor$create(functions: Function[] = null, returns: boolean = false): Functor & Function {
+export function Functor$create(returns: boolean = false): Functor & Function {
 
 	var funcs: FunctorItem[] = [];
-
-	if (functions) {
-		Array.prototype.push.apply(funcs, functions.map(f => FunctorItem$new(f)));
-	}
 
 	function Functor$fn() {
 		let returnsArray: Array<any>;
@@ -59,7 +55,9 @@ export function Functor$create(functions: Function[] = null, returns: boolean = 
 
 				// Call the handler function.
 				let returnValue = item.fn.apply(this, arguments);
-				returnsArray.push(returnValue);
+				if (returns) {
+					returnsArray.push(returnValue);
+				}
 			}
 		}
 

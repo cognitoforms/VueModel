@@ -1,19 +1,15 @@
-import { Entity as IEntity } from "./interfaces";
-import { Property as IProperty, PropertyRule, PropertyChangeEventArgs, PropertyAccessEventArgs } from "./interfaces";
-import { Rule as IRule, RuleOptions } from "./interfaces";
-import { PropertyChain as IPropertyChain } from "./interfaces";
-import { Property$addChanged, Property$addAccessed, hasPropertyChangedSubscribers, Property$pendingInit, Property$isProperty, Property$getRules, Property$_getEventDispatchers } from "./property";
-import { PropertyChain$isPropertyChain } from "./property-chain";
-import { Type as IType } from "./interfaces";
+import { Entity, EntityConstructorForType } from "./entity";
+import { Property$addChanged, Property$addAccessed, hasPropertyChangedSubscribers, Property$pendingInit, Property$getRules, Property, PropertyChangeEventArgs, PropertyAccessEventArgs, PropertyRule } from "./property";
+import { PropertyChain, PropertyChainChangeEventArgs, PropertyChainAccessEventArgs } from "./property-chain";
 import { Type } from "./type";
 import { Model$getPropertyOrPropertyChain } from "./model";
 import { RuleInvocationType } from "./rule-invocation-type";
 import { EventScope$current, EventScope$perform, EventScope$onExit, EventScope$onAbort } from "./event-scope";
 import { Signal } from "./signal";
-import { ObjectMeta as IObjectMeta } from "./interfaces";
+import { ObjectMeta } from "./object-meta";
 import { PathTokens$normalizePaths } from "./path-tokens";
-import { Entity$_getEventDispatchers } from "./entity";
 import { getEventSubscriptions } from "./helpers";
+import { ErrorConditionType, WarningConditionType, ConditionType, ErrorConditionTypeConstructor, WarningConditionTypeConstructor } from "./condition-type";
 
 // TODO: Make `detectRunawayRules` an editable configuration value
 const detectRunawayRules = true;
@@ -27,17 +23,17 @@ const nonExitingScopeNestingCount: number = 100;
 
 let Rule$customRuleIndex: number = 0
 
-export class Rule implements IRule {
+export class Rule {
 
 	// Public read-only properties: aspects of the object that cannot be
 	// changed without fundamentally changing what the object is
-	readonly rootType: IType;
+	readonly rootType: Type;
 	readonly name: string;
 
-	executeFn: (entity: IEntity) => void;
+	executeFn: (entity: Entity) => void;
 	invocationTypes: RuleInvocationType = 0;
-	predicates: (IProperty | IPropertyChain)[] = [];
-	returnValues: IProperty[] = [];
+	predicates: (Property | PropertyChain)[] = [];
+	returnValues: Property[] = [];
 
 	private _registered: boolean;
 
@@ -46,7 +42,7 @@ export class Rule implements IRule {
 	 * @param rootType The model type the rule is for.
 	 * @param options The options for the rule.
 	 */
-	constructor(rootType: IType, name: string, options: RuleOptions, skipRegistration: boolean = false) {
+	constructor(rootType: Type, name: string, options: RuleOptions, skipRegistration: boolean = false) {
 
 		// Track the root type
 		this.rootType = rootType;
@@ -77,7 +73,7 @@ export class Rule implements IRule {
 		}
 	}
 
-	execute(entity: IEntity): void {
+	execute(entity: Entity): void {
 		if (this.executeFn) {
 			this.executeFn(entity);
 		} else {
@@ -125,8 +121,8 @@ export class Rule implements IRule {
 	 * Indicates that the rule should automatically run when one of the specified property paths changes.
 	 * @param predicates An array of property paths (strings, Property or PropertyChain instances) that drive when the rule should execute due to property changes.
 	 */
-	onChangeOf(predicates: (string | IProperty | IPropertyChain)[]): this
-	onChangeOf(...predicates: (string | IProperty | IPropertyChain)[]): this
+	onChangeOf(predicates: (string | Property | PropertyChain)[]): this
+	onChangeOf(...predicates: (string | Property | PropertyChain)[]): this
 	onChangeOf(predicates: any) {
 
 		// ensure the rule has not already been registered
@@ -150,10 +146,10 @@ export class Rule implements IRule {
 
 	/**
 	 * Indicates that the rule is responsible for calculating and returning values of one or more properties on the root type.
-	 * @param properties An array of properties (string name or IProperty instance) that the rule is responsible to calculating the value of.
+	 * @param properties An array of properties (string name or Property instance) that the rule is responsible to calculating the value of.
 	 */
-	returns(properties: (string | IProperty)[]): this
-	returns(...properties: (string | IProperty)[]): this
+	returns(properties: (string | Property)[]): this
+	returns(...properties: (string | Property)[]): this
 	returns(properties: any) {
 
 		// Ensure the rule has not already been registered
@@ -197,7 +193,7 @@ export class Rule implements IRule {
 	// // creates a condition type for the specified rule and type or property, of the specified category type (usually Error or Warning)
 	// static ensureConditionType(ruleName: string, typeOrProp, category, sets) {
 	// 	var generatedCode =
-	// 		typeOrProp instanceof IProperty ? $format("{0}.{1}.{2}", [typeOrProp.get_containingType().fullName, typeOrProp.get_name(), ruleName]) :
+	// 		typeOrProp instanceof Property ? $format("{0}.{1}.{2}", [typeOrProp.get_containingType().fullName, typeOrProp.get_name(), ruleName]) :
 	// 			typeOrProp instanceof Type ? $format("{0}.{1}", [typeOrProp.fullName, ruleName]) :
 	// 				ruleName;
 	// 	var counter = "";
@@ -221,25 +217,60 @@ export class Rule implements IRule {
 
 }
 
-export function Rule$create(rootType: IType, optionsOrFunction: ((entity: IEntity) => void) | RuleOptions): Rule {
+export interface RuleOptions {
 
-	let options: RuleOptions;
+	/** The optional unique name of the rule. */
+	name?: string;
 
-	if (optionsOrFunction) {
-		// The options are the function to execute
-		if (optionsOrFunction instanceof Function) {
-			options = { execute: optionsOrFunction };
-		} else {
-			options = optionsOrFunction as RuleOptions;
-		}
-	}
+	/** The source property for the allowed values (either a Property or PropertyChain instance or a string property path). */
+	execute?: (entity: Entity) => void;
 
-	return new Rule(rootType, options.name, options);
+	/** Indicates that the rule should run when an instance of the root type is initialized. */
+	onInit?: boolean;
+
+	/** Indicates that the rule should run when a new instance of the root type is initialized. */
+	onInitNew?: boolean;
+
+	/** Indicates that the rule should run when an existing instance of the root type is initialized. */
+	onInitExisting?: boolean;
+
+	/** Array of property paths (strings, Property or PropertyChain instances) that trigger rule execution when changed. */
+	onChangeOf?: (string | Property | PropertyChain)[];
+
+	/** Array of properties (strings or Property instances) that the rule is responsible for calculating */
+	returns?: (string | Property)[];
 
 }
 
-function pendingInvocation(target: IType | IObjectMeta, rule: IRule, value: boolean = null): boolean | void {
-	let pendingInvocation: IRule[];
+export interface RuleTypeOptions {
+
+	rootType?: EntityConstructorForType<Entity>;
+
+}
+
+export interface RuleRegisteredEventArgs {
+	rule: Rule;
+}
+
+// export function Rule$create(rootType: Type & Type, optionsOrFunction: ((entity: Entity) => void) | RuleOptions): Rule {
+
+// 	let options: RuleOptions;
+
+// 	if (optionsOrFunction) {
+// 		// The options are the function to execute
+// 		if (optionsOrFunction instanceof Function) {
+// 			options = { execute: optionsOrFunction };
+// 		} else {
+// 			options = optionsOrFunction as RuleOptions;
+// 		}
+// 	}
+
+// 	return new Rule(rootType, options.name, options);
+
+// }
+
+function pendingInvocation(target: Type | ObjectMeta, rule: Rule, value: boolean = null): boolean | void {
+	let pendingInvocation: Rule[];
 
 	if (Object.prototype.hasOwnProperty.call(target, "_pendingInvocation")) {
 		pendingInvocation = (target as any)._pendingInvocation;
@@ -260,12 +291,12 @@ function pendingInvocation(target: IType | IObjectMeta, rule: IRule, value: bool
 	}
 }
 
-function canExecuteRule(rule: Rule, obj: IEntity, args: any): boolean {
+function canExecuteRule(rule: Rule, obj: Entity, args: any): boolean {
 	// ensure the rule target is a valid rule root type
 	return obj instanceof rule.rootType.ctor;
 };
 
-function executeRule(rule: Rule, obj: IEntity, args: any): void {
+function executeRule(rule: Rule, obj: Entity, args: any): void {
 	// Ensure that the rule can be executed.
 	if (!canExecuteRule(rule, obj, args)) {
 		// TODO: Warn that rule can't be executed?
@@ -303,7 +334,7 @@ function prepareRuleForRegistration(rule: Rule, callback: (rule: Rule) => void) 
 	// resolve return values, which should all be loaded since the root type is now definitely loaded
 	if (rule.returnValues) {
 		rule.returnValues.forEach(function (returnValue, i) {
-			if (!Property$isProperty(returnValue)) {
+			if (!(returnValue instanceof Property)) {
 				rule.returnValues[i] = rule.rootType.getProperty((returnValue as any) as string);
 			}
 		});
@@ -330,11 +361,11 @@ function prepareRuleForRegistration(rule: Rule, callback: (rule: Rule) => void) 
 
 				// normalize the paths to accommodate {} hierarchial syntax
 				PathTokens$normalizePaths([predicate]).forEach(function (path) {
-					Model$getPropertyOrPropertyChain(path, rule.rootType, false, signal.pending(function (propertyChain: IPropertyChain) {
+					Model$getPropertyOrPropertyChain(path, rule.rootType, rule.rootType.model._allTypesRoot, false, signal.pending(function (propertyChain: PropertyChain) {
 						rule.predicates[predicateIndex] = propertyChain;
 					}, this, true), this);
 				}, this);
-			} else if (!Property$isProperty(predicate) || PropertyChain$isPropertyChain(predicate)) {
+			} else if (!(predicate instanceof Property || predicate instanceof PropertyChain)) {
 				// TODO: Remove invalid predicates?
 				rule.predicates.splice(i--, 1);
 			}
@@ -355,26 +386,26 @@ function registerRule (rule: Rule) {
 
 	// register for init new
 	if (rule.invocationTypes & RuleInvocationType.InitNew)
-		(rule.rootType as Type).initNewEvent.subscribe((sender, args) => executeRule(rule, args.entity, args));
+		rule.rootType._events.initNewEvent.subscribe(function (args) { executeRule(rule, args.entity, args) });
 
 	// register for init existing
 	if (rule.invocationTypes & RuleInvocationType.InitExisting) {
-		(rule.rootType as Type).initExistingEvent.subscribe((sender, args) => executeRule(rule, args.entity, args));
+		rule.rootType._events.initExistingEvent.subscribe(function (args) { executeRule(rule, args.entity, args) });
 	}
 
 	// register for property change
 	if (rule.invocationTypes & RuleInvocationType.PropertyChanged) {
 		rule.predicates.forEach(function (predicate) {
 			Property$addChanged(predicate,
-				function (sender, args) {
-					if (canExecuteRule(rule, sender, args) && !pendingInvocation(sender.meta, rule)) {
-						pendingInvocation(sender.meta, rule, true);
+				function (args: PropertyChangeEventArgs | PropertyChainChangeEventArgs) {
+					if (canExecuteRule(rule, args.entity, args) && !pendingInvocation(args.entity.meta as ObjectMeta, rule)) {
+						pendingInvocation(args.entity.meta as ObjectMeta, rule, true);
 						EventScope$onExit(function () {
-							pendingInvocation(sender.meta, rule, false);
-							executeRule(rule, sender, args);
+							pendingInvocation(args.entity.meta as ObjectMeta, rule, false);
+							executeRule(rule, args.entity, args);
 						});
 						EventScope$onAbort(function () {
-							pendingInvocation(sender.meta, rule, false);
+							pendingInvocation(args.entity.meta as ObjectMeta, rule, false);
 						});
 					}
 				},
@@ -390,12 +421,11 @@ function registerRule (rule: Rule) {
 
 		// register for property get events for each return value to calculate the property when accessed
 		rule.returnValues.forEach(function (returnValue) {
-			Property$addAccessed(returnValue, (sender: IEntity, args: PropertyAccessEventArgs) => {
-
+			Property$addAccessed(returnValue, function (args: PropertyAccessEventArgs | PropertyChainAccessEventArgs) {
 				// run the rule to initialize the property if it is pending initialization
-				if (canExecuteRule(rule, sender, args) && Property$pendingInit(sender.meta, returnValue)) {
-					Property$pendingInit(sender.meta, returnValue, false);
-					executeRule(rule, sender, args);
+				if (canExecuteRule(rule, args.entity, args) && Property$pendingInit(args.entity, returnValue)) {
+					Property$pendingInit(args.entity, returnValue, false);
+					executeRule(rule, args.entity, args);
 				}
 			});
 		});
@@ -403,29 +433,29 @@ function registerRule (rule: Rule) {
 		// register for property change events for each predicate to invalidate the property value when inputs change
 		rule.predicates.forEach(function (predicate) {
 			Property$addChanged(predicate,
-				(sender: IEntity, args: PropertyChangeEventArgs) => {
-					if (rule.returnValues.some(function (returnValue) { return hasPropertyChangedSubscribers(returnValue, sender); })) {
+				function (args: PropertyChangeEventArgs | PropertyChainChangeEventArgs) {
+					if (rule.returnValues.some((returnValue) => hasPropertyChangedSubscribers(returnValue, args.entity))) {
 						// Immediately execute the rule if there are explicit event subscriptions for the property
-						if (canExecuteRule(rule, sender, args) && !pendingInvocation(sender.meta, rule)) {
-							pendingInvocation(sender.meta, rule, true);
-							EventScope$onExit(function () {
-								pendingInvocation(sender.meta, rule, false);
-								executeRule(rule, sender, args);
+						if (canExecuteRule(rule, args.entity, args) && !pendingInvocation(args.entity.meta, rule)) {
+							pendingInvocation(args.entity.meta, rule, true);
+							EventScope$onExit(() => {
+								pendingInvocation(args.entity.meta, rule, false);
+								executeRule(rule, args.entity, args);
 							});
-							EventScope$onAbort(function () {
-								pendingInvocation(sender.meta, rule, false);
+							EventScope$onAbort(() => {
+								pendingInvocation(args.entity.meta, rule, false);
 							});
 						}
 					} else {
 						// Otherwise, just mark the property as pending initialization and raise property change for UI subscribers
-						rule.returnValues.forEach(function (returnValue) {
-							Property$pendingInit(sender.meta, returnValue, true);
+						rule.returnValues.forEach((returnValue) => {
+							Property$pendingInit(args.entity, returnValue, true);
 						});
 						// Defer change notification until the scope of work has completed
-						EventScope$onExit(function () {
-							rule.returnValues.forEach(function (returnValue) {
+						EventScope$onExit(() => {
+							rule.returnValues.forEach((returnValue) => {
 								// TODO: Implement observable?
-								Entity$_getEventDispatchers(sender).changedEvent.dispatch(returnValue, { entity: sender, property: returnValue });
+								args.entity._events.changedEvent.publish(args.entity, { entity: args.entity, property: returnValue });
 							});
 						});
 					}
@@ -451,10 +481,9 @@ export function registerPropertyRule(rule: PropertyRule) {
 	propRules.push(rule);
 
 	// Raise events if registered.
-	let dispatchers = Property$_getEventDispatchers(rule.property);
-	let subscriptions = getEventSubscriptions(dispatchers.ruleRegisteredEvent);
+	let subscriptions = getEventSubscriptions(rule.property._events.ruleRegisteredEvent);
 	if (subscriptions && subscriptions.length > 0) {
-		dispatchers.ruleRegisteredEvent.dispatch(rule, { property: rule.property, rule: rule });
+		rule.property._events.ruleRegisteredEvent.publish(rule.property, { rule: rule });
 	}
 
 }
@@ -490,7 +519,7 @@ function extractRuleOptions(obj: any): RuleOptions {
 			if (Array.isArray(value)) {
 				let invalidOnChangeOf: any[] = null;
 				options.onChangeOf = (value as any[]).filter(p => {
-					if (typeof p === "string" || PropertyChain$isPropertyChain(p) || Property$isProperty(p)) {
+					if (typeof p === "string" || p instanceof PropertyChain || p instanceof Property) {
 						return true;
 					} else {
 						// TODO: Warn about invalid 'onChangeOf' item?
@@ -510,18 +539,18 @@ function extractRuleOptions(obj: any): RuleOptions {
 			} else if (typeof value === "string") {
 				options.onChangeOf = [value] as string[];
 				return true;
-			} else if (PropertyChain$isPropertyChain(value)) {
-				options.onChangeOf = [value] as IPropertyChain[];
+			} else if (value instanceof PropertyChain) {
+				options.onChangeOf = [value] as PropertyChain[];
 				return true;
-			} else if (Property$isProperty(value)) {
-				options.onChangeOf = [value] as IProperty[];
+			} else if (value instanceof Property) {
+				options.onChangeOf = [value] as Property[];
 				return true;
 			}
 		} else if (key === 'returns') {
 			if (Array.isArray(value)) {
 				let invalidReturns: any[] = null;
 				options.returns = (value as any[]).filter(p => {
-					if (typeof p === "string" || PropertyChain$isPropertyChain(p) || Property$isProperty(p)) {
+					if (typeof p === "string" || p instanceof PropertyChain || p instanceof Property) {
 						return true;
 					} else {
 						// TODO: Warn about invalid 'returns' item?
@@ -540,13 +569,13 @@ function extractRuleOptions(obj: any): RuleOptions {
 			} else if (typeof value === "string") {
 				options.returns = [value] as string[];
 				return true;
-			} else if (Property$isProperty(value)) {
-				options.returns = [value] as IProperty[];
+			} else if (value instanceof Property) {
+				options.returns = [value] as Property[];
 				return true;
 			}
 		} else if (key === 'execute') {
 			if (value instanceof Function) {
-				options.execute = value as (entity: IEntity) => void;
+				options.execute = value as (entity: Entity) => void;
 				return true;
 			}
 		} else {
@@ -562,4 +591,29 @@ function extractRuleOptions(obj: any): RuleOptions {
 
 	return options;
 
+}
+
+export function Rule$ensureConditionType<DesiredConditionType = ErrorConditionType | WarningConditionType>(ruleName: string, typeOrProp: Type | Property, category: string = "Error"): ErrorConditionType | WarningConditionType {
+	var generatedCode =
+		typeOrProp instanceof Property ? `${typeOrProp.containingType.fullName}.${typeOrProp.name}.${ruleName}` :
+		typeOrProp instanceof Type ? `${typeOrProp}.${ruleName}` : 
+		ruleName;
+
+	var counter: string | number = "";
+
+	while (ConditionType.get(generatedCode + counter))
+		counter = (typeof counter === "string" ? 0 : counter) + 1;
+
+	let DesiredConditionType: ErrorConditionTypeConstructor | WarningConditionTypeConstructor;
+
+	if (category === "Error") {
+		DesiredConditionType = ErrorConditionType;
+	} else if (category === "Warning") {
+		DesiredConditionType = WarningConditionType;
+	} else {
+		throw new Error("Cannot create condition type for unsupported category '" + category + "'.");
+	}
+
+	// return a new client condition type of the specified category
+	return new DesiredConditionType(generatedCode + counter, `Generated condition type for ${ruleName} rule.`, null, "client");
 }

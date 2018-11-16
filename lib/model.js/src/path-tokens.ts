@@ -1,13 +1,10 @@
-import { PathTokens as IPathTokens } from "./interfaces";
-import { PathToken as IPathToken } from "./interfaces";
-import { PropertySpec } from "./interfaces";
-import { Property$isProperty } from "./property";
-import { PropertyChain$isPropertyChain } from "./property-chain";
+import { Property } from "./property";
+import { PropertyChain } from "./property-chain";
 
-export class PathTokens implements IPathTokens {
+export class PathTokens {
 
 	expression: string;
-	steps: IPathToken[];
+	steps: PathToken[];
 
 	constructor(expression: string) {
 
@@ -25,7 +22,7 @@ export class PathTokens implements IPathTokens {
 					return null;
 				}
 
-				var token: IPathToken = { property: null, cast: null };
+				var token: PathToken = { property: null, cast: null };
 				token.property = parsed[1];
 
 				if (parsed[3]) {
@@ -55,14 +52,23 @@ export class PathTokens implements IPathTokens {
 
 }
 
-export function PathTokens$normalizePaths(paths: (string | PropertySpec)[]): PathTokens[] {
+export interface PathTokensConstructor {
+	new(expression: string): PathTokens;
+}
+
+export interface PathToken {
+	property: string;
+	cast: string;
+}
+
+export function PathTokens$normalizePaths(paths: (string | Property | PropertyChain)[]): PathTokens[] {
 	var result: PathTokens[] = [];
 
 	if (paths) {
 		paths.forEach(function (p) {
 
 			// coerce property and property chains into string paths
-			let path = Property$isProperty(p) ? (p as any).name : PropertyChain$isPropertyChain(p) ? (p as any).path : <string>p;
+			let path = p instanceof Property ? p.name : p instanceof PropertyChain ? p.path : p as string;
 
 			var stack: string[] = [];
 			var parent: string;

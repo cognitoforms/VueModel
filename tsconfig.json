@@ -3,6 +3,7 @@
     "./src/main.ts"
   ],
   "compilerOptions": {
+    "typeRoots" : ["./node_modules/@types"],
     "outDir": "./out/",
     "sourceMap": true,
     "noImplicitAny": true,

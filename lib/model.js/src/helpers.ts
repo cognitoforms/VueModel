@@ -1,6 +1,5 @@
-import { EventDispatcher, IEventHandler } from "ste-events";
-import { EventSubscription } from "./interfaces";
-import { Functor, Functor$create } from "./functor";
+import { Event, EventSubscription } from "./events";
+import { FunctorItem, FunctorWith1Arg } from "./functor";
 
 export function ensureNamespace(name: string, parentNamespace: any) {
     var result, nsTokens, target = parentNamespace;
@@ -122,17 +121,21 @@ export function getDefaultValue(isList: boolean, jstype: any): any {
     return null;
 }
 
-export function randomInteger(min: number = 0, max: number = 9) {
+export function randomInt(min: number = 0, max: number = 9) {
 	var rand = Math.random();
 	return rand === 1 ? max : Math.floor(rand * (max - min + 1)) + min;
 }
 
-export function randomText(len: number, includeDigits: boolean = false) {
+export function randomText(len: number, includeLetters: boolean = true, includeDigits: boolean = true) {
+	if (!includeLetters && !includeDigits) {
+		return;
+	}
+
 	var result = "";
 	for (var i = 0; i < len; i++) {
-		var min = 0;
+		var min = includeLetters ? 0 : 26;
 		var max = includeDigits ? 35 : 25;
-		var rand = randomInteger(min, max);
+		var rand = randomInt(min, max);
 		var charCode;
 		if (rand <= 25) {
 			// Alpha: add 97 for 'a'
@@ -203,19 +206,40 @@ export function merge<T>(obj1: T, ...objs: any[]): T {
 
 }
 
-export function getEventSubscriptions<TSender, TArgs>(dispatcher: EventDispatcher<TSender, TArgs>): EventSubscription<IEventHandler<TSender, TArgs>>[] {
-	let disp = dispatcher as any;
-	let subs: EventSubscription<IEventHandler<TSender, TArgs>>[] = disp._subscriptions;
-	return subs;
+export function getEventSubscriptions<TypeType, EventArgsType>(event: Event<TypeType, EventArgsType>): EventSubscription<TypeType, EventArgsType>[] {
+	let func = (event as any)._func as FunctorWith1Arg<EventArgsType, void>;
+	if (func) {
+		let funcs = (func as any)._funcs as FunctorItem[];
+		if (funcs.length > 0) {
+			let subs = funcs.map((f) => { return { handler: f.fn, isExecuted: f.applied, isOnce: f.once }});
+			return subs as EventSubscription<TypeType, EventArgsType>[];
+		} else {
+			return null;
+		}
+	}
 }
-
-// export function getEventHandlersFunctor<TSender, TArgs>(dispatcher: EventDispatcher<TSender, TArgs>): Functor & IEventHandler<TSender, TArgs> {
-// 	let subs = getEventSubscriptions(dispatcher);
-// 	if (subs.length > 0) {
-// 		return Functor$create(subs) as Functor & IEventHandler<TSender, TArgs>;
-// 	}
-// }
 
 export interface ObjectLiteral<T> {
 	[key: string]: T;
+}
+
+export function mixin<T>(ctor: { new(...args: any[]): T }, methods: { [name: string]: (this: T, ...args: any[]) => any }) {
+	for (var key in methods) {
+		if (hasOwnProperty(methods, key) && methods[key] instanceof Function) {
+			ctor.prototype[key] = methods[key];
+		}
+	}
+}
+
+export function Array$indexOf(array: any[], item: any) {
+	if (typeof(item) === "undefined") return -1;
+	var length = array.length;
+	if (length !== 0) {
+		for (var i = 0; i < length; i++) {
+			if ((typeof(array[i]) !== "undefined") && (array[i] === item)) {
+				return i;
+			}
+		}
+	}
+	return -1;
 }

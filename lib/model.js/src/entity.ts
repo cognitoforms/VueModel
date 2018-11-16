@@ -1,35 +1,26 @@
-import { EventDispatcher, IEvent } from "ste-events";
-import { Entity as IEntity, EntityEventDispatchers, EntityChangeEventArgs, EntityAccessEventArgs } from "./interfaces";
-import { Property as IProperty } from "./interfaces";
-import { ObjectMeta as IObjectMeta } from "./interfaces";
-import { Format as IFormat } from "./interfaces";
-import { Model$getJsType } from "./model";
+import { Event, EventSubscriber, EventObject } from "./events";
+import { Format } from "./format";
+import { Model$getJsType, Model } from "./model";
+import { Type } from "./type";
+import { ObjectMeta } from "./object-meta";
+import { Property } from "./property";
 
-class EntityEventDispatchersImplementation implements EntityEventDispatchers {
-	readonly accessedEvent: EventDispatcher<IProperty, EntityAccessEventArgs>;
-	readonly changedEvent: EventDispatcher<IProperty, EntityChangeEventArgs>;
-	constructor() {
-		this.accessedEvent = new EventDispatcher<IProperty, EntityAccessEventArgs>();
-		this.changedEvent = new EventDispatcher<IProperty, EntityChangeEventArgs>();
-	}
-}
+export class Entity {
 
-export class Entity implements IEntity {
+	readonly meta: ObjectMeta;
 
-	readonly meta: IObjectMeta;
-
-	readonly _eventDispatchers: EntityEventDispatchers;	
+	readonly _events: EntityEvents;	
 
 	constructor() {
-		Object.defineProperty(this, "_eventDispatchers", { value: new EntityEventDispatchersImplementation() });
+		Object.defineProperty(this, "_events", { value: new EntityEvents() });
 	}
 
-	get accessedEvent(): IEvent<IProperty, EntityAccessEventArgs> {
-		return this._eventDispatchers.accessedEvent.asEvent();
+	get accessed(): EventSubscriber<Entity, EntityAccessEventArgs> {
+		return this._events.accessedEvent.asEventSubscriber();
 	}
 
-	get changedEvent(): IEvent<IProperty, EntityChangeEventArgs> {
-		return this._eventDispatchers.changedEvent.asEvent();
+	get changed(): EventSubscriber<Entity, EntityChangeEventArgs> {
+		return this._events.changedEvent.asEventSubscriber();
 	}
 
 	init(properties: { [name: string]: any }): void;
@@ -92,7 +83,7 @@ export class Entity implements IEntity {
 	}
 
 	toString(format: string): string {
-		let formatter: IFormat = null;
+		let formatter: Format = null;
 		if (format) {
 			// TODO: Use format to convert entity to string
 			// formatter = getFormat(this.constructor, format);
@@ -110,19 +101,75 @@ export class Entity implements IEntity {
 
 }
 
+export interface EntityConstructor {
+	new(): Entity;
+}
+
+export interface EntityConstructorForType<TEntity extends Entity> extends EntityConstructor {
+	new(): TEntity;
+	meta: Type;
+}
+
+export interface EntityRegisteredEventArgs {
+	entity: Entity;
+}
+
+export interface EntityUnregisteredEventArgs {
+	entity: Entity;
+}
+
+export interface EntityInitNewEventArgs {
+	entity: Entity;
+}
+
+export interface EntityInitExistingEventArgs {
+	entity: Entity;
+}
+
+export interface EntityDestroyEventArgs {
+	entity: Entity;
+}
+
+export interface EntityAccessEventHandler {
+    (this: Property, args: EventObject & EntityAccessEventArgs): void;
+}
+
+export interface EntityAccessEventArgs {
+	entity: Entity;
+	property: Property;
+}
+
+export interface EntityChangeEventHandler {
+    (this: Property, args: EventObject & EntityChangeEventArgs): void;
+}
+
+export interface EntityChangeEventArgs {
+	entity: Entity;
+	property: Property;
+}
+
+export class EntityEvents {
+	readonly accessedEvent: Event<Entity, EntityAccessEventArgs>;
+	readonly changedEvent: Event<Entity, EntityChangeEventArgs>;
+	constructor() {
+		this.accessedEvent = new Event<Entity, EntityAccessEventArgs>();
+		this.changedEvent = new Event<Entity, EntityChangeEventArgs>();
+	}
+}
+
 // Gets the typed string id suitable for roundtripping via fromIdString
-export function Entity$toIdString(obj: IEntity): string {
+export function Entity$toIdString(obj: Entity): string {
 	return `${obj.meta.type.fullName}|${obj.meta.id}`;
 }
 
 // Gets or loads the entity with the specified typed string id
-export function Entity$fromIdString(idString: string): IEntity {
+export function Entity$fromIdString(model: Model, idString: string): Entity {
 	// Typed identifiers take the form "type|id".
 	var type = idString.substring(0, idString.indexOf("|"));
 	var id = idString.substring(type.length + 1);
 
 	// Use the left-hand portion of the id string as the object's type.
-	var jstype = Model$getJsType(type);
+	var jstype = Model$getJsType(type, model._allTypesRoot);
 
 	// Retrieve the object with the given id.
 	return jstype.meta.get(id,
@@ -130,14 +177,4 @@ export function Entity$fromIdString(idString: string): IEntity {
 		// An id string may be constructed with only knowledge of the base type.
 		false
 	);
-}
-
-export function Entity$_getEventDispatchers(prop: IEntity): EntityEventDispatchers {
-	return (prop as any)._eventDispatchers as EntityEventDispatchers;
-}
-
-export function Entity$_dispatchEvent<TSender, TArgs>(entity: IEntity, eventName: string, sender: TSender, args: TArgs): void {
-	let dispatchers = Entity$_getEventDispatchers(entity) as { [eventName: string]: any };
-	let dispatcher = dispatchers[eventName + "Event"] as EventDispatcher<TSender, TArgs>;
-	dispatcher.dispatch(sender, args);
 }

@@ -1,5 +1,5 @@
-import { Entity } from "../lib/model.js/src/interfaces";
-import { Property } from "../lib/model.js/src/interfaces";
+import { Entity } from "../lib/model.js/src/entity";
+import { Property } from "../lib/model.js/src/property";
 import { SourceAdapter, SourcePropertyAdapter } from "./source-adapter";
 
 export class SourcePathAdapter<TEntity extends Entity, TValue> implements SourcePropertyAdapter, SourceAdapter<TValue> {

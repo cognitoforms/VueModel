@@ -1,42 +1,23 @@
-import { Model as IModel, ModelNamespace } from "./interfaces";
-import { Type as IType, TypeEntityInitNewEventArgs, TypeEntityInitExistingEventArgs, TypeEntityDestroyEventArgs, TypePropertyOptions } from "./interfaces";
-import { Model$_allTypesRoot, Model$_getEventDispatchers } from "./model";
-import { Entity as IEntity, EntityConstructorForType, EntityConstructor } from "./interfaces";
-import { Property as IProperty } from "./interfaces";
+import { Model, ModelNamespace } from "./model";
+import { Entity, EntityConstructorForType, EntityDestroyEventArgs, EntityInitNewEventArgs, EntityInitExistingEventArgs, EntityConstructor } from "./entity";
 import { Property, Property$_generateStaticProperty, Property$_generatePrototypeProperty, Property$_generateOwnProperty, Property$_generateShortcuts } from "./property";
-import { navigateAttribute, ensureNamespace, getTypeName, parseFunctionName } from "./helpers";
+import { navigateAttribute, getTypeName, parseFunctionName, ensureNamespace } from "./helpers";
 import { ObjectMeta } from "./object-meta";
-import { EventDispatcher, IEvent } from "ste-events";
+import { Event, EventSubscriber } from "./events";
 import { ObservableList } from "./observable-list";
-import { Rule as IRule, RuleOptions } from "./interfaces";
-import { Rule$create } from "./rule";
-import { Entity } from "./entity";
+import { RuleOptions, Rule } from "./rule";
+import { Format } from "./format";
+import { ConditionTargetsChangedEventArgs } from "./condition-target";
 
-let newIdPrefix = "+c"
+export const Type$newIdPrefix = "+c"
 
-class TypeEventDispatchers {
-
-	readonly initNewEvent: EventDispatcher<IType, TypeEntityInitNewEventArgs>;
-
-	readonly initExistingEvent: EventDispatcher<IType, TypeEntityInitExistingEventArgs>;
-
-	readonly destroyEvent: EventDispatcher<IType, TypeEntityDestroyEventArgs>;
-
-	constructor() {
-		this.initNewEvent = new EventDispatcher<IType, TypeEntityInitNewEventArgs>();
-		this.initExistingEvent = new EventDispatcher<IType, TypeEntityInitExistingEventArgs>();
-		this.destroyEvent = new EventDispatcher<IType, TypeEntityDestroyEventArgs>();
-	}
-
-}
-
-export class Type implements IType {
+export class Type {
 
 	// Public read-only properties: aspects of the object that cannot be
 	// changed without fundamentally changing what it represents
-	readonly model: IModel;
+	readonly model: Model;
 	readonly fullName: string;
-	readonly ctor: EntityConstructorForType<IEntity>;
+	readonly ctor: EntityConstructorForType<Entity>;
 	readonly baseType: Type;
 
 	// Public settable properties that are simple values with no side-effects or logic
@@ -46,15 +27,16 @@ export class Type implements IType {
 	// Backing fields for properties that are settable and also derived from
 	// other data, calculated in some way, or cannot simply be changed
 	private _lastId: number;
-	private _known: ObservableList<IEntity>;
-	private readonly _pool: { [id: string]: IEntity };
-	private readonly _legacyPool: { [id: string]: IEntity }
-	private readonly _properties: { [name: string]: IProperty };
+	private _known: ObservableList<Entity>;
+	private readonly _pool: { [id: string]: Entity };
+	private readonly _legacyPool: { [id: string]: Entity }
 	private readonly _derivedTypes: Type[];
 
-	readonly _eventDispatchers: TypeEventDispatchers;
+	readonly _properties: { [name: string]: Property };
 
-	constructor(model: IModel, fullName: string, baseType: Type = null, origin: string = "client") {
+	readonly _events: TypeEvents;
+
+	constructor(model: Model, fullName: string, baseType: Type = null, origin: string = "client") {
 
 		// Public read-only properties
 		Object.defineProperty(this, "model", { enumerable: true, value: model });
@@ -73,7 +55,7 @@ export class Type implements IType {
 		Object.defineProperty(this, "_properties", { enumerable: false, value: {}, writable: false });
 		Object.defineProperty(this, '_derivedTypes', { enumerable: false, value: [], writable: false });
 
-		Object.defineProperty(this, "_eventDispatchers", { value: new TypeEventDispatchers() });
+		Object.defineProperty(this, "_events", { value: new TypeEvents() });
 
 		// Object.defineProperty(this, "rules", { value: [] });
 
@@ -83,16 +65,20 @@ export class Type implements IType {
 		// this.type = this;
 	}
 
-	get destroyEvent(): IEvent<IType, TypeEntityDestroyEventArgs> {
-		return this._eventDispatchers.destroyEvent.asEvent();
+	get destroy(): EventSubscriber<Type, EntityDestroyEventArgs> {
+		return this._events.destroyEvent.asEventSubscriber();
 	}
 
-	get initNewEvent(): IEvent<IType, TypeEntityInitNewEventArgs> {
-		return this._eventDispatchers.initNewEvent.asEvent();
+	get initNew(): EventSubscriber<Type, EntityInitNewEventArgs> {
+		return this._events.initNewEvent.asEventSubscriber();
 	}
 
-	get initExistingEvent(): IEvent<IType, TypeEntityInitExistingEventArgs> {
-		return this._eventDispatchers.initExistingEvent.asEvent();
+	get initExisting(): EventSubscriber<Type, EntityInitExistingEventArgs> {
+		return this._events.initExistingEvent.asEventSubscriber();
+	}
+
+	get conditionsChanged(): EventSubscriber<Type, ConditionTargetsChangedEventArgs> {
+		return this._events.conditionsChangedEvent.asEventSubscriber();
 	}
 
 	// static get newIdPrefix() {
@@ -119,13 +105,13 @@ export class Type implements IType {
 		}
 
 		// Return the new id.
-		return newIdPrefix + nextId;
+		return Type$newIdPrefix  + nextId;
 	}
 
-	register(obj: IEntity, id: string, suppressModelEvent: boolean = false): void {
+	register(obj: Entity, id: string, suppressModelEvent: boolean = false): void {
 		// register is called with single argument from default constructor
 		if (arguments.length === 2) {
-			Type$_validateId(this, id);
+			Type$_validateId.call(this, id);
 		}
 
 		var isNew: boolean;
@@ -163,13 +149,13 @@ export class Type implements IType {
 		}
 
 		if (!suppressModelEvent) {
-			Model$_getEventDispatchers(this.model).entityRegisteredEvent.dispatch(this.model, { entity: obj });
+			this.model._events.entityRegisteredEvent.publish(this.model, { entity: obj });
 		}
 	}
 
 	changeObjectId(oldId: string, newId: string) {
-		Type$_validateId(this, oldId);
-		Type$_validateId(this, newId);
+		Type$_validateId.call(this, oldId);
+		Type$_validateId.call(this, newId);
 
 		var oldKey = oldId.toLowerCase();
 		var newKey = newId.toLowerCase();
@@ -197,7 +183,7 @@ export class Type implements IType {
 		}
 	}
 
-	unregister(obj: IEntity): void {
+	unregister(obj: Entity): void {
 		for (var t: Type = this; t; t = t.baseType) {
 			delete t._pool[obj.meta.id.toLowerCase()];
 
@@ -210,7 +196,7 @@ export class Type implements IType {
 			}
 		}
 
-		Model$_getEventDispatchers(this.model).entityUnregisteredEvent.dispatch(this.model, { entity: obj });
+		this.model._events.entityUnregisteredEvent.publish(this.model, { entity: obj });
 	}
 
 	get(id: string, exactTypeOnly: boolean = false) {
@@ -233,10 +219,10 @@ export class Type implements IType {
 	// The returned array is observable and collection changed events will be raised
 	// when new objects are registered or unregistered.
 	// The array is in no particular order.
-	known(): IEntity[] {
+	known(): Entity[] {
 		var known = this._known;
 		if (!known) {
-			var list: Array<IEntity> = [];
+			var list: Array<Entity> = [];
 
 			for (var id in this._pool) {
 				if (Object.prototype.hasOwnProperty.call(this._pool, id)) {
@@ -250,7 +236,7 @@ export class Type implements IType {
 		return known;
 	}
 
-	addProperty(name: string, jstype: any, isList: boolean, isStatic: boolean, options: TypePropertyOptions = {}): IProperty {
+	addProperty(name: string, jstype: any, isList: boolean, isStatic: boolean, options: TypePropertyOptions = {}): Property {
 		// TODO: Compile format specifier to format object
 		// let format: Format = null;
 		// if (options.format) {
@@ -273,7 +259,7 @@ export class Type implements IType {
 		Property$_generateShortcuts(property, property.containingType.ctor);
 
 		if (property.isStatic) {
-			Property$_generateStaticProperty(property);
+			Property$_generateStaticProperty(property, this.ctor);
 		} else if (this.model.settings.createOwnProperties === true) {
 			for (var id in this._pool) {
 				if (Object.prototype.hasOwnProperty.call(this._pool, id)) {
@@ -281,15 +267,15 @@ export class Type implements IType {
 			}
 			}
 		} else {
-			Property$_generatePrototypeProperty(property);
+			Property$_generatePrototypeProperty(property, this.ctor.prototype);
 		}
 
-		Model$_getEventDispatchers(this.model).propertyAddedEvent.dispatch(this.model, { property: property });
+		this.model._events.propertyAddedEvent.publish(this.model, { property });
 
 		return property;
 	}
 
-	getProperty(name: string): IProperty {
+	getProperty(name: string): Property {
 		var prop;
 		for (var t: Type = this; t && !prop; t = t.baseType) {
 			prop = t._properties[name];
@@ -301,8 +287,8 @@ export class Type implements IType {
 		return null;
 	}
 
-	get properties(): IProperty[] {
-		let propertiesArray: IProperty[] = [];
+	get properties(): Property[] {
+		let propertiesArray: Property[] = [];
 		for (var type: Type = this; type != null; type = type.baseType) {
 			for (var propertyName in type._properties) {
 				if (type._properties.hasOwnProperty(propertyName)) {
@@ -313,26 +299,38 @@ export class Type implements IType {
 		return propertiesArray;
 	}
 
-	addRule(def: ((entity: IEntity) => void) | RuleOptions): IRule {
-		let rule = Rule$create(this, def);
+	addRule(optionsOrFunction: ((entity: Entity) => void) | RuleOptions): Rule {
+			
+		let options: RuleOptions;
+
+		if (optionsOrFunction) {
+			// The options are the function to execute
+			if (optionsOrFunction instanceof Function) {
+				options = { execute: optionsOrFunction };
+			} else {
+				options = optionsOrFunction as RuleOptions;
+			}
+		}
+
+		let rule = new Rule(this, options.name, options);
 
 		// TODO: Track rules on the type?
 
 		return rule;
 	}
 
-	get derivedTypes(): IType[] {
+	get derivedTypes(): Type[] {
 		return this._derivedTypes;
 	}
 
-	hasModelProperty(prop: IProperty): boolean {
-		return prop.containingType === this || this.isSubclassOf(prop.containingType);
+	hasModelProperty(prop: Property): boolean {
+		return prop.containingType === this || this.isSubclassOf(prop.containingType as Type);
 	}
 
-	isSubclassOf(type: IType): boolean {
+	isSubclassOf(type: Type): boolean {
 		var result = false;
 
-		navigateAttribute(this, 'baseType', function (baseType: IType) {
+		navigateAttribute(this, 'baseType', function (baseType: Type) {
 			if (baseType === type) {
 				result = true;
 				return false;
@@ -348,42 +346,55 @@ export class Type implements IType {
 
 }
 
-export function Type$_getEventDispatchers(type: IType): TypeEventDispatchers {
-	return (type as any)._eventDispatchers as TypeEventDispatchers;
+export interface TypeConstructor {
+	new(model: Model, fullName: string, baseType?: Type, origin?: string): Type;
 }
 
-export function Type$_dispatchEvent<TSender, TArgs>(type: IType, eventName: string, sender: TSender, args: TArgs): void {
-	let dispatchers = Type$_getEventDispatchers(type) as { [eventName: string]: any };
-	let dispatcher = dispatchers[eventName + "Event"] as EventDispatcher<TSender, TArgs>;
-	dispatcher.dispatch(sender, args);
+export interface TypePropertyOptions {
+	label?: string;
+	helptext?: string;
+	format?: Format;
+	isPersisted?: boolean;
+	isCalculated?: boolean;
+	defaultValue?: any;
 }
 
-export function Type$create(model: IModel, fullName: string, baseType: IType = null, origin: string = "client") {
-	return new Type(model, fullName, baseType ? baseType as Type : null, origin);
+export interface TypeAddedEventArgs {
+	type: Type;
 }
 
-export function Type$isType(obj: any) {
-	return obj instanceof Type;
-}
-
-function Type$_validateId(type: IType, id: string) {
-	if (id === null || id === undefined) {
-		throw new Error(`Id cannot be ${(id === null ? "null" : "undefined")} (entity = ${type.fullName}).`);
-	} else if (getTypeName(id) !== "string") {
-		throw new Error(`Id must be a string:  encountered id ${id} of type \"${parseFunctionName(id.constructor)}\" (entity = ${type.fullName}).`);
-	} else if (id === "") {
-		throw new Error(`Id cannot be a blank string (entity = ${type.fullName}).`);
+export class TypeEvents {
+	readonly initNewEvent: Event<Type, EntityInitNewEventArgs>;
+	readonly initExistingEvent: Event<Type, EntityInitExistingEventArgs>;
+	readonly destroyEvent: Event<Type, EntityDestroyEventArgs>;
+	readonly conditionsChangedEvent: Event<Type, ConditionTargetsChangedEventArgs>;
+	constructor() {
+		this.initNewEvent = new Event<Type, EntityInitNewEventArgs>();
+		this.initExistingEvent = new Event<Type, EntityInitExistingEventArgs>();
+		this.destroyEvent = new Event<Type, EntityDestroyEventArgs>();
+		this.conditionsChangedEvent = new Event<Type, ConditionTargetsChangedEventArgs>();
 	}
 }
 
-let disableConstruction = false;
+function Type$_validateId(this: Type, id: string) {
+	if (id === null || id === undefined) {
+		throw new Error(`Id cannot be ${(id === null ? "null" : "undefined")} (entity = ${this.fullName}).`);
+	} else if (getTypeName(id) !== "string") {
+		throw new Error(`Id must be a string:  encountered id ${id} of type \"${parseFunctionName(id.constructor)}\" (entity = ${this.fullName}).`);
+	} else if (id === "") {
+		throw new Error(`Id cannot be a blank string (entity = ${this.fullName}).`);
+	}
+}
 
-function Type$_generateConstructor(type: Type, fullName: string, baseType: Type = null) {
+// TODO: Get rid of disableConstruction?
+let disableConstruction: boolean = false;
+
+export function Type$_generateConstructor(type: Type, fullName: string, baseType: Type = null) {
 
 	// Create namespaces as needed
 	let nameTokens: string[] = fullName.split("."),
 		token: string = nameTokens.shift(),
-		namespaceObj: ModelNamespace = Model$_allTypesRoot,
+		namespaceObj: ModelNamespace = type.model._allTypesRoot,
 		globalObj: any = window;
 
 	while (nameTokens.length > 0) {
@@ -432,8 +443,8 @@ function Type$_generateConstructor(type: Type, fullName: string, baseType: Type 
 				}
 
 				// Raise the initExisting event on this type and all base types
-				for (let t: Type = type; t; t = t.baseType) {
-					t._eventDispatchers.initExistingEvent.dispatch(t, { entity: this });
+				for (let t = type; t; t = t.baseType) {
+					t._events.initExistingEvent.publish(t, { entity: this });
 				}
 			} else {
 				let props = arguments[0];
@@ -451,8 +462,8 @@ function Type$_generateConstructor(type: Type, fullName: string, baseType: Type 
 				}
 
 				// Raise the initNew event on this type and all base types
-				for (let t: Type = type; t; t = t.baseType) {
-					Type$_getEventDispatchers(t).initNewEvent.dispatch(t, { entity: this });
+				for (let t = type; t; t = t.baseType) {
+					t._events.initNewEvent.publish(t, { entity: this });
 				}
 			}
 		}
@@ -476,17 +487,15 @@ function Type$_generateConstructor(type: Type, fullName: string, baseType: Type 
 
 	// Setup inheritance
 
-	let baseCtor: EntityConstructor | EntityConstructorForType<IEntity> = null;
+	let baseCtor: EntityConstructor;
 
-	if (baseCtor) {
+	if (baseType) {
 		baseCtor = baseType.ctor;
-
-		// TODO: Implement `inheritBaseTypePropShortcuts`
-		// inherit all shortcut properties that have aleady been defined
+		// // TODO: Implement `inheritBaseTypePropShortcuts`
+		// // inherit all shortcut properties that have aleady been defined
 		// inheritBaseTypePropShortcuts(ctor, baseType);
-	}
-	else {
-		baseCtor = Entity as EntityConstructor;
+	} else {
+		baseCtor = Entity;
 	}
 
 	disableConstruction = true;

@@ -2,7 +2,8 @@ import Vue from "vue";
 import { VueConstructor, ObserverConstructor, DepConstructor } from "./vue-internals";
 import { VueModel$makeEntitiesVueObservable, EntityObserverDependencies, Entity$getObserver } from "./entity-observer";
 import { preprocessDataToInterceptEntities, restoreComponentEntityData, VuePluginEntitiesDependencies } from "./vue-plugin-entities";
-import { EntityConstructor, TypeConstructor } from "../lib/model.js/src/interfaces";
+import { TypeConstructor } from "../lib/model.js/src/type";
+import { EntityConstructor } from "../lib/model.js/src/entity";
 
 export interface VuePluginDependencies {
     entitiesAreVueObservable: boolean;

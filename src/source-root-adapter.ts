@@ -1,4 +1,4 @@
-import { Entity } from "../lib/model.js/src/interfaces";
+import { Entity } from "../lib/model.js/src/entity";
 import { SourceAdapter } from "./source-adapter";
 
 export class SourceRootAdapter<TEntity extends Entity> implements SourceAdapter<TEntity> {

@@ -1,96 +1,63 @@
-import { Model as IModel, ModelNamespace, ModelSettings, ModelTypeAddedEventArgs, ModelEntityRegisteredEventArgs, ModelEntityUnregisteredEventArgs, ModelPropertyAddedEventArgs } from "./interfaces";
-import { Type as IType } from "./interfaces";
-import { Type$create } from "./type";
-import { IEvent, EventDispatcher } from "ste-events";
-import { Entity as IEntity, EntityConstructorForType } from "./interfaces";
-import { Property as IProperty } from "./interfaces";
-import { PropertyChain as IPropertyChain } from "./interfaces";
-import { PropertyChain$create } from "./property-chain";
-import { PathTokens as IPathTokens } from "./interfaces";
+import { Event, EventSubscriber } from "./events";
+import { randomText } from "./helpers";
+import { EntityConstructor, EntityRegisteredEventArgs, EntityUnregisteredEventArgs, Entity, EntityConstructorForType } from "./entity";
+import { Type, TypeAddedEventArgs } from "./type";
+import { Rule } from "./rule";
+import { PropertyAddedEventArgs, Property } from "./property";
+import { PropertyChain$create, PropertyChain } from "./property-chain";
 import { PathTokens } from "./path-tokens";
-import { Rule as IRule } from "./interfaces";
 
-const intrinsicJsTypes = ["Object", "String", "Number", "Boolean", "Date", "TimeSpan", "Array"];
+export const intrinsicJsTypes = ["Object", "String", "Number", "Boolean", "Date", "TimeSpan", "Array"];
 
-class ModelSettingsImplementation {
-	readonly createOwnProperties: boolean;
-	constructor(createOwnProperties: boolean) {
-		Object.defineProperty(this, "createOwnProperties", { configurable: false, enumerable: true, value: createOwnProperties, writable: false });
-	}
-}
-
-const ModelSettingsDefaults: ModelSettings = {
-	// There is a slight speed cost to creating own properties,
-	// which may be noticeable with very large object counts.
-	createOwnProperties: false,
-};
-
-class ModelEventDispatchers {
-
-	readonly typeAddedEvent: EventDispatcher<IModel, ModelTypeAddedEventArgs>;
-
-	readonly entityRegisteredEvent: EventDispatcher<IModel, ModelEntityRegisteredEventArgs>;
-
-	readonly entityUnregisteredEvent: EventDispatcher<IModel, ModelEntityUnregisteredEventArgs>;
-
-	readonly propertyAddedEvent: EventDispatcher<IModel, ModelPropertyAddedEventArgs>;
-
-	constructor() {
-		// TODO: Don't construct events by default, only when subscribed (optimization)
-		// TODO: Extend `EventDispatcher` with `any()` function to check for subscribers (optimization)
-		this.typeAddedEvent = new EventDispatcher<IModel, ModelTypeAddedEventArgs>();
-		this.entityRegisteredEvent = new EventDispatcher<IModel, ModelEntityRegisteredEventArgs>();
-		this.entityUnregisteredEvent = new EventDispatcher<IModel, ModelEntityUnregisteredEventArgs>();
-		this.propertyAddedEvent = new EventDispatcher<IModel, ModelPropertyAddedEventArgs>();
-	}
-
-}
-
-export let Model$_allTypesRoot: ModelNamespace = {};
-
-export class Model implements IModel {
+export class Model {
 
 	readonly settings: ModelSettings;
 
 	// Readonly fields 
-	readonly _types: { [name: string]: IType };
+	readonly _types: { [name: string]: Type };
 
-	private readonly _eventDispatchers: ModelEventDispatchers;
+	readonly _events: ModelEvents;
 
-	private _ruleQueue: IRule[];
+	private _ruleQueue: Rule[];
+
+	readonly _allTypesRoot: ModelNamespace;
+
+	readonly _fieldNamePrefix: string;
 
 	constructor(createOwnProperties: boolean = undefined) {
-		Object.defineProperty(this, "settings", { configurable: false, enumerable: true, value: Model$_createSettingsObject(createOwnProperties), writable: false });
+		Object.defineProperty(this, "settings", { configurable: false, enumerable: true, value: new ModelSettings(createOwnProperties), writable: false });
 
 		Object.defineProperty(this, "_types", { value: {} });
-		Object.defineProperty(this, "_eventDispatchers", { value: new ModelEventDispatchers() });
+		Object.defineProperty(this, "_allTypesRoot", { value: {} });
+		Object.defineProperty(this, "_fieldNamePrefix", { value: ("_fN" + randomText(3, false, true)) });
+		Object.defineProperty(this, "_events", { value: new ModelEvents() });
 	}
 
-	get typeAddedEvent(): IEvent<IModel, ModelTypeAddedEventArgs> {
-		return this._eventDispatchers.typeAddedEvent.asEvent();
+	get typeAdded(): EventSubscriber<Model, TypeAddedEventArgs> {
+		return this._events.typeAddedEvent.asEventSubscriber();
 	}
 
-	get entityRegisteredEvent(): IEvent<IModel, ModelEntityRegisteredEventArgs> {
-		return this._eventDispatchers.entityRegisteredEvent.asEvent();
+	get entityRegistered(): EventSubscriber<Model, EntityRegisteredEventArgs> {
+		return this._events.entityRegisteredEvent.asEventSubscriber();
 	}
 
-	get entityUnregisteredEvent(): IEvent<IModel, ModelEntityUnregisteredEventArgs> {
-		return this._eventDispatchers.entityUnregisteredEvent.asEvent();
+	get entityUnregistered(): EventSubscriber<Model, EntityUnregisteredEventArgs> {
+		return this._events.entityUnregisteredEvent.asEventSubscriber();
 	}
 
-	get propertyAddedEvent(): IEvent<IModel, ModelPropertyAddedEventArgs> {
-		return this._eventDispatchers.propertyAddedEvent.asEvent();
+	get propertyAdded(): EventSubscriber<Model, PropertyAddedEventArgs> {
+		return this._events.propertyAddedEvent.asEventSubscriber();
 	}
 
-	dispose() {
-		// TODO: Implement model disposal
-		// for (var key in this._types) {
-		// 	delete window[key];
-		// }
-	}
+	// dispose() {
+	// 	// TODO: Implement model disposal
+	// 	// for (var key in this._types) {
+	// 	// 	delete window[key];
+	// 	// }
+	// }
 
-	get types(): IType[] {
-		let typesArray: IType[] = [];
+	getTypes(): Type[] {
+		let typesArray: Type[] = [];
 		for (var typeName in this._types) {
 			if (this._types.hasOwnProperty(typeName)) {
 				typesArray.push(this._types[typeName]);
@@ -99,14 +66,14 @@ export class Model implements IModel {
 		return typesArray;
 	}
 
-	addType(name: string, baseType: IType = null, origin: string = "client") {
-		var type = Type$create(this, name, baseType, origin);
-		this._types[name] = type;
-		this._eventDispatchers.typeAddedEvent.dispatch(this, { type: type });
+	addType(fullName: string, baseType: Type = null, origin: string = "client"): Type {
+		var type = new Type(this, fullName, baseType ? (baseType as any) as Type : null, origin);
+		this._types[fullName] = type;
+		this._events.typeAddedEvent.publish(this, { type: type });
 		return type;
 	}
 
-	registerRule(rule: IRule) {
+	registerRule(rule: Rule): void {
 		if (!this._ruleQueue) {
 			this._ruleQueue.push(rule);
 		} else {
@@ -114,7 +81,7 @@ export class Model implements IModel {
 		}
 	}
 
-	registerRules() {
+	registerRules(): void {
 		var i, rules = this._ruleQueue;
 		delete this._ruleQueue;
 		for (i = 0; i < rules.length; i += 1) {
@@ -124,21 +91,42 @@ export class Model implements IModel {
 
 }
 
-function Model$_createSettingsObject(createOwnProperties: boolean = ModelSettingsDefaults.createOwnProperties): ModelSettings {
-	return new ModelSettingsImplementation(createOwnProperties);
+export interface ModelConstructor {
+	new(createOwnProperties?: boolean): Model;
 }
 
-export function Model$_getEventDispatchers(model: IModel): ModelEventDispatchers {
-	return (model as any)._eventDispatchers as ModelEventDispatchers;
+export interface ModelNamespace {
+	[name: string]: ModelNamespace | EntityConstructor;
 }
 
-export function Model$_dispatchEvent<TSender, TArgs>(model: IModel, eventName: string, sender: TSender, args: TArgs): void {
-	let dispatchers = Model$_getEventDispatchers(model) as { [eventName: string]: any };
-	let dispatcher = dispatchers[eventName + "Event"] as EventDispatcher<TSender, TArgs>;
-	dispatcher.dispatch(sender, args);
+export class ModelEvents {
+	readonly typeAddedEvent: Event<Model, TypeAddedEventArgs>;
+	readonly entityRegisteredEvent: Event<Model, EntityRegisteredEventArgs>;
+	readonly entityUnregisteredEvent: Event<Model, EntityUnregisteredEventArgs>;
+	readonly propertyAddedEvent: Event<Model, PropertyAddedEventArgs>;
+	constructor() {
+		// TODO: Don't construct events by default, only when subscribed (optimization)
+		// TODO: Extend `EventDispatcher` with `any()` function to check for subscribers (optimization)
+		this.typeAddedEvent = new Event<Model, TypeAddedEventArgs>();
+		this.entityRegisteredEvent = new Event<Model, EntityRegisteredEventArgs>();
+		this.entityUnregisteredEvent = new Event<Model, EntityUnregisteredEventArgs>();
+		this.propertyAddedEvent = new Event<Model, PropertyAddedEventArgs>();
+	}
 }
 
-export function Model$whenTypeAvailable(type: IType, forceLoad: boolean, callback: Function) {
+export class ModelSettings {
+
+	// There is a slight speed cost to creating own properties,
+	// which may be noticeable with very large object counts.
+	readonly createOwnProperties: boolean = false;
+
+	constructor(createOwnProperties: boolean = false) {
+		Object.defineProperty(this, "createOwnProperties", { configurable: false, enumerable: true, value: createOwnProperties, writable: false });
+	}
+
+}
+
+export function Model$whenTypeAvailable(type: Type, forceLoad: boolean, callback: Function) {
 
 	// Immediately invoke the callback if no type was specified
 	if (!type) {
@@ -168,16 +156,17 @@ export function Model$whenTypeAvailable(type: IType, forceLoad: boolean, callbac
 /**
  * Retrieves the JavaScript constructor function corresponding to the given full type name.
  * @param fullName The full name of the type, including the namespace
+ * @param allTypesRoot The model namespace that contains all types
  * @param allowUndefined If true, return undefined if the type is not defined
  */
-export function Model$getJsType<TEntity extends IEntity>(fullName: string, allowUndefined: boolean = false): EntityConstructorForType<TEntity> {
+export function Model$getJsType<TEntity extends Entity>(fullName: string, allTypesRoot: ModelNamespace, allowUndefined: boolean = false): EntityConstructorForType<TEntity> {
 	var steps = fullName.split(".");
 	if (steps.length === 1 && intrinsicJsTypes.indexOf(fullName) > -1) {
-		return Model$_allTypesRoot[fullName] as EntityConstructorForType<TEntity>;
+		return allTypesRoot[fullName] as EntityConstructorForType<TEntity>;
 	} else {
 		let obj: any;
 
-		var ns: ModelNamespace = Model$_allTypesRoot;
+		var ns: ModelNamespace = allTypesRoot;
 		for (var i = 0; ns !== undefined && i < steps.length - 1; i++) {
 			var step = steps[i];
 			ns = ns[step] as ModelNamespace;
@@ -199,20 +188,20 @@ export function Model$getJsType<TEntity extends IEntity>(fullName: string, allow
 	}
 }
 
-export function Model$getPropertyOrPropertyChain(pathOrTokens: string | IPathTokens, thisType: any = null, forceLoadTypes: boolean = false, callback: (result: IProperty | IPropertyChain) => void, thisPtr: any = null): IProperty | IPropertyChain | void {
+export function Model$getPropertyOrPropertyChain(pathOrTokens: string | PathTokens, thisType: any, allTypesRoot: ModelNamespace, forceLoadTypes: boolean = false, callback: (result: Property | PropertyChain) => void = null, thisPtr: any = null): Property | PropertyChain | void {
 
 	var type,
-		loadProperty: (containingType: IType, propertyName: string, propertyCallback: ((prop: IProperty) => void)) => void,
+		loadProperty: (containingType: Type, propertyName: string, propertyCallback: ((prop: Property) => void)) => void,
 		singlePropertyName,
 		path: string = null,
-		tokens: IPathTokens = null;
+		tokens: PathTokens = null;
 		// forceLoadTypes = arguments.length >= 3 && arguments[2] && arguments[2].constructor === Boolean ? arguments[2] : false,
 		// callback: ((chain: Property | PropertyChain) => void) = arguments[3],
 		// thisPtr = arguments[4],
 
 	// Allow the path argument to be either a string or PathTokens instance.
 	if (pathOrTokens.constructor === PathTokens) {
-		tokens = pathOrTokens as IPathTokens;
+		tokens = pathOrTokens as PathTokens;
 		path = tokens.expression;
 	} else if (typeof pathOrTokens === "string") {
 		path = pathOrTokens as string;
@@ -243,12 +232,12 @@ export function Model$getPropertyOrPropertyChain(pathOrTokens: string | IPathTok
 	// determine if a typecast was specified for the path to identify a specific subclass to use as the root type
 	if (tokens.steps[0].property === "this" && tokens.steps[0].cast) {
 		//Try and resolve cast to an actual type in the model
-		type = Model$getJsType(tokens.steps[0].cast, false).meta;
+		type = Model$getJsType(tokens.steps[0].cast, allTypesRoot, false).meta;
 		tokens.steps.shift();
 	}
 
 	// create a function to lazily load a property 
-	loadProperty = function (containingType: IType, propertyName: string, propertyCallback: ((prop: IProperty) => void)) {
+	loadProperty = function (containingType: Type, propertyName: string, propertyCallback: ((prop: Property) => void)) {
 		Model$whenTypeAvailable(containingType, forceLoadTypes, function () {
 			propertyCallback.call(thisPtr || this, containingType.getProperty(propertyName));
 		});
@@ -282,7 +271,7 @@ export function Model$getPropertyOrPropertyChain(pathOrTokens: string | IPathTok
 		var processGlobal = function (instanceParseError: string) {
 
 			// Retrieve the javascript type by name.
-			type = Model$getJsType(globalTypeName, true);
+			type = Model$getJsType(globalTypeName, allTypesRoot, true);
 
 			// Handle non-existant or non-loaded type.
 			if (!type) {

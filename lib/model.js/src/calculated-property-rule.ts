@@ -1,31 +1,28 @@
-import { Rule, registerPropertyRule } from "./rule";
-import { CalculatedPropertyRule as ICalculatedPropertyRule, CalculatedPropertyRuleOptions } from "./interfaces";
-import { RuleOptions } from "./interfaces";
-import { Type as IType } from "./interfaces";
-import { Property as IProperty } from "./interfaces";
-import { Entity as IEntity } from "./interfaces";
-import { Property$isProperty } from "./property";
+import { Rule, registerPropertyRule, RuleOptions, RuleTypeOptions } from "./rule";
+import { Type } from "./type";
+import { Property } from "./property";
+import { Entity } from "./entity";
 
 let calculationErrorDefault: any;
 
-export class CalculatedPropertyRule extends Rule implements ICalculatedPropertyRule {
+export class CalculatedPropertyRule extends Rule {
 
 	// Public read-only properties: aspects of the object that cannot be
 	// changed without fundamentally changing what the object is
-	readonly property: IProperty;
+	readonly property: Property;
 
 	// Public settable properties that are simple values with no side-effects or logic
 	defaultIfError: any;
 
 	// Backing fields for properties that are settable and also derived from
 	// other data, calculated in some way, or cannot simply be changed
-	private _calculateFn: string | ((entity: IEntity) => any);
+	private _calculateFn: string | ((entity: Entity) => any);
 
-	constructor(rootType: IType, name: string, options: CalculatedPropertyRuleOptions & RuleOptions, skipRegistration: boolean = false) {
+	constructor(rootType: Type, name: string, options: RuleOptions & RuleTypeOptions & CalculatedPropertyRuleOptions, skipRegistration: boolean = false) {
 
-		let property: IProperty;
+		let property: Property;
 		let defaultIfError: any = calculationErrorDefault;
-		let calculateFn: string | ((entity: IEntity) => any);
+		let calculateFn: string | ((entity: Entity) => any);
 
 		if (!name) {
 			name = options.name;
@@ -35,10 +32,10 @@ export class CalculatedPropertyRule extends Rule implements ICalculatedPropertyR
 			let thisOptions = extractCalculatedPropertyRuleOptions(options);
 
 			if (thisOptions.property) {
-				property = Property$isProperty(thisOptions.property) ? thisOptions.property as IProperty : rootType.getProperty(thisOptions.property as string);
+				property = typeof thisOptions.property === "string" ? rootType.getProperty(thisOptions.property) as Property : thisOptions.property as Property;
 
 				// indicate that the rule is responsible for returning the value of the calculated property
-				options.returns = [thisOptions.property];
+				options.returns = [property];
 			}
 
 			if (!name) {
@@ -69,18 +66,18 @@ export class CalculatedPropertyRule extends Rule implements ICalculatedPropertyR
 
 	}
 
-	execute(obj: IEntity) {
+	execute(obj: Entity) {
 
-		let calculateFn: (this: IEntity) => any;
+		let calculateFn: (this: Entity) => any;
 
 		// Convert string functions into compiled functions on first execution
 		if (this._calculateFn.constructor === String) {
 			// TODO: Calculation expression support
 			let calculateExpr = this._calculateFn as string;
 			let calculateCompiledFn = new Function("return " + calculateExpr + ";");
-			calculateFn = this._calculateFn = calculateCompiledFn as (this: IEntity) => any;
+			calculateFn = this._calculateFn = calculateCompiledFn as (this: Entity) => any;
 		} else {
-			calculateFn = this._calculateFn as (this: IEntity) => any;
+			calculateFn = this._calculateFn as (this: Entity) => any;
 		}
 
 		// Calculate the new property value
@@ -151,23 +148,30 @@ export class CalculatedPropertyRule extends Rule implements ICalculatedPropertyR
 
 }
 
-export function CalcualatedPropertyRule$create(rootType: IType, property: IProperty, optionsOrFunction: ((this: IEntity) => any) | (CalculatedPropertyRuleOptions & RuleOptions)): CalculatedPropertyRule {
+export interface CalculatedPropertyRuleOptions {
 
-	let options: CalculatedPropertyRuleOptions & RuleOptions;
+	/** The property being calculated (either a Property instance or string property name) */
+	property?: string | Property;
 
-	if (optionsOrFunction) {
-		// The options are the function to execute
-		if (optionsOrFunction instanceof Function) {
-			options = { calculate: optionsOrFunction };
-		} else {
-			options = optionsOrFunction as CalculatedPropertyRuleOptions;
-		}
-	}
+	/** A function that returns the value to assign to the property, or undefined if the value cannot be calculated */
+	calculate?: string | ((this: Entity) => any);
 
-	options.property = property;
+	/** A function that returns the value to assign to the property, or undefined if the value cannot be calculated */
+	fn?: string | ((this: Entity) => any);
 
-	return new CalculatedPropertyRule(rootType, options.name, options);
+	/** The value to return if an error occurs, or undefined to cause an exception to be thrown */
+	defaultIfError?: any;
 
+}
+
+export interface CalculatedPropertyRuleConstructor {
+	/**
+	 * Creates a rule that calculates the value of a property in the model
+	 * @param rootType The model type the rule is for
+	 * @param name The name of the rule
+	 * @param options The options of the rule of type 'CalculatedPropertyRuleOptions'
+	 */
+	new(rootType: Type, name: string, options: CalculatedPropertyRuleOptions): Rule;
 }
 
 function extractCalculatedPropertyRuleOptions(obj: any): CalculatedPropertyRuleOptions {
@@ -183,13 +187,13 @@ function extractCalculatedPropertyRuleOptions(obj: any): CalculatedPropertyRuleO
 	let extractedKeys = keys.filter(key => {
 		let value = obj[key];
 		if (key === 'property') {
-			if (Property$isProperty(value)) {
-				options.property = value as IProperty;
+			if (value instanceof Property) {
+				options.property = value as Property;
 				return true;
 			}
 		} else if (key === 'calculate' || key === 'fn') {
 			if (value instanceof Function) {
-				options.calculate = value as (this: IEntity) => any;
+				options.calculate = value as (this: Entity) => any;
 				return true;
 			} else if (typeof value === "string") {
 				options.calculate = value as string;

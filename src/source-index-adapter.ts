@@ -1,4 +1,5 @@
-import { Entity, PropertyEventDispatchers } from "../lib/model.js/src/interfaces";
+import { Entity } from "../lib/model.js/src/entity";
+import { Property, PropertyChangeEventArgs } from "../lib/model.js/src/property";
 import { SourceAdapter } from "./source-adapter";
 import { SourcePathAdapter } from "./source-path-adapter";
 import { ObservableList } from "../lib/model.js/src/observable-list";
@@ -27,14 +28,14 @@ export class SourceIndexAdapter<TEntity extends Entity, TValue> implements Sourc
     private subscribeToSourceChanges() {
         let _this = this;
         let list = ObservableList.ensureObservable(this.source.value);
-        list.changed.subscribe((sender, args) => {
+        list.changed.subscribe(function (args) {
             if (args.addedIndex >= 0) {
                 if (args.addedIndex < _this.index) {
-                    this._index += args.added.length;
+                    _this._index += args.added.length;
                 }
             } else if (args.removedIndex >= 0) {
                 if (args.removedIndex < _this.index) {
-                    this._index -= args.removed.length;
+                    _this._index -= args.removed.length;
                 }
             }
         });
@@ -61,12 +62,12 @@ export class SourceIndexAdapter<TEntity extends Entity, TValue> implements Sourc
 
             list[this.index] = newItem;
         
-            var eventArgs = { property: this.source.property, newValue: list, oldValue: undefined as any };
+            var eventArgs: PropertyChangeEventArgs = { entity: this.source.source.value, property: this.source.property as Property, newValue: list, oldValue: undefined as any };
 
             (eventArgs as any)['changes'] = [{ newItems: [newItem], oldItems: [oldItem] }];
             (eventArgs as any)['collectionChanged'] = true;
 
-            ((this.source.property as any)._eventDispatchers as PropertyEventDispatchers).changedEvent.dispatch(this.source.source.value, eventArgs);
+            this.source.property._events.changedEvent.publish(this.source.source.value, eventArgs);
         }
     }
 

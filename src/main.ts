@@ -1,12 +1,12 @@
 import { VueConstructor } from "./vue-internals";
 import { Model } from "../lib/model.js/src/model";
-import { ModelConstructor } from "../lib/model.js/src/interfaces";
+import { ModelConstructor } from "../lib/model.js/src/model";
 import { Type } from "../lib/model.js/src/type";
-import { TypeConstructor } from "../lib/model.js/src/interfaces";
+import { TypeConstructor } from "../lib/model.js/src/type";
 import { Property } from "../lib/model.js/src/property";
-import { PropertyConstructor } from "../lib/model.js/src/interfaces";
+import { PropertyConstructor } from "../lib/model.js/src/property";
 import { Entity } from "../lib/model.js/src/entity";
-import { EntityConstructor } from "../lib/model.js/src/interfaces";
+import { EntityConstructor } from "../lib/model.js/src/entity";
 import { VueModel$installPlugin } from "./vue-plugin";
 import { VueModel } from "./vue-model";
 import { SourceRootAdapter, SourceRootAdapterConstructor } from "./source-root-adapter";
@@ -62,5 +62,7 @@ api.mixins = {
 api.install = function install(Vue: VueConstructor) {
     return VueModel$installPlugin(Vue, dependencies);
 };
+
+import "../lib/model.js/src/legacy-api";
 
 export default api as VueModelApi;

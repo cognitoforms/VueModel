@@ -1,29 +1,17 @@
-import { EventDispatcher, IEvent } from "ste-events";
-import { Entity as IEntity, PropertyRuleRegisteredEventArgs } from "./interfaces";
-import { Format as IFormat } from "./interfaces";
-import { ObjectMeta as IObjectMeta } from "./interfaces";
-import { ObjectMeta } from "./object-meta";
-import { EventRegistration } from "./interfaces";
-import { Property as IProperty, PropertyGetMethod, PropertySetMethod, PropertyEventDispatchers, PropertyChangeEventArgs, PropertyAccessEventArgs, PropertyAccessEventHandler, PropertyChangeEventHandler } from "./interfaces";
-import { PropertyChain as IPropertyChain } from "./interfaces";
-import { Type as IType } from "./interfaces";
-import { Type$isType } from "./type";
-import { Rule as IRule, RuleOptions, RuleTypeOptions } from "./interfaces";
+import { Event, EventObject, EventSubscriber, ContextualEventRegistration } from "./events";
+import { Entity, EntityConstructorForType } from "./entity";
+import { Format } from "./format";
+import { Type } from "./type";
+import { PropertyChain$_addChangedHandler, PropertyChain$_addAccessedHandler, PropertyChain, PropertyChainAccessEventHandler, PropertyChainChangeEventHandler } from "./property-chain";
 import { getTypeName, getDefaultValue, parseFunctionName, toTitleCase, ObjectLiteral, merge } from "./helpers";
-import { createSecret } from "./internals";
 import { ObservableList } from "./observable-list";
-import { PropertyChain$_addChangedHandler, PropertyChain$_addAccessedHandler, PropertyChain$isPropertyChain } from "./property-chain";
-import { Entity$_getEventDispatchers } from "./entity";
-import { CalcualatedPropertyRule$create } from "./calculated-property-rule";
-import { CalculatedPropertyRuleOptions } from "./interfaces";
+import { RuleRegisteredEventArgs, Rule } from "./rule";
 
-let fieldNamePrefix = createSecret('Property.fieldNamePrefix', 3, false, true, "_fN");
-
-export class Property implements IProperty {
+export class Property {
 
 	// Public read-only properties: aspects of the object that cannot be
 	// changed without fundamentally changing what the object is
-	readonly containingType: IType;
+	readonly containingType: Type;
 	readonly name: string;
 	readonly propertyType: any;
 	readonly isList: boolean;
@@ -37,19 +25,19 @@ export class Property implements IProperty {
 	// Backing fields for properties that are settable and also derived from
 	// other data, calculated in some way, or cannot simply be changed
 	private _label: string;
-	private _format: IFormat;
+	private _format: Format;
 	private _origin: string;
 	private _defaultValue: any;
-	private _rules: IRule[];
 
-	readonly _propertyAccessSubscriptions: EventRegistration<IEntity, PropertyAccessEventHandler>[];
-	readonly _propertyChangeSubscriptions: EventRegistration<IEntity, PropertyChangeEventHandler>[];
-	readonly _eventDispatchers: PropertyEventDispatchers;
+	readonly _events: PropertyEvents;
+	readonly _propertyAccessSubscriptions: ContextualEventRegistration<Entity, PropertyAccessEventArgs, Entity>[];
+	readonly _propertyChangeSubscriptions: ContextualEventRegistration<Entity, PropertyChangeEventArgs, Entity>[];
+	readonly _rules: PropertyRule[];
 
 	readonly getter: (args?: any) => any;
 	readonly setter: (value: any, args?: any) => void;
 
-	constructor(containingType: IType, name: string, jstype: any, label: string, helptext: string, format: IFormat, isList: boolean, isStatic: boolean, isPersisted: boolean, isCalculated: boolean, defaultValue: any = undefined, origin: string = containingType.originForNewProperties) {
+	constructor(containingType: Type, name: string, jstype: any, label: string, helptext: string, format: Format, isList: boolean, isStatic: boolean, isPersisted: boolean, isCalculated: boolean, defaultValue: any = undefined, origin: string = "client") {
 
 		// Public read-only properties
 		Object.defineProperty(this, "containingType", { enumerable: true, value: containingType });
@@ -66,12 +54,13 @@ export class Property implements IProperty {
 		// Backing fields for properties
 		if (label) Object.defineProperty(this, "_label", { enumerable: false, value: label, writable: true });
 		if (format) Object.defineProperty(this, "_format", { enumerable: false, value: format, writable: true });
-		if (origin) Object.defineProperty(this, "_origin", { enumerable: false, value: containingType.originForNewProperties, writable: true });
+		if (origin) Object.defineProperty(this, "_origin", { enumerable: false, value: origin, writable: true });
 		if (defaultValue) Object.defineProperty(this, "_defaultValue", { enumerable: false, value: defaultValue, writable: true });
 
+		Object.defineProperty(this, "_events", { value: new PropertyEvents() });
 		Object.defineProperty(this, "_propertyAccessSubscriptions", { value: [] });
 		Object.defineProperty(this, "_propertyChangeSubscriptions", { value: [] });
-		Object.defineProperty(this, "_eventDispatchers", { value: new PropertyEventDispatchersImplementation() });
+		Object.defineProperty(this, "_rules", { value: [] });
 
 		Object.defineProperty(this, "getter", { value: Property$_makeGetter(this, Property$_getter) });
 		Object.defineProperty(this, "setter", { value: Property$_makeSetter(this, Property$_setter) });
@@ -83,25 +72,29 @@ export class Property implements IProperty {
 	}
 
 	get fieldName(): string {
-		return fieldNamePrefix + "_" + this.name;
+		return this.containingType.model._fieldNamePrefix + "_" + this.name;
 	}
 
-	get changedEvent(): IEvent<IEntity, PropertyChangeEventArgs> {
-		return this._eventDispatchers.changedEvent.asEvent();
+	get changed(): EventSubscriber<Entity, PropertyChangeEventArgs> {
+		return this._events.changedEvent.asEventSubscriber();
 	}
 
-	get accessedEvent(): IEvent<IEntity, PropertyAccessEventArgs> {
-		return this._eventDispatchers.accessedEvent.asEvent();
+	get accessed(): EventSubscriber<Entity, PropertyAccessEventArgs> {
+		return this._events.accessedEvent.asEventSubscriber();
 	}
 
-	equals(prop: IProperty | IPropertyChain): boolean {
+	getPath(): string {
+		return this.isStatic ? (this.containingType + "." + this.name) : this.name;
+	}
+
+	equals(prop: Property | PropertyChain): boolean {
 
 		if (prop === null || prop === undefined) {
 			return;
 		}
 
-		if (PropertyChain$isPropertyChain(prop)) {
-			return (prop as IPropertyChain).equals(this);
+		if (prop instanceof PropertyChain) {
+			return (prop as PropertyChain).equals(this);
 		}
 
 		if (prop instanceof Property) {
@@ -112,7 +105,7 @@ export class Property implements IProperty {
 
 	toString() {
 		if (this.isStatic) {
-			return this.getPath();
+			return `${this.containingType}.${this.name}`;
 		} else {
 			return `this<${this.containingType}>.${this.name}`;
 		}
@@ -122,13 +115,13 @@ export class Property implements IProperty {
 		return this._label || toTitleCase(this.name.replace(/([^A-Z]+)([A-Z])/g, "$1 $2"));
 	}
 
-	get format(): IFormat {
+	get format(): Format {
 		// TODO: Compile format from specifier if needed
 		return this._format;
 	}
 
 	get origin(): string {
-		return this._origin ? this._origin : this.containingType.origin;
+		return this._origin;
 	}
 
 	get defaultValue() {
@@ -145,11 +138,7 @@ export class Property implements IProperty {
 		}
 	}
 
-	getPath(): string {
-		return this.isStatic ? (this.containingType.fullName + "." + this.name) : this.name;
-	}
-
-	canSetValue(obj: IEntity, val: any): boolean {
+	canSetValue(obj: Entity, val: any): boolean {
 		// NOTE: only allow values of the correct data type to be set in the model
 
 		if (val === undefined) {
@@ -165,7 +154,7 @@ export class Property implements IProperty {
 
 		// for entities check base types as well
 		if (val.constructor && val.constructor.meta) {
-			for (var valType: IType = val.constructor.meta; valType; valType = valType.baseType) {
+			for (var valType: Type = val.constructor.meta; valType; valType = valType.baseType) {
 				if (valType.ctor === this.propertyType) {
 					return true;
 				}
@@ -215,11 +204,11 @@ export class Property implements IProperty {
 		}
 	}
 
-	value(obj: IEntity = null, val: any = null, additionalArgs: any = null): any {
+	value(obj: Entity = null, val: any = null, additionalArgs: any = null): any {
 		var target = (this.isStatic ? this.containingType.ctor : obj);
 
 		if (target === undefined || target === null) {
-			throw new Error(`Cannot ${(arguments.length > 1 ? "set" : "get")} value for ${(this.isStatic ? "" : "non-")}static property \"${this.getPath()}\" on type \"${this.containingType.fullName}\": target is null or undefined.`)
+			throw new Error(`Cannot ${(arguments.length > 1 ? "set" : "get")} value for ${(this.isStatic ? "" : "non-")}static property \"${this.name}\" on type \"${this.containingType}\": target is null or undefined.`)
 		}
 
 		if (arguments.length > 1) {
@@ -235,7 +224,7 @@ export class Property implements IProperty {
 	// 	}
 	// }
 
-	isInited(obj: IEntity): boolean {
+	isInited(obj: Entity): boolean {
 
 		var target = (this.isStatic ? this.containingType.ctor : obj);
 
@@ -259,79 +248,94 @@ export class Property implements IProperty {
 
 	}
 
-	calculated(options: RuleOptions & RuleTypeOptions & CalculatedPropertyRuleOptions): void {
-
-		let rootType = this.containingType;
-
-		if (options.rootType) {
-			rootType = options.rootType;
-			delete options.rootType;
-		}
-
-		options.property = this;
-
-		CalcualatedPropertyRule$create(rootType, this, options);
-
-	}
-
 }
 
-class PropertyEventDispatchersImplementation implements PropertyEventDispatchers {
-	readonly changedEvent: EventDispatcher<IEntity, PropertyChangeEventArgs>;
-	readonly accessedEvent: EventDispatcher<IEntity, PropertyAccessEventArgs>;
-	readonly ruleRegisteredEvent: EventDispatcher<IRule, PropertyRuleRegisteredEventArgs>;
+export interface PropertyConstructor {
+	new(containingType: Type, name: string, jstype: any, label: string, helptext: string, format: Format, isList: boolean, isStatic: boolean, isPersisted: boolean, isCalculated: boolean, defaultValue?: any, origin?: string): Property;
+}
+
+export type PropertyGetMethod = (property: Property, entity: Entity, additionalArgs: any) => any;
+
+export type PropertySetMethod = (property: Property, entity: Entity, val: any, additionalArgs: any, skipTypeCheck: boolean) => void;
+
+export interface PropertyAddedEventArgs {
+	property: Property;
+}
+
+export interface PropertyAccessEventHandler {
+    (this: Entity, args: EventObject & PropertyAccessEventArgs): void;
+}
+
+export interface PropertyAccessEventArgs {
+	entity: Entity;
+	property: Property;
+	value: any;
+}
+
+export interface PropertyChangeEventHandler {
+    (this: Entity, args: EventObject & PropertyChangeEventArgs): void;
+}
+
+export interface PropertyChangeEventArgs {
+	entity: Entity;
+	property: Property;
+	newValue: any,
+	oldValue?: any,
+}
+
+export class PropertyEvents {
+	readonly changedEvent: Event<Entity, PropertyChangeEventArgs>;
+	readonly accessedEvent: Event<Entity, PropertyAccessEventArgs>;
+	readonly ruleRegisteredEvent: Event<Property, RuleRegisteredEventArgs>;
 	constructor() {
-		this.changedEvent = new EventDispatcher<IEntity, PropertyChangeEventArgs>();
-		this.accessedEvent = new EventDispatcher<IEntity, PropertyAccessEventArgs>();
-		this.ruleRegisteredEvent = new EventDispatcher<IRule, PropertyRuleRegisteredEventArgs>();
+		this.changedEvent = new Event<Entity, PropertyChangeEventArgs>();
+		this.accessedEvent = new Event<Entity, PropertyAccessEventArgs>();
+		this.ruleRegisteredEvent = new Event<Property, RuleRegisteredEventArgs>();
 	}
 }
 
-export function Property$isProperty(obj: any) {
-	return obj instanceof Property;
-}
+export interface PropertyRule extends Rule {
 
-export function Property$equals(prop1: IProperty | IPropertyChain, prop2: IProperty | IPropertyChain): boolean {
-
-	if (prop1 === null || prop1 === undefined || prop2 === null || prop2 === undefined) {
-		return;
-	}
-
-	if (PropertyChain$isPropertyChain(prop1)) {
-		return (prop1 as IPropertyChain).equals(prop2);
-	}
-
-	if (PropertyChain$isPropertyChain(prop2)) {
-		return (prop2 as IPropertyChain).equals(prop1);
-	}
-
-	if (prop1 instanceof Property && prop2 instanceof Property) {
-		return prop1 === prop2;
-	}
+	/** The property that the rule targets */
+	readonly property: Property;
 
 }
 
-export function Property$_generateShortcuts(property: IProperty, target: any, recurse: boolean = true, overwrite: boolean = null) {
+// export function Property$isProperty(obj: any) {
+// 	return obj instanceof Property;
+// }
+
+// export function Property$equals(prop1: Property | IPropertyChain, prop2: Property | IPropertyChain): boolean {
+
+// 	if (prop1 === null || prop1 === undefined || prop2 === null || prop2 === undefined) {
+// 		return;
+// 	}
+
+// 	if (PropertyChain$isPropertyChain(prop1)) {
+// 		return (prop1 as PropertyChain).equals(prop2);
+// 	}
+
+// 	if (PropertyChain$isPropertyChain(prop2)) {
+// 		return (prop2 as PropertyChain).equals(prop1);
+// 	}
+
+// 	if (Property$isProperty(prop1) && Property$isProperty(prop2)) {
+// 		return prop1 === prop2;
+// 	}
+
+// }
+
+export function Property$_generateShortcuts(property: Property, target: any, overwrite: boolean = null) {
 	var shortcutName = "$" + property.name;
 
 	if (!(Object.prototype.hasOwnProperty.call(target, shortcutName)) || overwrite) {
 		target[shortcutName] = property;
 	}
-
-	if (recurse) {
-		if (overwrite == null) {
-			overwrite = false;
-		}
-
-		property.containingType.derivedTypes.forEach(function (t: IType) {
-			Property$_generateShortcuts(property, t, true, overwrite);
-		});
-	}
 }
 
-export function Property$_generateStaticProperty(property: IProperty) {
+export function Property$_generateStaticProperty(property: Property, target: any) {
 
-	Object.defineProperty(property.containingType.ctor, property.name, {
+	Object.defineProperty(target, property.name, {
 		configurable: false,
 		enumerable: true,
 		get: property.getter,
@@ -340,9 +344,9 @@ export function Property$_generateStaticProperty(property: IProperty) {
 
 }
 
-export function Property$_generatePrototypeProperty(property: IProperty) {
+export function Property$_generatePrototypeProperty(property: Property, target: any) {
 
-	Object.defineProperty(property.containingType.ctor.prototype, property.name, {
+	Object.defineProperty(target, property.name, {
 		configurable: false,
 		enumerable: true,
 		get: property.getter,
@@ -351,7 +355,7 @@ export function Property$_generatePrototypeProperty(property: IProperty) {
 
 }
 
-export function Property$_generateOwnProperty(property: IProperty, obj: IEntity) {
+export function Property$_generateOwnProperty(property: Property, obj: Entity) {
 
 	Object.defineProperty(obj, property.name, {
 		configurable: false,
@@ -362,18 +366,8 @@ export function Property$_generateOwnProperty(property: IProperty, obj: IEntity)
 
 }
 
-export function Property$_getEventDispatchers(prop: IProperty): PropertyEventDispatchers {
-	return (prop as any)._eventDispatchers as PropertyEventDispatchers;
-}
-
-export function Property$_dispatchEvent<TSender, TArgs>(prop: IProperty, eventName: string, sender: TSender, args: TArgs): void {
-	let dispatchers = Property$_getEventDispatchers(prop) as { [eventName: string]: any };
-	let dispatcher = dispatchers[eventName + "Event"] as EventDispatcher<TSender, TArgs>;
-	dispatcher.dispatch(sender, args);
-}
-
 // TODO: Get rid of `Property$_generateOwnPropertyWithClosure`...
-export function Property$_generateOwnPropertyWithClosure(property: Property, obj: IEntity) {
+export function Property$_generateOwnPropertyWithClosure(property: Property, obj: Entity & Entity) {
 
 	let val: any = null;
 
@@ -383,7 +377,7 @@ export function Property$_generateOwnPropertyWithClosure(property: Property, obj
 		if (!isInitialized) {
 			// Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.  
 			if (!property.isCalculated) {
-				Property$pendingInit(obj.meta, property, false);
+				Property$pendingInit(obj, property, false);
 
 				val = Property$_getInitialValue(property);
 
@@ -392,11 +386,11 @@ export function Property$_generateOwnPropertyWithClosure(property: Property, obj
 				}
 
 				// TODO: Implement observer?
-				Entity$_getEventDispatchers(obj).changedEvent.dispatch(property, { entity: obj, property: property });
+				obj._events.changedEvent.publish(obj, { entity: obj, property: property });
 			}
 
 			// Mark the property as pending initialization
-			Property$pendingInit(obj.meta, property, true);
+			Property$pendingInit(obj, property, true);
 
 			isInitialized = true;
 		}
@@ -409,7 +403,7 @@ export function Property$_generateOwnPropertyWithClosure(property: Property, obj
 			_ensureInited();
 
 			// Raise get events
-			Property$_dispatchEvent<IEntity, PropertyAccessEventArgs>(property, "accessed", obj, { property, value: val });
+			property._events.accessedEvent.publish(obj, { entity: obj, property, value: val });
 
 			return val;
 		},
@@ -429,11 +423,11 @@ export function Property$_generateOwnPropertyWithClosure(property: Property, obj
 				} else {
 					val = newVal;
 
-					Property$pendingInit(obj.meta, property, false);
+					Property$pendingInit(obj, property, false);
 
 					// Do not raise change if the property has not been initialized. 
 					if (old !== undefined) {
-						Property$_dispatchEvent<IEntity, PropertyChangeEventArgs>(property, "changed", obj, { property, newValue: val, oldValue: old });
+						property._events.changedEvent.publish(obj, { entity: obj, property, newValue: val, oldValue: old });
 					}
 				}
 			}	
@@ -442,9 +436,9 @@ export function Property$_generateOwnPropertyWithClosure(property: Property, obj
 
 }
 
-export function Property$getRules(property: IProperty): IRule[] {
+export function Property$getRules(property: Property): PropertyRule[] {
 	let prop = property as any;
-	let propRules: IRule[];
+	let propRules: PropertyRule[];
 	if (prop._rules) {
 		propRules = prop._rules;
 	} else {
@@ -454,8 +448,10 @@ export function Property$getRules(property: IProperty): IRule[] {
 	return propRules;
 }
 
-export function Property$pendingInit(target: IType | IObjectMeta, prop: IProperty, value: boolean = null): boolean | void {
+export function Property$pendingInit(obj: Entity | EntityConstructorForType<Entity>, prop: Property, value: boolean = null): boolean | void {
 	let pendingInit: ObjectLiteral<boolean>;
+
+	var target = (prop.isStatic ? prop.containingType.ctor : obj);
 
 	if (Object.prototype.hasOwnProperty.call(target, "_pendingInit")) {
 		pendingInit = (target as any)._pendingInit;
@@ -470,20 +466,20 @@ export function Property$pendingInit(target: IType | IObjectMeta, prop: IPropert
 			pendingInit[prop.name] = value;
 		}
 	} else {
-		let storage: any;
-		if (Type$isType(target)) {
-			storage = (target as IType).ctor;
-		} else if (target instanceof ObjectMeta) {
-			storage = (target as IObjectMeta).entity;
+		let storageTarget: any;
+		if (prop.isStatic) {
+			storageTarget = prop.containingType.ctor;
+		} else {
+			storageTarget = obj;
 		}
-		let currentValue = storage[prop.fieldName];
+		let currentValue = storageTarget[prop.fieldName];
 		return currentValue === undefined || pendingInit[prop.name] === true;
 	}
 }
 
-function Property$_subListEvents(obj: IEntity, property: IProperty, list: ObservableList<any>) {
+function Property$_subListEvents(obj: Entity, property: Property, list: ObservableList<any>) {
 
-	list.changed.subscribe(function (sender, args) {
+	list.changed.subscribe(function (args) {
 		if ((args.added && args.added.length > 0) || (args.removed && args.removed.length > 0)) {
 			// NOTE: property change should be broadcast before rules are run so that if 
 			// any rule causes a roundtrip to the server these changes will be available
@@ -491,21 +487,19 @@ function Property$_subListEvents(obj: IEntity, property: IProperty, list: Observ
 			// property.containingType.model.notifyListChanged(target, property, changes);
 
 			// NOTE: oldValue is not currently implemented for lists
-			var eventArgs: PropertyChangeEventArgs = { property: property, newValue: list, oldValue: undefined };
+			var eventArgs: PropertyChangeEventArgs = { entity: obj, property, newValue: list };
 
 			(eventArgs as any)['changes'] = [{ newItems: args.added, oldItems: args.removed }];
 			(eventArgs as any)['collectionChanged'] = true;
 
-			Property$_getEventDispatchers(property).changedEvent.dispatch(obj, eventArgs);
-
-			// TODO: Implement observer?
-			Entity$_getEventDispatchers(obj).changedEvent.dispatch(property, { entity: obj, property: property });
+			property._events.changedEvent.publish(obj, eventArgs);
+			obj._events.changedEvent.publish(obj, { entity: obj, property });
 		}
 	});
 
 }
 
-function Property$_getInitialValue(property: IProperty) {
+function Property$_getInitialValue(property: Property) {
 	var val = property.defaultValue;
 
     if (Array.isArray(val)) {
@@ -519,7 +513,7 @@ function Property$_getInitialValue(property: IProperty) {
 	return val;
 }
 
-function Property$_ensureInited(property: Property, obj: IEntity) {
+function Property$_ensureInited(property: Property, obj: Entity) {
 	var target = (property.isStatic ? property.containingType.ctor : obj);
 
     // Determine if the property has been initialized with a value
@@ -528,7 +522,7 @@ function Property$_ensureInited(property: Property, obj: IEntity) {
 
         // Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.  
         if (!property.isCalculated) {
-			Property$pendingInit(target.meta, property, false);
+			Property$pendingInit(target, property, false);
 
 			let val = Property$_getInitialValue(property);
 
@@ -539,28 +533,28 @@ function Property$_ensureInited(property: Property, obj: IEntity) {
 			}
 
 			// TODO: Implement observable?
-			Entity$_getEventDispatchers(obj).changedEvent.dispatch(property, { entity: obj, property: property });
+			obj._events.changedEvent.publish(obj, { entity: obj, property });
         }
 
 		// Mark the property as pending initialization
-		Property$pendingInit(target.meta, property, true);
+		Property$pendingInit(target, property, true);
     }
 }
 
-function Property$_getter(property: Property, obj: IEntity) {
+function Property$_getter(property: Property, obj: Entity) {
 
     // Ensure that the property has an initial (possibly default) value
 	Property$_ensureInited(property, obj);
 
 	// Raise access events
-	Property$_getEventDispatchers(property).accessedEvent.dispatch(obj, { property: property, value: (obj as any)[property.fieldName] });
-	Entity$_getEventDispatchers(obj).accessedEvent.dispatch(property, { entity: obj, property: property });
+	property._events.accessedEvent.publish(obj, { entity: obj, property, value: (obj as any)[property.fieldName] });
+	obj._events.accessedEvent.publish(obj, { entity: obj, property });
 
     // Return the property value
     return (obj as any)[property.fieldName];
 }
 
-function Property$_setter(property: Property, obj: IEntity, val: any, additionalArgs: any = null, skipTypeCheck: boolean = false) {
+function Property$_setter(property: Property, obj: Entity, val: any, additionalArgs: any = null, skipTypeCheck: boolean = false) {
 
     // Ensure that the property has an initial (possibly default) value
 	Property$_ensureInited(property, obj);
@@ -573,7 +567,7 @@ function Property$_setter(property: Property, obj: IEntity, val: any, additional
 
 }
 
-function Property$_shouldSetValue(property: Property, obj: IEntity, old: any, val: any, skipTypeCheck: boolean = false) {
+function Property$_shouldSetValue(property: Property, obj: Entity, old: any, val: any, skipTypeCheck: boolean = false) {
 
     if (!property.canSetValue(obj, val)) {
         throw new Error("Cannot set " + property.name + "=" + (val === undefined ? "<undefined>" : val) + " for instance " + obj.meta.type.fullName + "|" + obj.meta.id + ": a value of type " + (property.propertyType && property.propertyType.meta ? property.propertyType.meta.fullName : parseFunctionName(property.propertyType)) + " was expected.");
@@ -596,7 +590,7 @@ function Property$_shouldSetValue(property: Property, obj: IEntity, old: any, va
 
 }
 
-function Property$_setValue(property: Property, obj: IEntity, old: any, val: any, additionalArgs: any = null) {
+function Property$_setValue(property: Property, obj: Entity, old: any, val: any, additionalArgs: any = null) {
 
     // Update lists as batch remove/add operations
     if (property.isList) {
@@ -614,13 +608,13 @@ function Property$_setValue(property: Property, obj: IEntity, old: any, val: any
 			Object.defineProperty(obj, property.fieldName, { value: val, writable: true });
 		}
 
-		Property$pendingInit(obj.meta, property, false);
+		Property$pendingInit(obj, property, false);
 
 		// Do not raise change if the property has not been initialized. 
 		if (old !== undefined) {
-			var eventArgs: PropertyChangeEventArgs = { property: property, newValue: val, oldValue: old };
-			Property$_getEventDispatchers(property).changedEvent.dispatch(obj, additionalArgs ? merge(eventArgs, additionalArgs) : eventArgs);
-			Entity$_getEventDispatchers(obj).changedEvent.dispatch(property, { entity: obj, property: property });
+			var eventArgs: PropertyChangeEventArgs = { entity: obj, property, newValue: val, oldValue: old };
+			property._events.changedEvent.publish(obj, additionalArgs ? merge(eventArgs, additionalArgs) : eventArgs);
+			obj._events.changedEvent.publish(obj, { entity: obj, property });
 		}
     }
 }
@@ -657,84 +651,76 @@ function Property$_makeSetter(prop: Property, setter: PropertySetMethod, skipTyp
     };
 }
 
-function Property$_addAccessedHandler(prop: IProperty, handler: (sender: IEntity, args: PropertyAccessEventArgs) => void, obj: IEntity = null): () => void {
+function Property$_addAccessedHandler(prop: Property, handler: (this: Entity, args: EventObject & PropertyAccessEventArgs) => void, obj: Entity = null): void {
 	
 	let property = prop as Property;
 
-	let unsubscribe: () => void;
-
-	let sender: IEntity = null;
+	let context: Entity = null;
 
 	if (obj) {
 		let innerHandler = handler;
-		handler = (sender: IEntity, args: PropertyAccessEventArgs) => {
-			if (sender === obj) {
-				innerHandler(sender, args);
+		handler = function(this: Entity, args: PropertyAccessEventArgs) {
+			if (args.entity === obj) {
+				innerHandler.call(this, args);
 			}
 		};
 
-		sender = obj;
+		context = obj;
 	}
 
-	unsubscribe = property._eventDispatchers.accessedEvent.subscribe(handler);
+	property._events.accessedEvent.subscribe(handler);
 
-	property._propertyAccessSubscriptions.push({ handler, sender, unsubscribe });
-
-	return unsubscribe;
+	property._propertyAccessSubscriptions.push({ handler, context });
 
 }
 
-export function Property$addAccessed(prop: IProperty | IPropertyChain, handler: (sender: IEntity, args: any) => void, obj: IEntity = null, toleratePartial: boolean = false): () => void {
+export function Property$addAccessed(prop: Property | PropertyChain, handler: PropertyAccessEventHandler | PropertyChainAccessEventHandler, obj: Entity = null, toleratePartial: boolean = false): void {
 	if (prop instanceof Property) {
-		return Property$_addAccessedHandler(prop, handler, obj);
-	} else if (PropertyChain$isPropertyChain(prop)) {
-		return PropertyChain$_addAccessedHandler(prop as any, handler, obj, toleratePartial);
+		Property$_addAccessedHandler(prop, handler as PropertyAccessEventHandler, obj);
+	} else if (prop instanceof PropertyChain) {
+		PropertyChain$_addAccessedHandler(prop as any, handler as PropertyChainAccessEventHandler, obj, toleratePartial);
 	} else {
 		throw new Error("Invalid property passed to `Property$addAccessed(prop)`.");
 	}
 }
 
-export function Property$_addChangedHandler(prop: IProperty, handler: (sender: IEntity, args: PropertyChangeEventArgs) => void, obj: IEntity = null): () => void {
+function Property$_addChangedHandler(prop: Property, handler: (this: Entity, args: EventObject & PropertyChangeEventArgs) => void, obj: Entity = null): void {
 
 	let property = prop as Property;
 
-	let unsubscribe: () => void;
-
-	let sender: IEntity = null;
+	let context: Entity = null;
 
 	if (obj) {
 		let innerHandler = handler;
-		handler = (sender: IEntity, args: PropertyChangeEventArgs) => {
-			if (sender === obj) {
-				innerHandler(sender, args);
+		handler = function (this: Entity, args: PropertyChangeEventArgs) {
+			if (args.entity === obj) {
+				innerHandler.call(this, args);
 			}
 		};
 
-		sender = obj;
+		context = obj;
 	}
 
-	unsubscribe = property._eventDispatchers.changedEvent.subscribe(handler);
+	property._events.changedEvent.subscribe(handler);
 
-	(prop as any)._propertyChangeSubscriptions.push({ handler, sender, unsubscribe });
-
-	return unsubscribe;
+	(prop as any)._propertyChangeSubscriptions.push({ handler, context });
 
 }
 
 // starts listening for change events along the property chain on any known instances. Use obj argument to
 // optionally filter the events to a specific object
-export function Property$addChanged(prop: IProperty | IPropertyChain, handler: (sender: IEntity, args: any) => void, obj: IEntity = null, toleratePartial: boolean = false): () => void {
+export function Property$addChanged(prop: Property | PropertyChain, handler: PropertyChangeEventHandler | PropertyChainChangeEventHandler, obj: Entity = null, toleratePartial: boolean = false): void {
 	if (prop instanceof Property) {
-		return Property$_addChangedHandler(prop, handler, obj);
-	} else if (PropertyChain$isPropertyChain(prop)) {
-		return PropertyChain$_addChangedHandler(prop as any, handler, obj, toleratePartial);
+		Property$_addChangedHandler(prop, handler as PropertyChangeEventHandler, obj);
+	} else if (prop instanceof PropertyChain) {
+		PropertyChain$_addChangedHandler(prop as any, handler as PropertyChainChangeEventHandler, obj, toleratePartial);
 	} else {
 		throw new Error("Invalid property passed to `Property$addChanged(prop)`.");
 	}
 }
 
-export function hasPropertyChangedSubscribers(prop: IProperty, obj: IEntity) {
+export function hasPropertyChangedSubscribers(prop: Property, obj: Entity) {
 	let property = prop as Property;
 	let subscriptions = property._propertyChangeSubscriptions;
-	return subscriptions.length > 0 && subscriptions.some(s => s.sender === obj);
+	return subscriptions.length > 0 && subscriptions.some(s => s.context === obj);
 }

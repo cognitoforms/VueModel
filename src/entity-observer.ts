@@ -1,8 +1,11 @@
 import { Model } from "../lib/model.js/src/model";
-import { ModelConstructor, ModelEntityRegisteredEventArgs, ModelPropertyAddedEventArgs, EntityAccessEventArgs, TypeConstructor } from "../lib/model.js/src/interfaces";
-import { Entity, EntityConstructor } from "../lib/model.js/src/interfaces";
+import { ModelConstructor } from "../lib/model.js/src/model";
+import { Entity } from "../lib/model.js/src/entity";
+import { EntityConstructor, EntityRegisteredEventArgs, EntityAccessEventArgs } from "../lib/model.js/src/entity";
 import { Type } from "../lib/model.js/src/type";
-import { Property, PropertyConstructor,   PropertyAccessEventArgs, PropertyChangeEventArgs } from "../lib/model.js/src/interfaces";
+import { TypeConstructor } from "../lib/model.js/src/type";
+import { Property } from "../lib/model.js/src/property";
+import { PropertyConstructor } from "../lib/model.js/src/property";
 import { Observer, ObserverConstructor, DepConstructor, Dep } from "./vue-internals";
 import { hasOwnProperty, getProp } from "./helpers";
 import { Vue$dependArray } from "./vue-helpers";
@@ -17,8 +20,8 @@ function EntityObserver$ensureObservable(this: EntityObserver) {
         return;
     }
 
-    this.value.accessedEvent.subscribe(EntityObserver$_onAccess.bind(this));
-    this.value.changedEvent.subscribe(EntityObserver$_onChange.bind(this));
+    this.value.accessed.subscribe(EntityObserver$_onAccess.bind(this));
+    this.value.changed.subscribe(EntityObserver$_onChange.bind(this));
 
     (this as any)._observable = true;
 };
@@ -60,7 +63,7 @@ export function EntityObserver$_getPropertyDep(this: EntityObserver, property: P
     return dep;
 }
 
-function EntityObserver$_onAccess(this: EntityObserver, sender: Property, args: EntityAccessEventArgs) {
+function EntityObserver$_onAccess(this: EntityObserver, args: EntityAccessEventArgs) {
     let dependencies = (this as any)._dependencies as EntityObserverDependencies;
     let Vue$Dep = dependencies.Vue$Dep;
     let Model$Type = dependencies.Model$Type;
@@ -92,7 +95,7 @@ function EntityObserver$_onAccess(this: EntityObserver, sender: Property, args: 
     }
 }
 
-function EntityObserver$_onChange(this: EntityObserver, sender: Property, args: EntityAccessEventArgs) {
+function EntityObserver$_onChange(this: EntityObserver, args: EntityAccessEventArgs) {
     let dependencies = (this as any)._dependencies as EntityObserverDependencies;
     let VueModel$observeEntity = dependencies.VueModel$observeEntity;
 
@@ -140,12 +143,12 @@ function ensureEntityObserversAreCreated(model: Model, dependencies: EntityObser
         return;
     }
 
-    model.entityRegisteredEvent.subscribe(function(sender: Model, args: ModelEntityRegisteredEventArgs) {
+    model.entityRegistered.subscribe(function(args: EntityRegisteredEventArgs) {
         VueModel$observeEntity(args.entity);
     });
 
     // Make existing entities observable
-    model.types.forEach(function(type: Type) {
+    model.getTypes().forEach(function(type: Type) {
         type.known().forEach(function(entity: Entity) {
             VueModel$observeEntity(entity);
         });
