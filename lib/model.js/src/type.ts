@@ -4,7 +4,7 @@ import { Property, Property$_generateStaticProperty, Property$_generatePrototype
 import { navigateAttribute, getTypeName, parseFunctionName, ensureNamespace } from "./helpers";
 import { ObjectMeta } from "./object-meta";
 import { Event, EventSubscriber } from "./events";
-import { ObservableList } from "./observable-list";
+import { ObservableArray } from "./observable-array";
 import { RuleOptions, Rule } from "./rule";
 import { Format } from "./format";
 import { ConditionTargetsChangedEventArgs } from "./condition-target";
@@ -27,7 +27,7 @@ export class Type {
 	// Backing fields for properties that are settable and also derived from
 	// other data, calculated in some way, or cannot simply be changed
 	private _lastId: number;
-	private _known: ObservableList<Entity>;
+	private _known: ObservableArray<Entity>;
 	private readonly _pool: { [id: string]: Entity };
 	private readonly _legacyPool: { [id: string]: Entity }
 	private readonly _derivedTypes: Type[];
@@ -133,7 +133,7 @@ export class Type {
 			t._pool[key] = obj;
 
 			if (t._known) {
-				t._known.add(obj);
+				t._known.push(obj);
 			}
 		}
 
@@ -192,7 +192,10 @@ export class Type {
 			}
 
 			if (t._known) {
-				t._known.remove(obj);
+				let objIndex = t._known.indexOf(obj);
+				if (objIndex >= 0) {
+					t._known.splice(objIndex, 1);
+				}
 			}
 		}
 
@@ -230,7 +233,7 @@ export class Type {
 				}
 			}
 
-			known = this._known = ObservableList.ensureObservable(list);
+			known = this._known = ObservableArray.ensureObservable(list);
 		}
 
 		return known;

@@ -190,7 +190,7 @@ export function Model$getJsType<TEntity extends Entity>(fullName: string, allTyp
 
 export function Model$getPropertyOrPropertyChain(pathOrTokens: string | PathTokens, thisType: any, allTypesRoot: ModelNamespace, forceLoadTypes: boolean = false, callback: (result: Property | PropertyChain) => void = null, thisPtr: any = null): Property | PropertyChain | void {
 
-	var type,
+	var type: Type,
 		loadProperty: (containingType: Type, propertyName: string, propertyCallback: ((prop: Property) => void)) => void,
 		singlePropertyName,
 		path: string = null,
@@ -249,7 +249,7 @@ export function Model$getPropertyOrPropertyChain(pathOrTokens: string | PathToke
 		if (callback) {
 			loadProperty(type, singlePropertyName, callback);
 		} else {
-			return type.property(singlePropertyName);
+			return type.getProperty(singlePropertyName);
 		}
 	}
 
@@ -271,7 +271,7 @@ export function Model$getPropertyOrPropertyChain(pathOrTokens: string | PathToke
 		var processGlobal = function (instanceParseError: string) {
 
 			// Retrieve the javascript type by name.
-			type = Model$getJsType(globalTypeName, allTypesRoot, true);
+			let jstype = Model$getJsType(globalTypeName, allTypesRoot, true);
 
 			// Handle non-existant or non-loaded type.
 			if (!type) {
@@ -286,7 +286,7 @@ export function Model$getPropertyOrPropertyChain(pathOrTokens: string | PathToke
 			}
 
 			// Get the corresponding meta type.
-			type = type.meta;
+			type = jstype.meta;
 
 			// return the static property
 			if (callback) {

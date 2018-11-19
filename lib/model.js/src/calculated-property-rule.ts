@@ -2,6 +2,7 @@ import { Rule, registerPropertyRule, RuleOptions, RuleTypeOptions } from "./rule
 import { Type } from "./type";
 import { Property } from "./property";
 import { Entity } from "./entity";
+import { ObservableArray, updateArray } from "./observable-array";
 
 let calculationErrorDefault: any;
 
@@ -104,7 +105,7 @@ export class CalculatedPropertyRule extends Rule {
 			var newList = newValue;
 
 			// compare the new list to the old one to see if changes were made
-			var curList = this.property.value(obj);
+			var curList = this.property.value(obj) as ObservableArray<any>;
 
 			if (newList.length === curList.length) {
 				var noChanges = true;
@@ -122,10 +123,9 @@ export class CalculatedPropertyRule extends Rule {
 			}
 
 			// update the current list so observers will receive the change events
-			// curList.beginUpdate();
-			// update(curList, newList);
-			// curList.endUpdate();
-			throw new Error("Calculated list properties are not yet implemented.");
+			curList.batchUpdate((array) => {
+				updateArray(array, newList);
+			});
 		} else {
 			// Otherwise, just set the property to the new value
 			this.property.value(obj, newValue, { calculated: true });

@@ -2,7 +2,7 @@ import { Entity } from "../lib/model.js/src/entity";
 import { Property, PropertyChangeEventArgs } from "../lib/model.js/src/property";
 import { SourceAdapter } from "./source-adapter";
 import { SourcePathAdapter } from "./source-path-adapter";
-import { ObservableList } from "../lib/model.js/src/observable-list";
+import { ObservableArray, ArrayChangeType } from "../lib/model.js/src/observable-array";
 
 export class SourceIndexAdapter<TEntity extends Entity, TValue> implements SourceAdapter<TValue> {
 
@@ -14,12 +14,15 @@ export class SourceIndexAdapter<TEntity extends Entity, TValue> implements Sourc
 	// other data, calculated in some way, or cannot simply be changed
     private _index: number;
 
+    private _orphaned: boolean;
+
     constructor(source: SourcePathAdapter<TEntity, TValue[]>, index: number) {
         // Public read-only properties
         Object.defineProperty(this, "source", { enumerable: true, value: source });
 
 		// Backing fields for properties
 		Object.defineProperty(this, "_index", { enumerable: false, value: index, writable: true });
+		Object.defineProperty(this, "_orphaned", { enumerable: false, value: false, writable: true });
 
         // If the source array is modified, then update the index if needed
         this.subscribeToSourceChanges();
@@ -27,22 +30,38 @@ export class SourceIndexAdapter<TEntity extends Entity, TValue> implements Sourc
 
     private subscribeToSourceChanges() {
         let _this = this;
-        let list = ObservableList.ensureObservable(this.source.value);
-        list.changed.subscribe(function (args) {
-            if (args.addedIndex >= 0) {
-                if (args.addedIndex < _this.index) {
-                    _this._index += args.added.length;
+        let array = ObservableArray.ensureObservable(this.source.value);
+        array.changed.subscribe(function (args) {
+            args.changes.forEach(function (c) {
+                if (c.type === ArrayChangeType.remove) {
+                    if (c.startIndex === _this.index) {
+                        _this._index = -1;
+                        _this._orphaned = true;
+                    } else if (c.startIndex < _this.index) {
+                        if (c.items.length > _this.index - c.startIndex) {
+                            _this._index = -1;
+                            _this._orphaned = true;
+                        } else {
+                            _this._index -= c.items.length;
+                        }
+                    }
+                } else if (c.type === ArrayChangeType.add) {
+                    if (c.startIndex >= 0) {
+                        if (c.startIndex <= _this.index) {
+                            _this._index += c.items.length;
+                        }
+                    }
                 }
-            } else if (args.removedIndex >= 0) {
-                if (args.removedIndex < _this.index) {
-                    _this._index -= args.removed.length;
-                }
-            }
+            });
         });
     }
 
 	get index(): number {
         return this._index;
+    }
+
+	get isOrphaned(): boolean {
+        return this._orphaned;
     }
 
     get value(): TValue {

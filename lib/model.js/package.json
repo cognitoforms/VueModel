@@ -1,5 +1,5 @@
 {
-  "version": "0.0.19",
+  "version": "0.0.20",
   "name": "model.js",
   "license": "MIT",
   "main": "dist/model.cjs.js",
@@ -9,9 +9,10 @@
   "types": "dist/model.d.ts",
   "private": true,
   "scripts": {
-    "build": "rollup -c",
-    "dev": "rollup -c -w",
-    "def": "dts-generator --project . --out .\\out\\model.d.ts --name model.js"
+    "build": "tsc -p .",
+    "dist": "rollup -c",
+    "dist-dev": "rollup -c -w",
+    "dist-def": "dts-generator --project . --out .\\out\\model.d.ts --name model.js"
   },
   "devDependencies": {
     "rollup": "^0.66.6",

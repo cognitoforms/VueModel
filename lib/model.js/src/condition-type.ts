@@ -1,6 +1,6 @@
 import { Condition, ConditionsChangedEventArgs } from "./condition";
 import { ConditionTypeSet } from "./condition-type-set";
-import { ObservableList } from "./observable-list";
+import { ObservableArray } from "./observable-array";
 import { Event, EventSubscriber } from "./events";
 import { Entity } from "./entity";
 
@@ -12,7 +12,7 @@ export class ConditionType {
 	category: string;
 	message: string;
 	// rules: Rule[];
-	conditions: ObservableList<Condition>;
+	conditions: ObservableArray<Condition>;
 	sets: ConditionTypeSet[];
 	origin: string;
 
@@ -35,7 +35,7 @@ export class ConditionType {
 		this.category = category;
 		this.message = message;
 		// this.rules = [];
-		this.conditions = ObservableList.create<Condition>();
+		this.conditions = ObservableArray.create<Condition>();
 		this.sets = sets || [];
 		this.origin = origin;
 

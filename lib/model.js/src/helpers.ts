@@ -230,16 +230,3 @@ export function mixin<T>(ctor: { new(...args: any[]): T }, methods: { [name: str
 		}
 	}
 }
-
-export function Array$indexOf(array: any[], item: any) {
-	if (typeof(item) === "undefined") return -1;
-	var length = array.length;
-	if (length !== 0) {
-		for (var i = 0; i < length; i++) {
-			if ((typeof(array[i]) !== "undefined") && (array[i] === item)) {
-				return i;
-			}
-		}
-	}
-	return -1;
-}

@@ -145,12 +145,18 @@ export class Condition {
 		if (this.type.sets) {
 			for (var s = this.type.sets.length - 1; s >= 0; s--) {
 				var set = this.type.sets[s];
-				set.conditions.remove(this);
+				let idx = set.conditions.indexOf(this);
+				if (idx >= 0) {
+					set.conditions.splice(idx, 1);
+				}
 			}
 		}
 
 		// raise events on condition types
-		this.type.conditions.remove(this);
+		let idx = this.type.conditions.indexOf(this);
+		if (idx >= 0) {
+			this.type.conditions.splice(idx, 1);
+		}
 
 		for (var t = this.targets.length - 1; t >= 0; t--) {
 			var conditionTarget = this.targets[t];

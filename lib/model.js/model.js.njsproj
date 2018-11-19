@@ -65,9 +65,9 @@
     </PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>
-        npm run build -- --silent
-    </PostBuildEvent>
+    <!-- <PostBuildEvent>
+        npm run dist \-\- \-\-silent
+    </PostBuildEvent> -->
   </PropertyGroup>
   <ProjectExtensions>
     <VisualStudio>

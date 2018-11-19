@@ -4,7 +4,6 @@ import { PropertyChain } from "./property-chain";
 import { Entity } from "./entity";
 import { Type } from "./type";
 import { ConditionType } from "./condition-type";
-import { Array$indexOf } from "./helpers";
 import { ConditionRuleOptions } from "./condition-rule";
 import { RuleOptions } from "./rule";
 import { Model$getPropertyOrPropertyChain } from "./model";
@@ -37,7 +36,7 @@ export class AllowedValuesRule extends ValidatedPropertyRule {
 		let sourceFn: string | ((entity: Entity) => any[]);
 	
 		// subscribe to changes to the source property
-		if (options.source instanceof Property || options.source instanceof PropertyChain || options.source instanceof String) {
+		if (options.source) {
 			// define properties for the rule
 			if (options.source instanceof Property || options.source instanceof PropertyChain) {
 				sourcePath = options.source.getPath();
@@ -124,9 +123,9 @@ export class AllowedValuesRule extends ValidatedPropertyRule {
 
 		// ensure that the value or list of values is in the allowed values list (single and multi-select)				
 		if (value instanceof Array) {
-			return value.every(function (item) { return Array$indexOf(allowed, item) >= 0; });
+			return value.every(function (item) { return allowed.indexOf(item) >= 0; });
 		} else {
-			return Array$indexOf(allowed, value) >= 0;
+			return allowed.indexOf(value) >= 0;
 		}
 	}
 

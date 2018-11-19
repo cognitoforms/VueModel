@@ -1,5 +1,5 @@
 import { Event, EventSubscriber } from "./events";
-import { ObservableList } from "./observable-list";
+import { ObservableArray } from "./observable-array";
 import { ConditionType } from "./condition-type";
 import { Condition, ConditionsChangedEventArgs } from "./condition";
 
@@ -10,7 +10,7 @@ export class ConditionTypeSet {
 
 	name: string;
 	types: ConditionType[];
-	conditions: ObservableList<Condition>;
+	conditions: ObservableArray<Condition>;
 
 	readonly _events: ConditionTypeSetEvents;
 
@@ -25,7 +25,7 @@ export class ConditionTypeSet {
 
 		this.name = name;
 		this.types = [];
-		this.conditions = ObservableList.create<Condition>();
+		this.conditions = ObservableArray.create<Condition>();
 
 		Object.defineProperty(this, "_events", { value: new ConditionTypeSetEvents() });
 

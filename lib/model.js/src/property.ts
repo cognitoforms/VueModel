@@ -4,7 +4,7 @@ import { Format } from "./format";
 import { Type } from "./type";
 import { PropertyChain$_addChangedHandler, PropertyChain$_addAccessedHandler, PropertyChain, PropertyChainAccessEventHandler, PropertyChainChangeEventHandler } from "./property-chain";
 import { getTypeName, getDefaultValue, parseFunctionName, toTitleCase, ObjectLiteral, merge } from "./helpers";
-import { ObservableList } from "./observable-list";
+import { ObservableArray, updateArray } from "./observable-array";
 import { RuleRegisteredEventArgs, Rule } from "./rule";
 
 export class Property {
@@ -384,10 +384,10 @@ export function Property$_generateOwnPropertyWithClosure(property: Property, obj
 				val = Property$_getInitialValue(property);
 
 				if (Array.isArray(val)) {
-					Property$_subListEvents(obj, property, val as ObservableList<any>);
+					Property$_subArrayEvents(obj, property, val as ObservableArray<any>);
 				}
 
-				// TODO: Implement observer?
+				// TODO: Account for static properties (obj is undefined)
 				obj._events.changedEvent.publish(obj, { entity: obj, property: property });
 			}
 
@@ -413,16 +413,15 @@ export function Property$_generateOwnPropertyWithClosure(property: Property, obj
 			_ensureInited();
 
 			if (Property$_shouldSetValue(property, obj, val, newVal)) {
-				let old = val;
 
 				// Update lists as batch remove/add operations
 				if (property.isList) {
-					// TODO: Implement observable array update
-					// old.beginUpdate();
-					// update(old, newVal);
-					// old.endUpdate();
-					throw new Error("Property set on lists is not implemented.");
+					let currentArray = val as ObservableArray<any>;
+					currentArray.batchUpdate((array) => {
+						updateArray(array, newVal);
+					});
 				} else {
+					let old = val;
 					val = newVal;
 
 					Property$pendingInit(obj, property, false);
@@ -479,24 +478,22 @@ export function Property$pendingInit(obj: Entity | EntityConstructorForType<Enti
 	}
 }
 
-function Property$_subListEvents(obj: Entity, property: Property, list: ObservableList<any>) {
+function Property$_subArrayEvents(obj: Entity, property: Property, array: ObservableArray<any>) {
 
-	list.changed.subscribe(function (args) {
-		if ((args.added && args.added.length > 0) || (args.removed && args.removed.length > 0)) {
-			// NOTE: property change should be broadcast before rules are run so that if 
-			// any rule causes a roundtrip to the server these changes will be available
-			// TODO: Implement notifyListChanged?
-			// property.containingType.model.notifyListChanged(target, property, changes);
+	array.changed.subscribe(function (args) {
+		// NOTE: property change should be broadcast before rules are run so that if 
+		// any rule causes a roundtrip to the server these changes will be available
+		// TODO: Implement notifyListChanged?
+		// property.containingType.model.notifyListChanged(target, property, changes);
 
-			// NOTE: oldValue is not currently implemented for lists
-			var eventArgs: PropertyChangeEventArgs = { entity: obj, property, newValue: list };
+		// NOTE: oldValue is not currently implemented for lists
+		var eventArgs: PropertyChangeEventArgs = { entity: obj, property, newValue: array };
 
-			(eventArgs as any)['changes'] = [{ newItems: args.added, oldItems: args.removed }];
-			(eventArgs as any)['collectionChanged'] = true;
+		(eventArgs as any)['changes'] = args.changes;
+		(eventArgs as any)['collectionChanged'] = true;
 
-			property._events.changedEvent.publish(obj, eventArgs);
-			obj._events.changedEvent.publish(obj, { entity: obj, property });
-		}
+		property._events.changedEvent.publish(obj, eventArgs);
+		obj._events.changedEvent.publish(obj, { entity: obj, property });
 	});
 
 }
@@ -505,7 +502,7 @@ function Property$_getInitialValue(property: Property) {
 	var val = property.defaultValue;
 
     if (Array.isArray(val)) {
-		val = ObservableList.ensureObservable(val as Array<any>);
+		val = ObservableArray.ensureObservable(val as Array<any>);
 
 		// Override the default toString on arrays so that we get a comma-delimited list
 		// TODO: Implement toString on observable list?
@@ -522,8 +519,8 @@ function Property$_ensureInited(property: Property, obj: Entity) {
     // and initialize the property if necessary
     if (!obj.hasOwnProperty(property.fieldName)) {
 
-        // Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.  
-        if (!property.isCalculated) {
+        // // Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.  
+        // if (!property.isCalculated) {
 			Property$pendingInit(target, property, false);
 
 			let val = Property$_getInitialValue(property);
@@ -531,15 +528,15 @@ function Property$_ensureInited(property: Property, obj: Entity) {
 			Object.defineProperty(target, property.fieldName, { value: val, writable: true });
 
 			if (Array.isArray(val)) {
-				Property$_subListEvents(obj, property, val as ObservableList<any>);
+				Property$_subArrayEvents(obj, property, val as ObservableArray<any>);
 			}
 
 			// TODO: Implement observable?
 			obj._events.changedEvent.publish(obj, { entity: obj, property });
-        }
 
-		// Mark the property as pending initialization
-		Property$pendingInit(target, property, true);
+			// Mark the property as pending initialization
+			Property$pendingInit(target, property, true);
+        // }
     }
 }
 
@@ -592,29 +589,28 @@ function Property$_shouldSetValue(property: Property, obj: Entity, old: any, val
 
 }
 
-function Property$_setValue(property: Property, obj: Entity, old: any, val: any, additionalArgs: any = null) {
-
+function Property$_setValue(property: Property, obj: Entity, currentValue: any, newValue: any, additionalArgs: any = null) {
     // Update lists as batch remove/add operations
     if (property.isList) {
-        // TODO: Implement observable array update
-        // old.beginUpdate();
-        // update(old, val);
-        // old.endUpdate();
-        throw new Error("Property set on lists is not implemented.");
+		let currentArray = currentValue as ObservableArray<any>;
+		currentArray.batchUpdate((array) => {
+			updateArray(array, newValue);
+		});
     } else {
+		let oldValue = currentValue;
 
 		// Set or create the backing field value
 		if (obj.hasOwnProperty(property.fieldName)) {
-			(obj as any)[property.fieldName] = val;
+			(obj as any)[property.fieldName] = newValue;
 		} else {
-			Object.defineProperty(obj, property.fieldName, { value: val, writable: true });
+			Object.defineProperty(obj, property.fieldName, { value: newValue, writable: true });
 		}
 
 		Property$pendingInit(obj, property, false);
 
 		// Do not raise change if the property has not been initialized. 
-		if (old !== undefined) {
-			var eventArgs: PropertyChangeEventArgs = { entity: obj, property, newValue: val, oldValue: old };
+		if (oldValue !== undefined) {
+			var eventArgs: PropertyChangeEventArgs = { entity: obj, property, newValue, oldValue };
 			property._events.changedEvent.publish(obj, additionalArgs ? merge(eventArgs, additionalArgs) : eventArgs);
 			obj._events.changedEvent.publish(obj, { entity: obj, property });
 		}

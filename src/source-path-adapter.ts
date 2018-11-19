@@ -41,19 +41,21 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> implements Source
     }
 
     get displayValue(): string {
-        let value = this.property.value(this.source.value) as any;
+        let property = this.property;
+
+        let value = property.value(this.source.value) as any;
 
         let displayValue: string | Array<string>;
 
         if (value === null || value === undefined) {
             displayValue = "";
-        } else if (this.property.format != null) {
+        } else if (property.format != null) {
             // Use a markup or property format if available
             if (Array.isArray(value)) {
                 let array = value as Array<any>;
-                displayValue = array.map((item: TValue) => this.property.format.convert(item));
+                displayValue = array.map((item: TValue) => property.format.convert(item));
             } else {
-                displayValue = this.property.format.convert(value);
+                displayValue = property.format.convert(value);
             }
         } else if (Array.isArray(value)) {
             // If no format exists, then fall back to toString
@@ -73,7 +75,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> implements Source
     }
 
     set displayValue(text: string) {
-        this.value = this.property.format != null ? this.property.format.convertBack(text) : text;
+        let property = this.property;
+        this.value = property.format != null ? property.format.convertBack(text) : text;
     }
 
     toString(): string {

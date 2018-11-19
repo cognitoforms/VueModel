@@ -1,5 +1,5 @@
 {
-  "version": "0.0.16",
+  "version": "0.0.17",
   "name": "vuemodel",
   "license": "MIT",
   "main": "dist/vuemodel.cjs.js",
@@ -8,9 +8,10 @@
   "types": "dist/vuemodel.d.ts",
   "private": true,
   "scripts": {
-    "build": "rollup -c",
-    "dev": "rollup -c -w",
-    "def": "dts-generator --project . --out .\\out\\vuemodel.d.ts --name VueModel"
+    "build": "tsc -p .",
+    "dist": "rollup -c",
+    "dist-dev": "rollup -c -w",
+    "dist-def": "dts-generator --project . --out .\\out\\vuemodel.d.ts --name VueModel"
   },
   "devDependencies": {
     "rollup": "^0.66.6",
