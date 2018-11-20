@@ -1,6 +1,7 @@
 import { Entity } from "../lib/model.js/src/entity";
 import { SourceAdapter } from "./source-adapter";
 import { CustomObserver } from "./custom-observer";
+import { getEntityObserver } from "./entity-observer";
 
 export class SourceRootAdapter<TEntity extends Entity> implements SourceAdapter<TEntity> {
 
@@ -13,6 +14,8 @@ export class SourceRootAdapter<TEntity extends Entity> implements SourceAdapter<
     constructor(entity: TEntity) {
         // Public read-only properties
         Object.defineProperty(this, "entity", { enumerable: true, value: entity });
+
+        getEntityObserver(entity).ensureObservable();
 
         Object.defineProperty(this, "__ob__", { configurable: false, enumerable: false, value: new CustomObserver(this), writable: false });
     }

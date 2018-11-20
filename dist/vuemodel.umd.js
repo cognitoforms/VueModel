@@ -1,5 +1,5 @@
 /*!
- * VueModel.js v0.0.18
+ * VueModel.js v0.0.19
  * (c) 2018 Cognito LLC
  * Released under the MIT License.
  */
@@ -4446,6 +4446,7 @@
         function SourceRootAdapter(entity) {
             // Public read-only properties
             Object.defineProperty(this, "entity", { enumerable: true, value: entity });
+            getEntityObserver(entity).ensureObservable();
             Object.defineProperty(this, "__ob__", { configurable: false, enumerable: false, value: new CustomObserver(this), writable: false });
         }
         Object.defineProperty(SourceRootAdapter.prototype, "value", {
@@ -4905,6 +4906,7 @@
             // Public read-only properties
             Object.defineProperty(this, "source", { enumerable: true, value: source });
             Object.defineProperty(this, "path", { enumerable: true, value: path });
+            getEntityObserver(source.value).ensureObservable();
             Object.defineProperty(this, "__ob__", { configurable: false, enumerable: false, value: new CustomObserver(this), writable: false });
         }
         Object.defineProperty(SourcePathAdapter.prototype, "property", {
@@ -4936,6 +4938,7 @@
             get: function () {
                 var property = this.property;
                 var value = property.value(this.source.value);
+                SourcePathAdapter$_ensureObservable.call(value);
                 this.__ob__.onPropertyAccess('value', value);
                 return value;
             },
@@ -4961,6 +4964,7 @@
             get: function () {
                 var property = this.property;
                 var value = property.value(this.source.value);
+                SourcePathAdapter$_ensureObservable.call(value);
                 var displayValue = SourcePathAdapter$_formatDisplayValue.call(this, value);
                 this.__ob__.onPropertyAccess('displayValue', displayValue);
                 return displayValue;
@@ -5136,6 +5140,19 @@
         };
         return SourcePathAdapter;
     }());
+    function SourcePathAdapter$_ensureObservable(value) {
+        if (Array.isArray(value)) {
+            for (var i = 0; i < value.length; i++) {
+                var item = value[i];
+                if (item instanceof Entity) {
+                    observeEntity(item).ensureObservable();
+                }
+            }
+        }
+        else if (value instanceof Entity) {
+            observeEntity(value).ensureObservable();
+        }
+    }
     function SourcePathAdapter$_formatDisplayValue(value) {
         var displayValue;
         var property = this.property;

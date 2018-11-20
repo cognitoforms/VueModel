@@ -7,7 +7,7 @@ import { AllowedValuesRule } from "../lib/model.js/src/allowed-values-rule";
 import { RuleRegisteredEventArgs, Rule } from "../lib/model.js/src/rule";
 import { EventHandler } from "../lib/model.js/src/events";
 import { CustomObserver } from "./custom-observer";
-import { observeEntity } from "./entity-observer";
+import { observeEntity, getEntityObserver } from "./entity-observer";
 import { PropertyChain, PropertyChainChangeEventArgs, PropertyChainChangeEventHandler } from "../lib/model.js/src/property-chain";
 import { ObservableArray, updateArray, ArrayChangedEventArgs, ArrayChangeType } from "../lib/model.js/src/observable-array";
 
@@ -40,6 +40,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> implements Source
         Object.defineProperty(this, "source", { enumerable: true, value: source });
         Object.defineProperty(this, "path", { enumerable: true, value: path });
 
+        getEntityObserver(source.value).ensureObservable();
+
         Object.defineProperty(this, "__ob__", { configurable: false, enumerable: false, value: new CustomObserver(this), writable: false });
     }
 
@@ -62,6 +64,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> implements Source
     get value(): TValue {
         let property = this.property;
         let value = property.value(this.source.value) as any;
+        SourcePathAdapter$_ensureObservable.call(value);
         this.__ob__.onPropertyAccess('value', value);
         return value;
     }
@@ -89,6 +92,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> implements Source
     get displayValue(): string {
         let property = this.property;
         let value = property.value(this.source.value) as any;
+        SourcePathAdapter$_ensureObservable.call(value);
         let displayValue: string = SourcePathAdapter$_formatDisplayValue.call(this, value);
         this.__ob__.onPropertyAccess('displayValue', displayValue);
         return displayValue;
@@ -264,6 +268,19 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> implements Source
         return "Source['" + this.path + "']";
     }
 
+}
+
+export function SourcePathAdapter$_ensureObservable<TEntity extends Entity, TValue>(this: SourcePathAdapter<TEntity, TValue>, value: any): void {
+    if (Array.isArray(value)) {
+        for (let i = 0; i < value.length; i++) {
+            let item = value[i];
+            if (item instanceof Entity) {
+                observeEntity(item).ensureObservable();
+            }
+        }
+    } else if (value instanceof Entity) {
+        observeEntity(value).ensureObservable();
+    }
 }
 
 export function SourcePathAdapter$_formatDisplayValue<TEntity extends Entity, TValue>(this: SourcePathAdapter<TEntity, TValue>, value: any): string {
