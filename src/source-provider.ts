@@ -1,15 +1,11 @@
 import Vue from "vue";
-import { EntityConstructor, Entity } from "../lib/model.js/src/entity";
-import { defineDollarSourceProperty, SourceBindingDependencies, getSourceBindingContainer } from "./source-binding";
+import { Entity } from "../lib/model.js/src/entity";
+import { defineDollarSourceProperty, getSourceBindingContainer } from "./source-binding";
 import { isSourceAdapter, SourceAdapter } from "./source-adapter";
 import { hasOwnProperty, debug } from "./helpers";
 import { SourceRootAdapter } from "./source-root-adapter";
 import { SourcePathAdapter } from "./source-path-adapter";
 import { SourceIndexAdapter } from "./source-index-adapter";
-
-export interface SourceProviderDependencies {
-    Model$Entity: EntityConstructor;
-}
 
 function preprocessPropsToInterceptSource(vm: Vue) {
 
@@ -28,7 +24,7 @@ function preprocessPropsToInterceptSource(vm: Vue) {
 
 }
 
-function establishBindingSource(vm: Vue, dependencies: SourceBindingDependencies) {
+function establishBindingSource(vm: Vue) {
 
     let vm$private: any = vm as any;
 
@@ -49,11 +45,9 @@ function establishBindingSource(vm: Vue, dependencies: SourceBindingDependencies
 
     vm$private._sourcePending = true;
 
-    let Model$Entity = dependencies.Model$Entity;
-
     debug("Found component of type '" + vm$private.$options._componentTag + "' with source '" + props.source + "'.");
 
-    let sourceVm: Vue = getSourceBindingContainer(vm, dependencies, true);
+    let sourceVm: Vue = getSourceBindingContainer(vm, true);
 
     if (sourceVm) {
 
@@ -61,7 +55,7 @@ function establishBindingSource(vm: Vue, dependencies: SourceBindingDependencies
 
         let source = sourceVm$private._source;
         if (typeof source === "string") {
-            establishBindingSource(sourceVm, dependencies);
+            establishBindingSource(sourceVm);
             source = sourceVm$private._source;
         }
 
@@ -72,7 +66,7 @@ function establishBindingSource(vm: Vue, dependencies: SourceBindingDependencies
 
         let sourceAdapter: SourceAdapter<any> = null;
 
-        if (source instanceof Model$Entity) {
+        if (source instanceof Entity) {
             debug("Found source entity of type <" + (source as Entity).meta.type.fullName + ">.");
             sourceAdapter = new SourcePathAdapter<Entity, any>(new SourceRootAdapter(source as Entity), props.source);
         } else if (isSourceAdapter(source)) {
@@ -99,52 +93,50 @@ function establishBindingSource(vm: Vue, dependencies: SourceBindingDependencies
 
 }
 
-export function SourceProviderMixin(dependencies: SourceProviderDependencies) {
-    return {
-        props: {
-            source: {},
-            sourceIndex: {
-                type: Number,
-                validator: function (value: number) {
-                    return value >= 0;
-                }
+export const SourceProviderMixin = {
+    props: {
+        source: {},
+        sourceIndex: {
+            type: Number,
+            validator: function (value: number) {
+                return value >= 0;
             }
-        },
-        beforeCreate: function () {
-
-            let vm: Vue = this as Vue;
-
-            if (vm.$options.propsData) {
-                // Intercept the `source` prop so that it can be marked as having a source
-                // and lazily evaluated if needed, or detected by other components
-                preprocessPropsToInterceptSource(vm);
-            }
-        },
-        created: function () {
-
-            let vm: Vue = this as Vue;
-
-            let vm$private: any = vm as any;
-
-            if (isSourceAdapter(vm$private._data)) {
-                let sourceAdapter = vm$private._data as SourceAdapter<any>;
-
-                // Define the `$source` property if not already defined
-                defineDollarSourceProperty(vm, sourceAdapter);
-
-                // TODO: Who wins, props or data?
-                // Vue proxies the data objects `Object.keys()` onto the component itself,
-                // so that the data objects properties can be used directly in templates
-                // proxySourceAdapterPropertiesOntoComponentInstance(vm, '_data', false, false);
-            }
-
-            if (vm.$options.propsData) {
-                let props = vm.$options.propsData as any;
-                if (hasOwnProperty(props, 'source')) {
-                    establishBindingSource(vm, dependencies);
-                }
-            }
-
         }
-    };
+    },
+    beforeCreate: function () {
+
+        let vm: Vue = this as Vue;
+
+        if (vm.$options.propsData) {
+            // Intercept the `source` prop so that it can be marked as having a source
+            // and lazily evaluated if needed, or detected by other components
+            preprocessPropsToInterceptSource(vm);
+        }
+    },
+    created: function () {
+
+        let vm: Vue = this as Vue;
+
+        let vm$private: any = vm as any;
+
+        if (isSourceAdapter(vm$private._data)) {
+            let sourceAdapter = vm$private._data as SourceAdapter<any>;
+
+            // Define the `$source` property if not already defined
+            defineDollarSourceProperty(vm, sourceAdapter);
+
+            // TODO: Who wins, props or data?
+            // Vue proxies the data objects `Object.keys()` onto the component itself,
+            // so that the data objects properties can be used directly in templates
+            // proxySourceAdapterPropertiesOntoComponentInstance(vm, '_data', false, false);
+        }
+
+        if (vm.$options.propsData) {
+            let props = vm.$options.propsData as any;
+            if (hasOwnProperty(props, 'source')) {
+                establishBindingSource(vm);
+            }
+        }
+
+    }
 }

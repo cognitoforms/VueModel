@@ -1,16 +1,11 @@
 import Vue from "vue";
-import { EntityConstructor } from "../lib/model.js/src/entity";
 import { getSourceBindingContainer, defineDollarSourceProperty } from "./source-binding";
 import { isSourceAdapter, SourceAdapter } from "./source-adapter";
 import { debug } from "./helpers";
 
-export interface SourceConsumerDependencies {
-    Model$Entity: EntityConstructor;
-}
+function establishBindingSource(vm: Vue) {
 
-function establishBindingSource(vm: Vue, dependencies: SourceConsumerDependencies) {
-
-    let sourceVm: Vue = getSourceBindingContainer(vm, dependencies);
+    let sourceVm: Vue = getSourceBindingContainer(vm);
 
     let sourceVm$private = sourceVm as any;
     if (sourceVm$private.$source) {
@@ -26,39 +21,37 @@ function establishBindingSource(vm: Vue, dependencies: SourceConsumerDependencie
 
 }
 
-export function SourceConsumerMixin(dependencies: SourceConsumerDependencies) {
-    return {
-        beforeCreate: function() {
-            let vm: Vue = this as Vue;
-            let vm$private = vm as any;
-            
-            let originalData = vm.$options.data;
+export const SourceConsumerMixin = {
+    beforeCreate: function() {
+        let vm: Vue = this as Vue;
+        let vm$private = vm as any;
+        
+        let originalData = vm.$options.data;
 
-            vm$private.$options.data = function() {
+        vm$private.$options.data = function() {
 
-                // Establish the `$source` variable
-                establishBindingSource(vm, dependencies);
+            // Establish the `$source` variable
+            establishBindingSource(vm);
 
-                if (originalData) {
-                    // Return the original data
-                    if (originalData instanceof Function) {
-                        debug("Data is a function, invoking...");
-                        var dataFn = originalData as Function;
-                        return dataFn.apply(this, arguments)
-                    } else {
-                        return originalData;
-                    }
+            if (originalData) {
+                // Return the original data
+                if (originalData instanceof Function) {
+                    debug("Data is a function, invoking...");
+                    var dataFn = originalData as Function;
+                    return dataFn.apply(this, arguments)
                 } else {
-                    return {};
+                    return originalData;
                 }
-            };
-        },
-        created: function() {
-            let vm: Vue = this as Vue;
-            let vm$private = vm as any;
-            if (!vm$private.$source) {
-                establishBindingSource(vm, dependencies);
+            } else {
+                return {};
             }
+        };
+    },
+    created: function() {
+        let vm: Vue = this as Vue;
+        let vm$private = vm as any;
+        if (!vm$private.$source) {
+            establishBindingSource(vm);
         }
-    };
+    }
 };

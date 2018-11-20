@@ -1,13 +1,97 @@
 /*!
- * VueModel.js v0.0.17
+ * VueModel.js v0.0.18
  * (c) 2018 Cognito LLC
  * Released under the MIT License.
  */
 'use strict';
 
+var VueInternals = {
+    Vue: null,
+    Observer: null,
+    Dep: null,
+};
+// NOTE: Based on Webpack generated code
+var __extendsDeferred = (function () {
+    var called = false;
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b)
+                if (b.hasOwnProperty(p))
+                    d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    function __extends(d, b) {
+        extendStatics(d, b);
+        var __ = function __() { this.constructor = d; };
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    }
+    return function __extendsDeferred(d, b) {
+        if (!called) {
+            __extends(d, b);
+            called = true;
+        }
+    };
+}());
+var ObserverConstructor = (function () {
+    return function Observer(value) {
+        __extendsDeferred(Observer, VueInternals.Observer);
+        return VueInternals.Observer.call(this, value) || this;
+    };
+}());
+var Observer = ObserverConstructor;
+function ensureVueInternalTypes(Vue) {
+    if (VueInternals.Vue != null) {
+        return VueInternals;
+    }
+    var component = new Vue({
+        data: function () {
+            return {};
+        },
+    });
+    var data = component.$data;
+    var observer = data.__ob__;
+    var observerCtor = data.__ob__.constructor;
+    var depCtor = observer.dep.constructor;
+    VueInternals.Vue = Vue;
+    VueInternals.Observer = observerCtor;
+    VueInternals.Dep = depCtor;
+    return VueInternals;
+}
+
+/*! *****************************************************************************
+Copyright (c) Microsoft Corporation. All rights reserved.
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this file except in compliance with the License. You may obtain a copy of the
+License at http://www.apache.org/licenses/LICENSE-2.0
+
+THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
+WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
+MERCHANTABLITY OR NON-INFRINGEMENT.
+
+See the Apache Version 2.0 License for specific language governing permissions
+and limitations under the License.
+***************************************************************************** */
+/* global Reflect, Promise */
+
+var extendStatics = function(d, b) {
+    extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return extendStatics(d, b);
+};
+
+function __extends(d, b) {
+    extendStatics(d, b);
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+}
+
 function Functor$create(returns) {
     if (returns === void 0) { returns = false; }
     var funcs = [];
+    // TODO: Detect functor invocation resulting in continually adding subscribers
     function Functor$fn() {
         var returnsArray;
         if (returns) {
@@ -534,7 +618,9 @@ var PropertyChain = /** @class */ (function () {
         Object.defineProperty(this, "_properties", { value: properties });
         Object.defineProperty(this, "_propertyFilters", { value: filters || new Array(properties.length) });
         Object.defineProperty(this, "_propertyAccessSubscriptions", { value: [] });
+        Object.defineProperty(this, "_propertyChainAccessSubscriptions", { value: [] });
         Object.defineProperty(this, "_propertyChangeSubscriptions", { value: [] });
+        Object.defineProperty(this, "_propertyChainChangeSubscriptions", { value: [] });
         Object.defineProperty(this, "_events", { value: new PropertyChainEvents() });
     }
     Object.defineProperty(PropertyChain.prototype, "changed", {
@@ -1023,25 +1109,30 @@ function updatePropertyAccessSubscriptions(chain, props, subscriptions) {
             var priorProp = (index === 0) ? undefined : props[index - 1];
             var handler = function (args) { onPropertyChainStepAccessed(chain, priorProp, this, args); };
             prop._events.accessedEvent.subscribe(handler);
-            subscriptions.push({ handler: handler });
+            subscriptions.push({ registeredHandler: handler, handler: handler });
         }, chain);
     }
 }
 function PropertyChain$_addAccessedHandler(chain, handler, obj, toleratePartial) {
     if (obj === void 0) { obj = null; }
     var propertyAccessFilters = Functor$create(true);
+    var context = null;
+    var filteredHandler = null;
     if (obj) {
         propertyAccessFilters.add(function (entity) { return entity === obj; });
+        context = obj;
     }
     // TODO: Implement partial access tolerance if implementing lazy loading...
     propertyAccessFilters.add(function (entity) { return chain.isInited(entity, true); });
     updatePropertyAccessSubscriptions(chain, chain._properties, chain._propertyAccessSubscriptions);
-    chain._events.accessedEvent.subscribe(function (args) {
+    filteredHandler = function (args) {
         var filterResults = propertyAccessFilters(args.entity);
         if (!filterResults.some(function (b) { return !b; })) {
             handler.call(this, args);
         }
-    });
+    };
+    chain._events.accessedEvent.subscribe(filteredHandler);
+    chain._propertyChainAccessSubscriptions.push({ registeredHandler: filteredHandler, handler: handler, context: context });
 }
 function onPropertyChainStepChanged(chain, priorProp, entity, args) {
     // scan all known objects of this type and raise event for any instance connected
@@ -1070,7 +1161,7 @@ function updatePropertyChangeSubscriptions(chain, props, subscriptions) {
     var subscribedToPropertyChanges = subscriptions !== null && subscriptions.length > 0;
     if (!chainEventSubscriptionsExist && subscribedToPropertyChanges) {
         // If there are no more subscribers then unsubscribe from property-level events
-        props.forEach(function (prop, index) { return prop.changed.unsubscribe(subscriptions[index].handler); });
+        props.forEach(function (prop, index) { return prop.changed.unsubscribe(subscriptions[index].registeredHandler); });
         subscriptions.length = 0;
     }
     if (chainEventSubscriptionsExist && !subscribedToPropertyChanges) {
@@ -1080,7 +1171,7 @@ function updatePropertyChangeSubscriptions(chain, props, subscriptions) {
             var priorProp = (index === 0) ? undefined : props[index - 1];
             var handler = function (args) { onPropertyChainStepChanged(chain, priorProp, this, args); };
             prop.changed.subscribe(handler);
-            subscriptions.push({ handler: handler });
+            subscriptions.push({ registeredHandler: handler, handler: handler });
         }, chain);
     }
 }
@@ -1089,8 +1180,11 @@ function updatePropertyChangeSubscriptions(chain, props, subscriptions) {
 function PropertyChain$_addChangedHandler(chain, handler, obj, toleratePartial) {
     if (obj === void 0) { obj = null; }
     var propertyChangeFilters = Functor$create(true);
+    var context;
+    var filteredHandler = null;
     if (obj) {
         propertyChangeFilters.add(function (entity) { return entity === obj; });
+        context = obj;
     }
     /*
     // TODO: Implement partial access tolerance if implementing lazy loading...
@@ -1126,10 +1220,20 @@ function PropertyChain$_addChangedHandler(chain, handler, obj, toleratePartial) 
     */
     propertyChangeFilters.add(function (entity) { return chain.isInited(entity, true); });
     updatePropertyChangeSubscriptions(chain, chain._properties, chain._propertyChangeSubscriptions);
-    chain._events.changedEvent.subscribe(function (args) {
+    filteredHandler = function (args) {
         var filterResults = propertyChangeFilters(args.entity);
         if (!filterResults.some(function (b) { return !b; })) {
             handler.call(this, args);
+        }
+    };
+    chain._events.changedEvent.subscribe(filteredHandler);
+    chain._propertyChainChangeSubscriptions.push({ registeredHandler: filteredHandler, handler: handler, context: context });
+}
+function PropertyChain$_removeChangedHandler(chain, handler, obj, toleratePartial) {
+    if (obj === void 0) { obj = null; }
+    chain._propertyChangeSubscriptions.forEach(function (sub) {
+        if (handler === sub.handler && ((!obj && !sub.context) || (obj && obj === sub.context))) {
+            chain._events.changedEvent.unsubscribe(sub.registeredHandler);
         }
     });
 }
@@ -1150,15 +1254,15 @@ and limitations under the License.
 ***************************************************************************** */
 /* global Reflect, Promise */
 
-var extendStatics = function(d, b) {
-    extendStatics = Object.setPrototypeOf ||
+var extendStatics$1 = function(d, b) {
+    extendStatics$1 = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
         function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return extendStatics(d, b);
+    return extendStatics$1(d, b);
 };
 
-function __extends(d, b) {
-    extendStatics(d, b);
+function __extends$1(d, b) {
+    extendStatics$1(d, b);
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 }
@@ -1224,7 +1328,7 @@ var ArrayChangeType;
     ArrayChangeType[ArrayChangeType["reorder"] = 4] = "reorder";
 })(ArrayChangeType || (ArrayChangeType = {}));
 var ObservableArrayImplementation = /** @class */ (function (_super) {
-    __extends(ObservableArrayImplementation, _super);
+    __extends$1(ObservableArrayImplementation, _super);
     /**
      * Creates a new observable array
      * @param items The array of initial items
@@ -1512,8 +1616,15 @@ function ObservableArray$splice(start, deleteCount) {
         items[_i - 2] = arguments[_i];
     }
     var removed = Array.prototype.splice.apply(this, arguments);
-    if (removed.length > 0) {
-        this.__ob__.raiseEvents({ type: ArrayChangeType.remove, startIndex: start, endIndex: start + removed.length - 1, items: removed }, { type: ArrayChangeType.add, startIndex: start, endIndex: start + items.length - 1, items: items });
+    if (removed.length > 0 || items.length > 0) {
+        var changeEvents = [];
+        if (removed.length > 0) {
+            changeEvents.push({ type: ArrayChangeType.remove, startIndex: start, endIndex: start + removed.length - 1, items: removed });
+        }
+        if (items.length > 0) {
+            changeEvents.push({ type: ArrayChangeType.add, startIndex: start, endIndex: start + items.length - 1, items: items });
+        }
+        this.__ob__.raiseEvents(changeEvents);
     }
     return removed;
 }
@@ -1542,19 +1653,23 @@ var ArrayObserver = /** @class */ (function () {
         this.changedEvent = new Event();
         this._isQueuingChanges = false;
     }
-    ArrayObserver.prototype.raiseEvents = function () {
-        var changes = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            changes[_i] = arguments[_i];
-        }
+    ArrayObserver.prototype.raiseEvents = function (changes) {
         if (this._isQueuingChanges) {
             if (!this._queuedChanges) {
                 this._queuedChanges = [];
             }
-            Array.prototype.push.apply(this._queuedChanges, changes);
+            if (Array.isArray(changes)) {
+                Array.prototype.push.apply(this._queuedChanges, changes);
+            }
+            else {
+                this._queuedChanges.push(changes);
+            }
+        }
+        else if (Array.isArray(changes)) {
+            this.changedEvent.publish(this.array, { changes: changes });
         }
         else {
-            this.changedEvent.publish(this.array, { changes: changes });
+            this.changedEvent.publish(this.array, { changes: [changes] });
         }
     };
     ArrayObserver.prototype.startQueueingChanges = function () {
@@ -1566,7 +1681,7 @@ var ArrayObserver = /** @class */ (function () {
     ArrayObserver.prototype.stopQueueingChanges = function (raiseEvents) {
         this._isQueuingChanges = false;
         if (raiseEvents) {
-            this.raiseEvents.apply(this, this._queuedChanges);
+            this.raiseEvents(this._queuedChanges);
             delete this._queuedChanges;
         }
     };
@@ -1605,7 +1720,7 @@ function observableSplice(arr, events, index, removeCount, addItems) {
         else {
             var addItemsArgs = addItems.slice();
             addItemsArgs.splice(0, 0, index, 0);
-            Array.prototype.splice.apply(arr, addItemsArgs);
+            arr.splice.apply(arr, addItemsArgs);
         }
         if (events) {
             events.push({
@@ -1695,6 +1810,13 @@ var Property = /** @class */ (function () {
     Object.defineProperty(Property.prototype, "accessed", {
         get: function () {
             return this._events.accessedEvent.asEventSubscriber();
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Property.prototype, "ruleRegistered", {
+        get: function () {
+            return this._events.ruleRegisteredEvent.asEventSubscriber();
         },
         enumerable: true,
         configurable: true
@@ -2098,19 +2220,18 @@ function Property$_makeSetter(prop, setter, skipTypeCheck) {
 }
 function Property$_addAccessedHandler(prop, handler, obj) {
     if (obj === void 0) { obj = null; }
-    var property = prop;
     var context = null;
+    var filteredHandler = null;
     if (obj) {
-        var innerHandler_1 = handler;
-        handler = function (args) {
+        filteredHandler = function (args) {
             if (args.entity === obj) {
-                innerHandler_1.call(this, args);
+                handler.call(this, args);
             }
         };
         context = obj;
     }
-    property._events.accessedEvent.subscribe(handler);
-    property._propertyAccessSubscriptions.push({ handler: handler, context: context });
+    prop._events.accessedEvent.subscribe(filteredHandler || handler);
+    prop._propertyAccessSubscriptions.push({ registeredHandler: filteredHandler || handler, handler: handler, context: context });
 }
 function Property$addAccessed(prop, handler, obj, toleratePartial) {
     if (obj === void 0) { obj = null; }
@@ -2127,19 +2248,26 @@ function Property$addAccessed(prop, handler, obj, toleratePartial) {
 }
 function Property$_addChangedHandler(prop, handler, obj) {
     if (obj === void 0) { obj = null; }
-    var property = prop;
     var context = null;
+    var filteredHandler = null;
     if (obj) {
-        var innerHandler_2 = handler;
-        handler = function (args) {
+        filteredHandler = function (args) {
             if (args.entity === obj) {
-                innerHandler_2.call(this, args);
+                handler.call(this, args);
             }
         };
         context = obj;
     }
-    property._events.changedEvent.subscribe(handler);
-    prop._propertyChangeSubscriptions.push({ handler: handler, context: context });
+    prop._events.changedEvent.subscribe(filteredHandler || handler);
+    prop._propertyChangeSubscriptions.push({ registeredHandler: filteredHandler || handler, handler: handler, context: context });
+}
+function Property$_removeChangedHandler(prop, handler, obj) {
+    if (obj === void 0) { obj = null; }
+    prop._propertyChangeSubscriptions.forEach(function (sub) {
+        if (handler === sub.handler && ((!obj && !sub.context) || (obj && obj === sub.context))) {
+            prop._events.changedEvent.unsubscribe(sub.registeredHandler);
+        }
+    });
 }
 // starts listening for change events along the property chain on any known instances. Use obj argument to
 // optionally filter the events to a specific object
@@ -2151,6 +2279,19 @@ function Property$addChanged(prop, handler, obj, toleratePartial) {
     }
     else if (prop instanceof PropertyChain) {
         PropertyChain$_addChangedHandler(prop, handler, obj, toleratePartial);
+    }
+    else {
+        throw new Error("Invalid property passed to `Property$addChanged(prop)`.");
+    }
+}
+function Property$removeChanged(prop, handler, obj, toleratePartial) {
+    if (obj === void 0) { obj = null; }
+    if (toleratePartial === void 0) { toleratePartial = false; }
+    if (prop instanceof Property) {
+        Property$_removeChangedHandler(prop, handler, obj);
+    }
+    else if (prop instanceof PropertyChain) {
+        PropertyChain$_removeChangedHandler(prop, handler, obj, toleratePartial);
     }
     else {
         throw new Error("Invalid property passed to `Property$addChanged(prop)`.");
@@ -2496,7 +2637,7 @@ var ConditionTypeEvents = /** @class */ (function () {
     return ConditionTypeEvents;
 }());
 var ErrorConditionType = /** @class */ (function (_super) {
-    __extends(ErrorConditionType, _super);
+    __extends$1(ErrorConditionType, _super);
     function ErrorConditionType(code, message, sets, origin) {
         if (origin === void 0) { origin = null; }
         return _super.call(this, code, "Error", message, sets, origin) || this;
@@ -2504,7 +2645,7 @@ var ErrorConditionType = /** @class */ (function (_super) {
     return ErrorConditionType;
 }(ConditionType));
 var WarningConditionType = /** @class */ (function (_super) {
-    __extends(WarningConditionType, _super);
+    __extends$1(WarningConditionType, _super);
     function WarningConditionType(code, message, sets, origin) {
         if (origin === void 0) { origin = null; }
         return _super.call(this, code, "Warning", message, sets, origin) || this;
@@ -2512,7 +2653,7 @@ var WarningConditionType = /** @class */ (function (_super) {
     return WarningConditionType;
 }(ConditionType));
 var PermissionConditionType = /** @class */ (function (_super) {
-    __extends(PermissionConditionType, _super);
+    __extends$1(PermissionConditionType, _super);
     function PermissionConditionType(code, message, sets, isAllowed, origin) {
         if (origin === void 0) { origin = null; }
         var _this = _super.call(this, code, "Warning", message, sets, origin) || this;
@@ -3954,18 +4095,211 @@ function debug(message) {
     // console.log("%c[DEBUG] " + message, "background-color: #efefef; color: #999;");
 }
 
+/**
+ * A subclass of Vue's internal Observer class that is responsible
+ * for managing its own access/change events for properties rather than
+ * walking the object's own properties
+ */
+var CustomObserver = /** @class */ (function (_super) {
+    __extends(CustomObserver, _super);
+    function CustomObserver(value) {
+        var _this = _super.call(this, value) || this;
+        Object.defineProperty(_this, 'propertyDeps', { configurable: false, enumerable: true, value: {}, writable: false });
+        return _this;
+    }
+    CustomObserver.prototype.walk = function () {
+        // Overwrite the `walk()` method to prevent Vue's default property walking behavior
+        // TODO: Should we allow this to happen?
+    };
+    /**
+     * Gets (or creates) a `Dep` object for a property of the given name
+     * The `Dep` object will be stored internally by the observer, using
+     * the given target property name as a key
+     * @param propertyName The target property name
+     * @param create If true, create the `Dep` object if it doesn't already exist
+     */
+    CustomObserver.prototype.getPropertyDep = function (propertyName, create) {
+        if (create === void 0) { create = false; }
+        var propertyDep;
+        var Dep = VueInternals.Dep;
+        var propertyDeps = this.propertyDeps;
+        if (hasOwnProperty$1(propertyDeps, propertyName) && propertyDeps[propertyName] instanceof Dep) {
+            propertyDep = propertyDeps[propertyName];
+        }
+        else if (create) {
+            propertyDep = new Dep();
+            Object.defineProperty(propertyDeps, propertyName, {
+                configurable: true,
+                enumerable: true,
+                value: propertyDep,
+                writable: true
+            });
+        }
+        return propertyDep;
+    };
+    /**
+     * Emulate's Vue's getter logic in `defineReactive()`
+     * @param propertyName The property being accessed
+     * @param value The current property value
+     */
+    CustomObserver.prototype.onPropertyAccess = function (propertyName, value) {
+        var Dep = VueInternals.Dep;
+        // Attach dependencies if something is watching
+        if (Dep.target) {
+            // Get or initialize the `Dep` object
+            var propertyDep = this.getPropertyDep(propertyName, true);
+            // Let an active observer target know that the property was accessed and is a dependency
+            propertyDep.depend();
+            var childOb = observeEntity(value);
+            if (childOb) {
+                childOb.dep.depend();
+            }
+            if (Array.isArray(value)) {
+                // Track dependency on children as well (creating entity observer as needed)
+                dependChildArray(value);
+            }
+        }
+    };
+    /**
+     * Emulate's Vue's setter logic in `defineReactive()`
+     * @param propertyName The property being accessed
+     * @param newValue The new property value
+     */
+    CustomObserver.prototype.onPropertyChange = function (propertyName, newValue) {
+        // Get or initialize the `Dep` object
+        var propertyDep = this.getPropertyDep(propertyName, true);
+        // Make sure a new value that is an entity is observable
+        if (newValue && newValue instanceof Entity) {
+            observeEntity(newValue).ensureObservable();
+        }
+        // Notify of property change
+        propertyDep.notify();
+    };
+    return CustomObserver;
+}(Observer));
+
+/**
+ * A subclass of Vue's internal `Observer` class for entities, which uses model
+ * metadata to manage property access/change rather than property walking and rewriting
+ */
+var EntityObserver = /** @class */ (function (_super) {
+    __extends(EntityObserver, _super);
+    function EntityObserver(entity) {
+        return _super.call(this, entity) || this;
+    }
+    EntityObserver.prototype.walk = function () {
+        // Overwrite the `walk()` method to prevent Vue's default property walking behavior
+        // TODO: Should we allow this to happen?
+    };
+    EntityObserver.prototype.ensureObservable = function () {
+        if (this._observable === true) {
+            return;
+        }
+        this.value.accessed.subscribe(this._onAccess.bind(this));
+        this.value.changed.subscribe(this._onChange.bind(this));
+        this._observable = true;
+    };
+    EntityObserver.prototype._onAccess = function (args) {
+        // Get the current property value
+        var value = args.entity[args.property.fieldName];
+        // Notify interested observers of the property access in order to track dependencies
+        this.onPropertyAccess(args.property.name, value);
+    };
+    EntityObserver.prototype._onChange = function (args) {
+        // Get the current property value
+        var newValue = args.entity[args.property.fieldName];
+        // Notify interested observers of the property change
+        this.onPropertyChange(args.property.name, newValue);
+    };
+    return EntityObserver;
+}(CustomObserver));
+/**
+ * Based on Vue's internals `dependArray()` function
+ * @param array The child array to track as a dependency
+ */
+function dependChildArray(array) {
+    for (var e, i = 0, l = array.length; i < l; i++) {
+        e = array[i];
+        if (e != null) {
+            if (e instanceof Entity) {
+                var observer = getEntityObserver(e, true);
+                observer.ensureObservable();
+                observer.dep.depend();
+            }
+            else if (hasOwnProperty$1(e, '__ob__')) {
+                e.__ob__.dep.depend();
+            }
+            if (Array.isArray(e)) {
+                dependChildArray(e);
+            }
+        }
+    }
+}
+/**
+ * Gets or creates and `EntityObserver` for the given entity
+ * @param entity The entity begin observed
+ * @param create If true, create the observer if it doesn't already exist
+ */
+function getEntityObserver(entity, create) {
+    if (create === void 0) { create = false; }
+    if (hasOwnProperty$1(entity, '__ob__') && getProp(entity, '__ob__') instanceof EntityObserver) {
+        return getProp(entity, '__ob__');
+    }
+    else if (create) {
+        return new EntityObserver(entity);
+    }
+    else {
+        return null;
+    }
+}
+/**
+ * Based on Vue's internal `observe()` function. Ensures that the given entity
+ * is observable and optionally notes that it is referenced by a component
+ * @param entity The entity to observe
+ * @param asRootData The entity is referenced as a component's data
+ */
+function observeEntity(entity, asRootData) {
+    if (asRootData === void 0) { asRootData = false; }
+    if (entity instanceof Entity) {
+        var ob = getEntityObserver(entity, true);
+        if (asRootData && ob) {
+            ob.vmCount++;
+        }
+        return ob;
+    }
+}
+var vueCompatibleModels = [];
+/**
+ * Make sure that entities in the given model are observable by Vue
+ * By default, entities would not be observable, since model properties
+ * are added to the prototype, Vue will not detect them. So, we use a custom
+ * observer that leverages model metadata to manage property access/change.
+ * @param model The model to augment
+ */
+function makeEntitiesVueObservable(model) {
+    if (!model || !(model instanceof Model)) {
+        // TODO: Warn about missing or non-Model argument?
+        return;
+    }
+    if (vueCompatibleModels.indexOf(model) >= 0 || model._entitiesAreVueObservable === true) {
+        return;
+    }
+    model.entityRegistered.subscribe(function (args) {
+        observeEntity(args.entity);
+    });
+    // Make existing entities observable
+    model.getTypes().forEach(function (type) {
+        type.known().forEach(function (entity) {
+            observeEntity(entity);
+        });
+    });
+    vueCompatibleModels.push(model);
+    model._entitiesAreVueObservable = true;
+}
+
 function Vue$isReserved(str) {
     var c = (str + '').charCodeAt(0);
     return c === 0x24 || c === 0x5F;
-}
-function Vue$dependArray(value) {
-    for (var e, i = 0, l = value.length; i < l; i++) {
-        e = value[i];
-        e && e.__ob__ && e.__ob__.dep.depend();
-        if (Array.isArray(e)) {
-            Vue$dependArray(e);
-        }
-    }
 }
 function Vue$proxy(target, sourceKey, key) {
     Object.defineProperty(target, key, {
@@ -3980,186 +4314,27 @@ function Vue$proxy(target, sourceKey, key) {
     });
 }
 
-function EntityObserver$ensureObservable() {
-    if (this._observable === true) {
-        return;
-    }
-    this.value.accessed.subscribe(EntityObserver$_onAccess.bind(this));
-    this.value.changed.subscribe(EntityObserver$_onChange.bind(this));
-    this._observable = true;
-}
-function EntityObserver$_ensureChildEntitiesObservable(array) {
-    for (var e, i = 0, l = array.length; i < l; i++) {
-        e = array[i];
-        if (Array.isArray(e)) {
-            EntityObserver$_ensureChildEntitiesObservable.call(this, e);
-        }
-        else {
-            var observer = Entity$getObserver(e, this._dependencies, true);
-            observer.ensureObservable();
-        }
-    }
-}
-function EntityObserver$_getPropertyDep(property) {
-    var dependencies = this._dependencies;
-    var Vue$Dep = dependencies.Vue$Dep;
-    var dep;
-    var target = this.value;
-    var depFieldName = property.fieldName + "_Dep";
-    if (hasOwnProperty$1(target, depFieldName) && target[depFieldName] instanceof Vue$Dep) {
-        dep = target[depFieldName];
-    }
-    else {
-        dep = new Vue$Dep();
-        Object.defineProperty(target, depFieldName, {
-            configurable: true,
-            enumerable: false,
-            value: dep,
-            writable: true
-        });
-    }
-    return dep;
-}
-function EntityObserver$_onAccess(args) {
-    var dependencies = this._dependencies;
-    var Vue$Dep = dependencies.Vue$Dep;
-    var Model$Type = dependencies.Model$Type;
-    var VueModel$observeEntity = dependencies.VueModel$observeEntity;
-    // Attach dependencies if something is watching
-    if (Vue$Dep.target) {
-        // Get or initialize the `Dep` object
-        var propertyDep = EntityObserver$_getPropertyDep.call(this, args.property, dependencies);
-        propertyDep.depend();
-        var val = args.entity[args.property.fieldName];
-        var childOb = VueModel$observeEntity(val);
-        if (childOb) {
-            childOb.ensureObservable();
-            childOb.dep.depend();
-        }
-        else if (Array.isArray(val)) {
-            var itemType = args.property.propertyType;
-            if (itemType.meta && itemType.meta instanceof Model$Type) {
-                EntityObserver$_ensureChildEntitiesObservable.call(this, val);
-            }
-            // TODO: set up observability entities in child list if needed? -- ex: if args.property.isEntityList...
-            Vue$dependArray(val);
-        }
-    }
-}
-function EntityObserver$_onChange(args) {
-    var dependencies = this._dependencies;
-    var VueModel$observeEntity = dependencies.VueModel$observeEntity;
-    // Get or initialize the `Dep` object
-    var propertyDep = EntityObserver$_getPropertyDep.call(this, args.property, dependencies);
-    // Make sure a new value that is an entity is observable
-    VueModel$observeEntity(args.entity).ensureObservable();
-    // Notify of property change
-    propertyDep.notify();
-}
-var vueCompatibleModels = [];
-function ensureEntityObserversAreCreated(model, dependencies) {
-    if (model == null || vueCompatibleModels.indexOf(model) >= 0) {
-        return;
-    }
-    var Model$Model = dependencies.Model$Model;
-    var VueModel$observeEntity = dependencies.VueModel$observeEntity;
-    if (!(model instanceof Model$Model)) {
-        // TODO: Warn about non-Model argument?
-        return;
-    }
-    model.entityRegistered.subscribe(function (args) {
-        VueModel$observeEntity(args.entity);
-    });
-    // Make existing entities observable
-    model.getTypes().forEach(function (type) {
-        type.known().forEach(function (entity) {
-            VueModel$observeEntity(entity);
-        });
-    });
-    vueCompatibleModels.push(model);
-}
-function defineEntityObserver(dependencies) {
-    var Vue$Observer = dependencies.Vue$Observer;
-    var ctor = function EntityObserver(entity) {
-        Vue$Observer.apply(this, arguments);
-        this.ensureObservable = EntityObserver$ensureObservable.bind(this);
-        Object.defineProperty(this, "_dependencies", { configurable: false, enumerable: false, value: dependencies, writable: false });
-    };
-    ctor.prototype = new Vue$Observer({});
-    ctor.prototype.constructor = ctor;
-    // ctor.prototype.onAccess = EntityObserver$onAccess;
-    // ctor.prototype.onChange = EntityObserver$onChange;
-    // Prevent walking of entities
-    // TODO: Should we allow this to happen?
-    ctor.prototype.walk = function EntityObserver$walk() {
-        // Do nothing?
-    };
-    return dependencies.VueModel$EntityObserver = ctor;
-}
-function Entity$getObserver(entity, dependencies, create) {
-    if (create === void 0) { create = false; }
-    var VueModel$EntityObserver = dependencies.VueModel$EntityObserver;
-    if (hasOwnProperty$1(entity, '__ob__') && getProp(entity, '__ob__') instanceof VueModel$EntityObserver) {
-        return getProp(entity, '__ob__');
-    }
-    else if (create) {
-        return new VueModel$EntityObserver(entity);
-    }
-    else {
-        return null;
-    }
-}
-function defineObserveEntity(dependencies) {
-    return dependencies.VueModel$observeEntity = function VueModel$observeEntity(entity, asRootData) {
-        if (asRootData === void 0) { asRootData = false; }
-        var Model$Entity = dependencies.Model$Entity;
-        if (entity instanceof Model$Entity) {
-            var ob = Entity$getObserver(entity, dependencies, true);
-            if (asRootData && ob) {
-                ob.vmCount++;
-            }
-            return ob;
-        }
-    };
-}
-function VueModel$makeEntitiesVueObservable(model, dependencies) {
-    var entitiesAreVueObservable = dependencies.entitiesAreVueObservable;
-    if (entitiesAreVueObservable) {
-        ensureEntityObserversAreCreated(model, dependencies);
-        return dependencies;
-    }
-    defineEntityObserver(dependencies);
-    defineObserveEntity(dependencies);
-    ensureEntityObserversAreCreated(model, dependencies);
-    dependencies.entitiesAreVueObservable = true;
-    return dependencies;
-}
-
-function replaceEntityData(vm, data, dependencies) {
-    var Model$Entity = dependencies.Model$Entity;
+function replaceEntityData(vm, data) {
     var vm$private = vm;
-    if (data != null && data instanceof Model$Entity) {
+    if (data != null && data instanceof Entity) {
         vm$private._entity = data;
         return {};
     }
     return data;
 }
-function preprocessDataToInterceptEntities(vm, dependencies) {
+function preprocessDataToInterceptEntities(vm) {
     if (!vm.$options.data) {
         return;
     }
     if (vm.$options.data instanceof Function) {
         var dataFn = vm.$options.data;
         vm.$options.data = function () {
-            return replaceEntityData(vm, dataFn.apply(this, arguments), dependencies);
+            return replaceEntityData(vm, dataFn.apply(this, arguments));
         };
     }
     else {
-        var entitiesAreVueObservable = dependencies.entitiesAreVueObservable;
-        if (!entitiesAreVueObservable) {
-            // Don't let Vue from getting an Entity prior to setting up Entity observability
-            vm.$options.data = replaceEntityData(vm, vm.$options.data, dependencies);
-        }
+        // Don't let Vue from getting an Entity prior to setting up Entity observability
+        vm.$options.data = replaceEntityData(vm, vm.$options.data);
     }
 }
 function proxyEntityPropertiesOntoComponentInstance(vm, entity) {
@@ -4181,8 +4356,7 @@ function proxyEntityPropertiesOntoComponentInstance(vm, entity) {
         }
     }
 }
-function restoreComponentEntityData(vm, dependencies) {
-    var VueModel$observeEntity = dependencies.VueModel$observeEntity;
+function restoreComponentEntityData(vm) {
     var vm$private = vm;
     // Since the entity is now observable, go ahead and let the component see it
     // TODO: Is it necessary to somehow "merge" the object? Or, just not set the data
@@ -4193,67 +4367,35 @@ function restoreComponentEntityData(vm, dependencies) {
     proxyEntityPropertiesOntoComponentInstance(vm, vm$private._entity);
     // The internal `observe()` method basically makes the given object observable,
     // (entities should already be at this point) but it also updates a `vmCount` counter
-    VueModel$observeEntity(vm$private._entity, true);
+    observeEntity(vm$private._entity, true);
     // Null out the field now that we've finished preparing the entity
     vm$private._entity = null;
 }
 
-function interceptInternalTypes(obj, dependencies) {
-    if (!dependencies.Vue$Observer && obj.__ob__) {
-        dependencies.Vue$Observer = obj.__ob__.constructor;
-    }
-    if (!dependencies.Vue$Dep && obj.__ob__ && obj.__ob__.dep) {
-        dependencies.Vue$Dep = obj.__ob__.dep.constructor;
-    }
-}
-function VueModel$installPlugin(Vue, dependencies) {
+function VueModel$installPlugin(Vue) {
     Vue.mixin({
         beforeCreate: function VueModel$Plugin$beforeCreate() {
             var vm = this;
             if (vm.$options.data) {
                 // Intercept data that is an entity or data function that returns an entity
                 // so that this plugin can make the entity observable and create proxy properties
-                preprocessDataToInterceptEntities(vm, dependencies);
+                preprocessDataToInterceptEntities(vm);
             }
-            // if (vm.$options.propsData) {
-            //     // Intercept the `source` prop so that it can be marked as having a source
-            //     // and lazily evaluated if needed, or detected by other components
-            //     preprocessPropsToInterceptSource(vm);
-            // }
         },
         created: function VueModel$Plugin$created() {
             var vm = this;
             var vm$private = vm;
-            if (vm$private._data) {
-                interceptInternalTypes(vm$private._data, dependencies);
-            }
             if (vm$private._entity) {
-                interceptInternalTypes(vm$private._entity, dependencies);
-                if (!dependencies.entitiesAreVueObservable) {
+                var entity = vm$private._entity;
+                if (!entity.meta.type.model._entitiesAreVueObservable) {
                     // Ensure that Model entities are observable objects compatible with Vue's observer
-                    VueModel$makeEntitiesVueObservable(vm$private._entity.meta.type.model, dependencies);
+                    makeEntitiesVueObservable(vm$private._entity.meta.type.model);
                 }
-                Entity$getObserver(vm$private._entity, dependencies, true).ensureObservable();
+                getEntityObserver(vm$private._entity, true).ensureObservable();
                 // Restore the data by attempting to emulate what would have happened to
                 // the `data` object had it gone through normal component intialization
-                restoreComponentEntityData(vm, dependencies);
+                restoreComponentEntityData(vm);
             }
-            // if (isSourceAdapter(vm$private._data)) {
-            //     let sourceAdapter = vm$private._data as SourceAdapter<any>;
-            //     // Define the `$source` property if not already defined
-            //     defineDollarSourceProperty(vm, sourceAdapter);
-            //     // TODO: Who wins, props or data?
-            //     // Vue proxies the data objects `Object.keys()` onto the component itself,
-            //     // so that the data objects properties can be used directly in templates
-            //     proxySourceAdapterPropertiesOntoComponentInstance(vm, '_data', false, false);
-            // }
-            // Handle computed `source` property that is of type `SourceAdapter`?
-            // if (vm.$options.propsData) {
-            //     let props = vm.$options.propsData as any;
-            //     if (hasOwnProperty(props, 'source')) {
-            //         establishBindingSource(vm, dependencies as VuePluginSourceBindingDependencies);
-            //     }
-            // }
         }
     });
 }
@@ -4300,10 +4442,13 @@ var SourceRootAdapter = /** @class */ (function () {
     function SourceRootAdapter(entity) {
         // Public read-only properties
         Object.defineProperty(this, "entity", { enumerable: true, value: entity });
+        Object.defineProperty(this, "__ob__", { configurable: false, enumerable: false, value: new CustomObserver(this), writable: false });
     }
     Object.defineProperty(SourceRootAdapter.prototype, "value", {
         get: function () {
-            return this.entity;
+            var value = this.entity;
+            this.__ob__.onPropertyAccess('value', value);
+            return value;
         },
         enumerable: true,
         configurable: true
@@ -4311,7 +4456,9 @@ var SourceRootAdapter = /** @class */ (function () {
     Object.defineProperty(SourceRootAdapter.prototype, "displayValue", {
         get: function () {
             // TODO: Use type-level format for entity `displayValue`
-            return this.entity.meta.type.fullName + "|" + this.entity.meta.id;
+            var displayValue = this.entity.meta.type.fullName + "|" + this.entity.meta.id;
+            this.__ob__.onPropertyAccess('displayValue', displayValue);
+            return displayValue;
         },
         enumerable: true,
         configurable: true
@@ -4322,609 +4469,48 @@ var SourceRootAdapter = /** @class */ (function () {
     return SourceRootAdapter;
 }());
 
-var SourcePathAdapter = /** @class */ (function () {
-    // TODO: Support format options
-    // private _format: string;
-    function SourcePathAdapter(source, path) {
+var SourceOptionAdapter = /** @class */ (function () {
+    function SourceOptionAdapter(source, value) {
         // Public read-only properties
         Object.defineProperty(this, "source", { enumerable: true, value: source });
-        Object.defineProperty(this, "path", { enumerable: true, value: path });
+        Object.defineProperty(this, "_value", { enumerable: true, value: value });
+        Object.defineProperty(this, "__ob__", { configurable: false, enumerable: false, value: new CustomObserver(this), writable: false });
     }
-    Object.defineProperty(SourcePathAdapter.prototype, "property", {
+    Object.defineProperty(SourceOptionAdapter.prototype, "label", {
         get: function () {
-            // TODO: Support multi-hop path
-            // TODO: Detect invalid property or path
-            return this.source.value.meta.type.getProperty(this.path);
+            // TODO: Make observable if label is dynamic
+            return this.source.label;
         },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(SourcePathAdapter.prototype, "label", {
+    Object.defineProperty(SourceOptionAdapter.prototype, "value", {
         get: function () {
-            return this.property.label;
+            var value = this._value;
+            this.__ob__.onPropertyAccess('value', value);
+            return value;
         },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(SourcePathAdapter.prototype, "helptext", {
+    Object.defineProperty(SourceOptionAdapter.prototype, "displayValue", {
         get: function () {
-            return this.property.helptext;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(SourcePathAdapter.prototype, "value", {
-        get: function () {
-            return this.property.value(this.source.value);
-        },
-        set: function (value) {
-            this.property.value(this.source.value, value);
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(SourcePathAdapter.prototype, "displayValue", {
-        get: function () {
-            var property = this.property;
-            var value = property.value(this.source.value);
-            var displayValue;
-            if (value === null || value === undefined) {
-                displayValue = "";
-            }
-            else if (property.format != null) {
-                // Use a markup or property format if available
-                if (Array.isArray(value)) {
-                    var array = value;
-                    displayValue = array.map(function (item) { return property.format.convert(item); });
-                }
-                else {
-                    displayValue = property.format.convert(value);
-                }
-            }
-            else if (Array.isArray(value)) {
-                // If no format exists, then fall back to toString
-                var array = value;
-                displayValue = array.map(function (item) {
-                    if (value === null || value === undefined) {
-                        return "";
-                    }
-                    else {
-                        return item.toString();
-                    }
-                });
-            }
-            else {
-                displayValue = value.toString();
-            }
-            return Array.isArray(displayValue) ? displayValue.join(", ") : displayValue;
-        },
-        set: function (text) {
-            var property = this.property;
-            this.value = property.format != null ? property.format.convertBack(text) : text;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    SourcePathAdapter.prototype.toString = function () {
-        return "Source['" + this.path + "']";
-    };
-    return SourcePathAdapter;
-}());
-
-var SourceIndexAdapter = /** @class */ (function () {
-    function SourceIndexAdapter(source, index) {
-        // Public read-only properties
-        Object.defineProperty(this, "source", { enumerable: true, value: source });
-        // Backing fields for properties
-        Object.defineProperty(this, "_index", { enumerable: false, value: index, writable: true });
-        Object.defineProperty(this, "_orphaned", { enumerable: false, value: false, writable: true });
-        // If the source array is modified, then update the index if needed
-        this.subscribeToSourceChanges();
-    }
-    SourceIndexAdapter.prototype.subscribeToSourceChanges = function () {
-        var _this = this;
-        var array = ObservableArray.ensureObservable(this.source.value);
-        array.changed.subscribe(function (args) {
-            args.changes.forEach(function (c) {
-                if (c.type === ArrayChangeType.remove) {
-                    if (c.startIndex === _this.index) {
-                        _this._index = -1;
-                        _this._orphaned = true;
-                    }
-                    else if (c.startIndex < _this.index) {
-                        if (c.items.length > _this.index - c.startIndex) {
-                            _this._index = -1;
-                            _this._orphaned = true;
-                        }
-                        else {
-                            _this._index -= c.items.length;
-                        }
-                    }
-                }
-                else if (c.type === ArrayChangeType.add) {
-                    if (c.startIndex >= 0) {
-                        if (c.startIndex <= _this.index) {
-                            _this._index += c.items.length;
-                        }
-                    }
-                }
-            });
-        });
-    };
-    Object.defineProperty(SourceIndexAdapter.prototype, "index", {
-        get: function () {
-            return this._index;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(SourceIndexAdapter.prototype, "isOrphaned", {
-        get: function () {
-            return this._orphaned;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(SourceIndexAdapter.prototype, "value", {
-        get: function () {
-            var list = this.source.value;
-            var item = list[this.index];
-            return item;
-        },
-        set: function (value) {
-            var list = this.source.value;
-            var currentItem = list[this.index];
-            if (value !== currentItem) {
-                var oldItem = currentItem;
-                var newItem = value;
-                list[this.index] = newItem;
-                var eventArgs = { entity: this.source.source.value, property: this.source.property, newValue: list, oldValue: undefined };
-                eventArgs['changes'] = [{ newItems: [newItem], oldItems: [oldItem] }];
-                eventArgs['collectionChanged'] = true;
-                this.source.property._events.changedEvent.publish(this.source.source.value, eventArgs);
-            }
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(SourceIndexAdapter.prototype, "displayValue", {
-        get: function () {
-            var list = this.source.value;
-            var value = list[this.index];
-            var displayValue;
-            if (this.source.property.format != null) {
-                // Use a markup or property format if available
-                displayValue = this.source.property.format.convert(value);
-            }
-            else {
-                displayValue = value.toString();
-            }
+            var value = this._value;
+            var displayValue = SourcePathAdapter$_formatDisplayValue.call(this.source, value);
+            this.__ob__.onPropertyAccess('displayValue', displayValue);
             return displayValue;
         },
-        set: function (text) {
-            this.value = this.source.property.format != null ? this.source.property.format.convertBack(text) : text;
-        },
         enumerable: true,
         configurable: true
     });
-    SourceIndexAdapter.prototype.toString = function () {
-        return "Source[" + this.index + "]";
+    SourceOptionAdapter.prototype.toString = function () {
+        return "Option for Source['" + this.source.property.name + "']";
     };
-    return SourceIndexAdapter;
+    return SourceOptionAdapter;
 }());
 
-function isSourceAdapter(obj) {
-    if (obj instanceof SourceRootAdapter)
-        return true;
-    if (obj instanceof SourcePathAdapter)
-        return true;
-    if (obj instanceof SourceIndexAdapter)
-        return true;
-    return false;
-}
-
-function defineDollarSourceProperty(vm, sourceAdapter) {
-    var vm$private = vm;
-    if (!hasOwnProperty$1(vm$private, '_source') || !isSourceAdapter(vm$private._source)) {
-        vm$private._source = sourceAdapter;
-    }
-    if (!hasOwnProperty$1(vm, '$source')) {
-        Object.defineProperty(vm, '$source', {
-            configurable: false,
-            enumerable: true,
-            get: function () {
-                return this._source;
-            },
-            set: function () {
-                // TODO: Warn about setting `$source`?
-            }
-        });
-    }
-}
-function getImplicitSource(vm, dependencies, detect) {
-    if (detect === void 0) { detect = false; }
-    var vm$private = vm;
-    var Model$Entity = dependencies.Model$Entity;
-    if (hasOwnProperty$1(vm, '$source')) {
-        // Source is explicit and has been established
-        return null;
-    }
-    if (vm$private._source) {
-        var source = vm$private._source;
-        if (typeof source === "string") {
-            // Source is explicit (but has not been established)
-            return null;
-        }
-        else if (source instanceof Model$Entity) {
-            // An entity was previously flagged as a potential implicit source
-            return source;
-        }
-        else if (isSourceAdapter(source)) {
-            // A source adapter was previously flagged as a potential implicit source
-            return source;
-        }
-        // Source of unknown type
-        return null;
-    }
-    if (detect) {
-        var data = vm$private._data;
-        if (data) {
-            if (data instanceof Model$Entity) {
-                debug("Found implicit source as data of type <" + data.meta.type.fullName + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
-                vm$private._source = data;
-                return data;
-            }
-            else if (isSourceAdapter(data)) {
-                debug("Found implicit source as source adapter <" + data + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
-                vm$private._source = data;
-                return data;
-            }
-        }
-        if (vm$private._entity) {
-            var entity = vm$private._entity;
-            if (entity instanceof Model$Entity) {
-                // Mark the entity as a potential implicit source
-                debug("Found implicit source as pending entity of type <" + entity.meta.type.fullName + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
-                vm$private._source = entity;
-                return entity;
-            }
-        }
-    }
-}
-function getSourceBindingContainer(vm, dependencies, detectImplicitSource) {
-    if (detectImplicitSource === void 0) { detectImplicitSource = false; }
-    var firstImplicitSourceVm = null;
-    var firstImplicitSourceVmLevel = -1;
-    var Model$Entity = dependencies.Model$Entity;
-    for (var parentVm = vm.$parent, parentLevel = 1; parentVm != null; parentVm = parentVm.$parent, parentLevel += 1) {
-        var parentVm$private = parentVm;
-        var parentSource = parentVm$private.$source;
-        if (parentSource) {
-            // if (process.env.NODE_ENV === "development") {
-            if (typeof parentSource === "string") {
-                debug("Found pending source on level " + parentLevel + " parent component of type <" + (parentVm$private.$options._componentTag || "???") + ">.");
-            }
-            else if (isSourceAdapter(parentSource)) {
-                debug("Found established source on level " + parentLevel + " parent component of type <" + (parentVm$private.$options._componentTag || "???") + ">.");
-            }
-            else {
-                debug("Found unknown source on level " + parentLevel + " parent component of type <" + (parentVm$private.$options._componentTag || "???") + ">.");
-            }
-            // }
-            return parentVm;
-        }
-        else if (detectImplicitSource) {
-            var implicitSource = getImplicitSource(parentVm, dependencies, true);
-            if (implicitSource !== undefined && !firstImplicitSourceVm) {
-                firstImplicitSourceVm = parentVm;
-                firstImplicitSourceVmLevel = parentLevel;
-            }
-        }
-    }
-    if (detectImplicitSource && firstImplicitSourceVm) {
-        var implicitSource = getImplicitSource(firstImplicitSourceVm, dependencies);
-        if (implicitSource instanceof Model$Entity) {
-            debug("Found implicit source on level " + firstImplicitSourceVmLevel + " parent component of type <" + (firstImplicitSourceVm.$options._componentTag || "???") + ">.");
-            return firstImplicitSourceVm;
-        }
-    }
-}
-
-function preprocessPropsToInterceptSource(vm) {
-    var vm$private = vm;
-    if (vm$private._source) {
-        // TODO: Warn about _source already defined?
-        return;
-    }
-    var props = vm.$options.propsData;
-    if (hasOwnProperty$1(props, 'source')) {
-        vm$private._source = props.source;
-    }
-}
-function establishBindingSource(vm, dependencies) {
-    var vm$private = vm;
-    if (vm$private._sourcePending) {
-        // Detect re-entrance
-        return;
-    }
-    if (!vm.$options.propsData) {
-        return;
-    }
-    var props = vm.$options.propsData;
-    if (!hasOwnProperty$1(props, 'source')) {
-        return;
-    }
-    vm$private._sourcePending = true;
-    var Model$Entity = dependencies.Model$Entity;
-    debug("Found component of type '" + vm$private.$options._componentTag + "' with source '" + props.source + "'.");
-    var sourceVm = getSourceBindingContainer(vm, dependencies, true);
-    if (sourceVm) {
-        var sourceVm$private = sourceVm;
-        var source = sourceVm$private._source;
-        if (typeof source === "string") {
-            establishBindingSource(sourceVm, dependencies);
-            source = sourceVm$private._source;
-        }
-        var sourceIndex = parseInt(props.source, 10);
-        if (isNaN(sourceIndex)) {
-            sourceIndex = null;
-        }
-        var sourceAdapter = null;
-        if (source instanceof Model$Entity) {
-            debug("Found source entity of type <" + source.meta.type.fullName + ">.");
-            sourceAdapter = new SourcePathAdapter(new SourceRootAdapter(source), props.source);
-        }
-        else if (isSourceAdapter(source)) {
-            if (sourceIndex !== null) {
-                sourceAdapter = new SourceIndexAdapter(source, parseInt(props.source, 10));
-            }
-            else {
-                sourceAdapter = new SourcePathAdapter(source, props.source);
-            }
-        }
-        if (sourceAdapter != null) {
-            defineDollarSourceProperty(vm, sourceAdapter);
-            // proxySourceAdapterPropertiesOntoComponentInstance(vm, '_source', false, false);
-        }
-    }
-    delete vm$private['_sourcePending'];
-}
-function SourceProviderMixin(dependencies) {
-    return {
-        props: {
-            source: {},
-            sourceIndex: {
-                type: Number,
-                validator: function (value) {
-                    return value >= 0;
-                }
-            }
-        },
-        beforeCreate: function () {
-            var vm = this;
-            if (vm.$options.propsData) {
-                // Intercept the `source` prop so that it can be marked as having a source
-                // and lazily evaluated if needed, or detected by other components
-                preprocessPropsToInterceptSource(vm);
-            }
-        },
-        created: function () {
-            var vm = this;
-            var vm$private = vm;
-            if (isSourceAdapter(vm$private._data)) {
-                var sourceAdapter = vm$private._data;
-                // Define the `$source` property if not already defined
-                defineDollarSourceProperty(vm, sourceAdapter);
-                // TODO: Who wins, props or data?
-                // Vue proxies the data objects `Object.keys()` onto the component itself,
-                // so that the data objects properties can be used directly in templates
-                // proxySourceAdapterPropertiesOntoComponentInstance(vm, '_data', false, false);
-            }
-            if (vm.$options.propsData) {
-                var props = vm.$options.propsData;
-                if (hasOwnProperty$1(props, 'source')) {
-                    establishBindingSource(vm, dependencies);
-                }
-            }
-        }
-    };
-}
-
-function establishBindingSource$1(vm, dependencies) {
-    var sourceVm = getSourceBindingContainer(vm, dependencies);
-    var sourceVm$private = sourceVm;
-    if (sourceVm$private.$source) {
-        var source = sourceVm$private.$source;
-        if (isSourceAdapter(source)) {
-            defineDollarSourceProperty(vm, source);
-        }
-    }
-}
-function SourceConsumerMixin(dependencies) {
-    return {
-        beforeCreate: function () {
-            var vm = this;
-            var vm$private = vm;
-            var originalData = vm.$options.data;
-            vm$private.$options.data = function () {
-                // Establish the `$source` variable
-                establishBindingSource$1(vm, dependencies);
-                if (originalData) {
-                    // Return the original data
-                    if (originalData instanceof Function) {
-                        var dataFn = originalData;
-                        return dataFn.apply(this, arguments);
-                    }
-                    else {
-                        return originalData;
-                    }
-                }
-                else {
-                    return {};
-                }
-            };
-        },
-        created: function () {
-            var vm = this;
-            var vm$private = vm;
-            if (!vm$private.$source) {
-                establishBindingSource$1(vm, dependencies);
-            }
-        }
-    };
-}
-
-var calculationErrorDefault;
-var CalculatedPropertyRule = /** @class */ (function (_super) {
-    __extends(CalculatedPropertyRule, _super);
-    function CalculatedPropertyRule(rootType, name, options, skipRegistration) {
-        if (skipRegistration === void 0) { skipRegistration = false; }
-        var _this = this;
-        var property;
-        var defaultIfError = calculationErrorDefault;
-        var calculateFn;
-        if (!name) {
-            name = options.name;
-        }
-        if (options) {
-            var thisOptions = extractCalculatedPropertyRuleOptions(options);
-            if (thisOptions.property) {
-                property = typeof thisOptions.property === "string" ? rootType.getProperty(thisOptions.property) : thisOptions.property;
-                // indicate that the rule is responsible for returning the value of the calculated property
-                options.returns = [property];
-            }
-            if (!name) {
-                // Generate a reasonable default rule name if not specified
-                name = options.name = (rootType.fullName + "." + (typeof property === "string" ? property : property.name) + ".Calculated");
-            }
-            defaultIfError = thisOptions.defaultIfError;
-            calculateFn = thisOptions.calculate;
-        }
-        // Call the base rule constructor 
-        _this = _super.call(this, rootType, name, options, true) || this;
-        // Public read-only properties
-        Object.defineProperty(_this, "property", { enumerable: true, value: property });
-        // Public settable properties
-        _this.defaultIfError = defaultIfError;
-        // Backing fields for properties
-        if (calculateFn)
-            Object.defineProperty(_this, "_calculateFn", { enumerable: false, value: calculateFn, writable: true });
-        if (!skipRegistration) {
-            // Register the rule after loading has completed
-            rootType.model.registerRule(_this);
-        }
-        return _this;
-    }
-    CalculatedPropertyRule.prototype.execute = function (obj) {
-        var calculateFn;
-        // Convert string functions into compiled functions on first execution
-        if (this._calculateFn.constructor === String) {
-            // TODO: Calculation expression support
-            var calculateExpr = this._calculateFn;
-            var calculateCompiledFn = new Function("return " + calculateExpr + ";");
-            calculateFn = this._calculateFn = calculateCompiledFn;
-        }
-        else {
-            calculateFn = this._calculateFn;
-        }
-        // Calculate the new property value
-        var newValue;
-        if (this.defaultIfError === undefined) {
-            newValue = calculateFn.call(obj);
-        }
-        else {
-            try {
-                newValue = calculateFn.apply(obj);
-            }
-            catch (e) {
-                newValue = this.defaultIfError;
-            }
-        }
-        // Exit immediately if the calculated result was undefined
-        if (newValue === undefined) {
-            return;
-        }
-        // modify list properties to match the calculated value instead of overwriting the property
-        if (this.property.isList) {
-            // re-calculate the list values
-            var newList = newValue;
-            // compare the new list to the old one to see if changes were made
-            var curList = this.property.value(obj);
-            if (newList.length === curList.length) {
-                var noChanges = true;
-                for (var i = 0; i < newList.length; ++i) {
-                    if (newList[i] !== curList[i]) {
-                        noChanges = false;
-                        break;
-                    }
-                }
-                if (noChanges) {
-                    return;
-                }
-            }
-            // update the current list so observers will receive the change events
-            curList.batchUpdate(function (array) {
-                updateArray(array, newList);
-            });
-        }
-        else {
-            // Otherwise, just set the property to the new value
-            this.property.value(obj, newValue, { calculated: true });
-        }
-    };
-    CalculatedPropertyRule.prototype.toString = function () {
-        return "calculation of " + this.property.name;
-    };
-    // perform addition initialization of the rule when it is registered
-    CalculatedPropertyRule.prototype.onRegister = function () {
-        // register the rule with the target property
-        registerPropertyRule(this);
-        this.property.isCalculated = true;
-    };
-    return CalculatedPropertyRule;
-}(Rule));
-function extractCalculatedPropertyRuleOptions(obj) {
-    if (!obj) {
-        return;
-    }
-    var options = {};
-    var keys = Object.keys(obj);
-    var extractedKeys = keys.filter(function (key) {
-        var value = obj[key];
-        if (key === 'property') {
-            if (value instanceof Property) {
-                options.property = value;
-                return true;
-            }
-        }
-        else if (key === 'calculate' || key === 'fn') {
-            if (value instanceof Function) {
-                options.calculate = value;
-                return true;
-            }
-            else if (typeof value === "string") {
-                options.calculate = value;
-                return true;
-            }
-        }
-        else if (key === 'defaultIfError') {
-            options.defaultIfError = value;
-            return true;
-        }
-        else {
-            // TODO: Warn about unsupported rule options?
-            return;
-        }
-        // TODO: Warn about invalid rule option value?
-        return;
-    }).forEach(function (key) {
-        delete obj[key];
-    });
-    return options;
-}
-
 var ConditionRule = /** @class */ (function (_super) {
-    __extends(ConditionRule, _super);
+    __extends$1(ConditionRule, _super);
     /**
      * Creates a rule that asserts a condition based on a predicate
      * @param rootType The model type the rule is for
@@ -5026,7 +4612,7 @@ var ConditionRule = /** @class */ (function (_super) {
 }(Rule));
 
 var ValidatedPropertyRule = /** @class */ (function (_super) {
-    __extends(ValidatedPropertyRule, _super);
+    __extends$1(ValidatedPropertyRule, _super);
     function ValidatedPropertyRule(rootType, options, skipRegistration) {
         /// <summary>Creates a rule that validates the value of a property in the model.</summary>
         /// <param name="rootType" type="Type">The model type the rule is for.</param>
@@ -5154,127 +4740,8 @@ var Resource = {
     }
 };
 
-var RequiredRule = /** @class */ (function (_super) {
-    __extends(RequiredRule, _super);
-    function RequiredRule(rootType, options, skipRegistration) {
-        /// <summary>Creates a rule that validates that a property has a value.</summary>
-        /// <param name="rootType" type="Type">The model type the rule is for.</param>
-        /// <param name="options" type="Object">
-        ///		The options for the rule, including:
-        ///			property:			the property being validated (either a Property instance or string property name)
-        ///			name:				the optional unique name of the type of validation rule
-        ///			conditionType:		the optional condition type to use, which will be automatically created if not specified
-        ///			category:			ConditionType.Error || ConditionType.Warning (defaults to ConditionType.Error)
-        ///			message:			the message to show the user when the validation fails
-        ///			requiredValue:		the optional required value
-        /// </param>
-        /// <returns type="RequiredRule">The new required rule.</returns>
-        if (skipRegistration === void 0) { skipRegistration = false; }
-        var _this = this;
-        // ensure the rule name is specified
-        options.name = options.name || "Required";
-        // ensure the error message is specified
-        options.message = options.message || Resource.get("required");
-        // call the base type constructor
-        _this = _super.call(this, rootType, options, true) || this;
-        if (options.requiredValue)
-            Object.defineProperty(_this, "requiredValue", { value: options.requiredValue });
-        if (!skipRegistration) {
-            // Register the rule after loading has completed
-            rootType.model.registerRule(_this);
-        }
-        return _this;
-    }
-    // define a global function that determines if a value exists
-    RequiredRule.hasValue = function (val) {
-        return val !== undefined && val !== null && (val.constructor !== String || val.trim() !== "") && (!(val instanceof Array) || val.length > 0);
-    };
-    // returns true if the property is valid, otherwise false
-    RequiredRule.prototype.isValid = function (obj, prop, val) {
-        if (this.requiredValue)
-            return val === this.requiredValue;
-        else
-            return RequiredRule.hasValue(val);
-    };
-    // get the string representation of the rule
-    RequiredRule.prototype.toString = function () {
-        return this.property.containingType.fullName + "." + this.property.name + " is required";
-    };
-    return RequiredRule;
-}(ValidatedPropertyRule));
-
-var RequiredIfRule = /** @class */ (function (_super) {
-    __extends(RequiredIfRule, _super);
-    function RequiredIfRule(rootType, options, skipRegistration) {
-        /// <summary>Creates a rule that conditionally validates whether a property has a value.</summary>
-        /// <param name="rootType" type="Type">The model type the rule is for.</param>
-        /// <param name="options" type="Object">
-        ///		The options for the rule, including:
-        ///			property:			the property being validated (either a Property instance or string property name)
-        ///			isRequired:			a predicate function indicating whether the property should be required
-        ///			name:				the optional unique name of the type of validation rule
-        ///			conditionType:		the optional condition type to use, which will be automatically created if not specified
-        ///			category:			ConditionType.Error || ConditionType.Warning (defaults to ConditionType.Error)
-        ///			message:			the message to show the user when the validation fails
-        ///		    onInit:				true to indicate the rule should run when an instance of the root type is initialized, otherwise false
-        ///		    onInitNew:			true to indicate the rule should run when a new instance of the root type is initialized, otherwise false
-        ///		    onInitExisting:		true to indicate the rule should run when an existing instance of the root type is initialized, otherwise false
-        ///		    onChangeOf:			an array of property paths (strings, Property or PropertyChain instances) that drive when the rule should execute due to property changes
-        ///			requiredValue:		the optional required value
-        /// </param>
-        /// <returns type="RequiredIfRule">The new required if rule.</returns>
-        if (skipRegistration === void 0) { skipRegistration = false; }
-        var _this = this;
-        options.name = options.name || "RequiredIf";
-        // ensure changes to the compare source triggers rule execution
-        if (!options.onChangeOf && options.compareSource) {
-            options.onChangeOf = [options.compareSource];
-        }
-        if (!options.isRequired && options.fn) {
-            options.isRequired = options.fn;
-            options.fn = null;
-        }
-        // predicate-based rule
-        if (options.isRequired) {
-            options.message = options.message || Resource.get("required");
-        }
-        // call the base type constructor
-        _this = _super.call(this, rootType, options, true) || this;
-        // predicate-based rule
-        if (options.isRequired) {
-            Object.defineProperty(_this, "_isRequired", { value: options.isRequired, writable: true });
-        }
-        if (options.requiredValue)
-            Object.defineProperty(_this, "requiredValue", { value: options.requiredValue });
-        if (!skipRegistration) {
-            // Register the rule after loading has completed
-            rootType.model.registerRule(_this);
-        }
-        return _this;
-    }
-    // returns false if the property is valid, true if invalid, or undefined if unknown
-    RequiredIfRule.prototype.assert = function (obj) {
-        var isReq;
-        // convert string functions into compiled functions on first execution
-        if (typeof this._isRequired === "string") {
-            this._isRequired = (new Function(this._isRequired));
-        }
-        try {
-            isReq = this._isRequired.call(obj);
-        }
-        catch (e) {
-            isReq = false;
-        }
-        if (this.requiredValue)
-            return isReq && this.property.value(obj) !== this.requiredValue;
-        else
-            return isReq && !RequiredRule.hasValue(this.property.value(obj));
-    };
-    return RequiredIfRule;
-}(ValidatedPropertyRule));
-
 var AllowedValuesRule = /** @class */ (function (_super) {
-    __extends(AllowedValuesRule, _super);
+    __extends$1(AllowedValuesRule, _super);
     /**
      * Creates a rule that validates whether a selected value or values is in a list of allowed values.
      * @param rootType The root type to bind the rule to
@@ -5429,8 +4896,1054 @@ var AllowedValuesRule = /** @class */ (function (_super) {
     return AllowedValuesRule;
 }(ValidatedPropertyRule));
 
+var SourcePathAdapter = /** @class */ (function () {
+    function SourcePathAdapter(source, path) {
+        // Public read-only properties
+        Object.defineProperty(this, "source", { enumerable: true, value: source });
+        Object.defineProperty(this, "path", { enumerable: true, value: path });
+        Object.defineProperty(this, "__ob__", { configurable: false, enumerable: false, value: new CustomObserver(this), writable: false });
+    }
+    Object.defineProperty(SourcePathAdapter.prototype, "property", {
+        get: function () {
+            // TODO: Support multi-hop path
+            // TODO: Detect invalid property or path
+            return this.source.value.meta.type.getProperty(this.path);
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SourcePathAdapter.prototype, "label", {
+        get: function () {
+            // TODO: Make observable if label is dynamic
+            return this.property.label;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SourcePathAdapter.prototype, "helptext", {
+        get: function () {
+            // TODO: Make observable if helptext is dynamic
+            return this.property.helptext;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SourcePathAdapter.prototype, "value", {
+        get: function () {
+            var property = this.property;
+            var value = property.value(this.source.value);
+            this.__ob__.onPropertyAccess('value', value);
+            return value;
+        },
+        set: function (value) {
+            var property = this.property;
+            var entity = this.source.value;
+            // Make sure a new value that is an entity is observable
+            if (value instanceof Entity) {
+                observeEntity(value).ensureObservable();
+            }
+            // TODO: Account for static properties
+            var previousValue = entity[property.fieldName];
+            // Set the underlying property value
+            property.value(entity, value);
+            if (value !== previousValue) {
+                this.__ob__.onPropertyChange('value', value);
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SourcePathAdapter.prototype, "displayValue", {
+        get: function () {
+            var property = this.property;
+            var value = property.value(this.source.value);
+            var displayValue = SourcePathAdapter$_formatDisplayValue.call(this, value);
+            this.__ob__.onPropertyAccess('displayValue', displayValue);
+            return displayValue;
+        },
+        set: function (text) {
+            var property = this.property;
+            var entity = this.source.value;
+            // TODO: Account for static properties
+            var previousValue = entity[property.fieldName];
+            var value = property.format != null ? property.format.convertBack(text) : text;
+            this.value = value;
+            if (value !== previousValue) {
+                this.__ob__.onPropertyChange('displayValue', text);
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SourcePathAdapter.prototype, "allowedValuesRule", {
+        get: function () {
+            var allowedValuesRule;
+            if (hasOwnProperty(this, "_allowedValuesRule")) {
+                allowedValuesRule = this._allowedValuesRule;
+            }
+            else {
+                var property = this.property;
+                allowedValuesRule = property._rules.filter(function (r) { return r instanceof AllowedValuesRule; })[0];
+                if (allowedValuesRule) {
+                    Object.defineProperty(this, '_allowedValuesRule', { enumerable: false, value: allowedValuesRule, writable: true });
+                }
+                else if (!this._allowedValuesRuleExistsHandler) {
+                    // Watch for the registration of an allowed values rule if it doesn't exist
+                    var allowedValuesRuleExistsHandler = SourcePathAdapter$_checkAllowedValuesRuleExists.bind(this);
+                    Object.defineProperty(this, '_allowedValuesRuleExistsHandler', { enumerable: false, value: allowedValuesRuleExistsHandler, writable: true });
+                    property.ruleRegistered.subscribe(allowedValuesRuleExistsHandler);
+                }
+            }
+            this.__ob__.onPropertyAccess('allowedValuesRule', allowedValuesRule);
+            return allowedValuesRule;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SourcePathAdapter.prototype, "allowedValuesSource", {
+        get: function () {
+            var allowedValuesSource;
+            if (hasOwnProperty(this, "_allowedValuesSource")) {
+                allowedValuesSource = this._allowedValuesSource;
+            }
+            else {
+                var allowedValuesRule = this.allowedValuesRule;
+                if (allowedValuesRule) {
+                    allowedValuesSource = allowedValuesRule._source;
+                    if (allowedValuesSource) {
+                        Object.defineProperty(this, '_allowedValuesSource', { enumerable: false, value: allowedValuesSource, writable: true });
+                    }
+                }
+            }
+            this.__ob__.onPropertyAccess('allowedValuesSource', allowedValuesSource);
+            return allowedValuesSource;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SourcePathAdapter.prototype, "allowedValues", {
+        get: function () {
+            var allowedValues;
+            if (hasOwnProperty(this, "_allowedValues")) {
+                allowedValues = this._allowedValues;
+            }
+            else {
+                var property = this.property;
+                var allowedValuesRule = this.allowedValuesRule;
+                // Watch for the registration of an allowed values rule if it doesn't exist
+                if (!allowedValuesRule) {
+                    var allowedValuesRuleExistsHandler = SourcePathAdapter$_checkAllowedValuesRuleExists.bind(this);
+                    Object.defineProperty(this, '_allowedValuesRuleExistsHandler', { enumerable: false, value: allowedValuesRuleExistsHandler, writable: true });
+                    property.ruleRegistered.subscribe(allowedValuesRuleExistsHandler);
+                    this._allowedValues = null;
+                    this.__ob__.onPropertyAccess('allowedValues', null);
+                    return;
+                }
+                // Cache the last target
+                // TODO: Support property chains...
+                // var targetObj = property.getLastTarget(this.source.value);
+                var targetObj = this.source.value;
+                // Retrieve the value of allowed values property
+                var allowedValuesFromRule = allowedValuesRule.values(targetObj, this.allowedValuesMayBeNull);
+                // TODO: Support lazy loading type/property metadata?
+                // if (allowedValues === undefined && allowedValuesSource && (allowedValuesSource instanceof Property || allowedValuesSource instanceof PropertyChain)) { ...
+                if (allowedValuesFromRule) {
+                    // Create an observable copy of the allowed values that we can keep up to date in our own time
+                    allowedValues = ObservableArray.create(allowedValuesFromRule.slice());
+                    if (!this._allowedValuesChangedHandler) {
+                        // Respond to changes to allowed values
+                        var allowedValuesSource = this.allowedValuesSource;
+                        var allowedValuesChangedHandler = SourcePathAdapter$_allowedValuesChanged.bind(this);
+                        Object.defineProperty(this, '_allowedValuesChangedHandler', { enumerable: false, value: allowedValuesChangedHandler, writable: true });
+                        Property$addChanged(allowedValuesSource, allowedValuesChangedHandler, targetObj, true);
+                    }
+                    // Clear our values that are no longer valid
+                    if (!allowedValuesRule.ignoreValidation) {
+                        SourcePathAdapter$_clearInvalidOptions.call(this, allowedValues);
+                    }
+                    // TODO: Support lazy loading lists?
+                    // if (LazyLoader.isRegistered(allowedValues)) { ...
+                    // TODO: Support allowed values transformation?
+                    // transformedAllowedValues = $transform(observableAllowedValues, true);
+                    this._allowedValues = allowedValues;
+                }
+                else {
+                    // Subscribe to property/chain change for the entity in order to populate the options when available
+                    var allowedValuesSource = this.allowedValuesSource;
+                    if (allowedValuesSource && !this._allowedValuesExistHandler) {
+                        var allowedValuesExistHandler = SourcePathAdapter$_checkAllowedValuesExist.bind(this);
+                        Object.defineProperty(this, '_allowedValuesExistHandler', { enumerable: false, value: allowedValuesExistHandler, writable: true });
+                        Property$addChanged(allowedValuesSource, allowedValuesExistHandler, targetObj);
+                    }
+                    // Clear out values since the property doesn't currently have any allowed values
+                    if (!allowedValuesRule.ignoreValidation) {
+                        SourcePathAdapter$_clearInvalidOptions.call(this);
+                    }
+                    this._allowedValues = null;
+                    return;
+                }
+            }
+            this.__ob__.onPropertyAccess('allowedValues', allowedValues);
+            return allowedValues;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SourcePathAdapter.prototype, "options", {
+        get: function () {
+            var _this = this;
+            var options;
+            if (hasOwnProperty(this, "_options")) {
+                options = this._options;
+            }
+            else {
+                var allowedValues = this.allowedValues;
+                if (this._allowedValuesCollectionChangedHandler) {
+                    allowedValues.changed.unsubscribe(this._allowedValuesCollectionChangedHandler);
+                    delete this._allowedValuesCollectionChangedHandler;
+                }
+                if (allowedValues) {
+                    // Respond to changes to allowed values
+                    var allowedValuesCollectionChangedHandler = SourcePathAdapter$_allowedValuesCollectionChanged.bind(this);
+                    Object.defineProperty(this, '_allowedValuesCollectionChangedHandler', { enumerable: false, value: allowedValuesCollectionChangedHandler, writable: true });
+                    allowedValues.changed.subscribe(allowedValuesCollectionChangedHandler);
+                }
+                else if (this.property.propertyType === Boolean) {
+                    // Provide true and false as special allowed values for booleans
+                    allowedValues = ObservableArray.create([true, false]);
+                }
+                if (allowedValues) {
+                    // Map the allowed values to option adapters
+                    options = allowedValues.map(function (v) { return new SourceOptionAdapter(_this, v); });
+                }
+                else {
+                    options = null;
+                }
+                this._options = options;
+            }
+            this.__ob__.onPropertyAccess('options', options);
+            return options;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    SourcePathAdapter.prototype.toString = function () {
+        return "Source['" + this.path + "']";
+    };
+    return SourcePathAdapter;
+}());
+function SourcePathAdapter$_formatDisplayValue(value) {
+    var displayValue;
+    var property = this.property;
+    if (value === null || value === undefined) {
+        displayValue = "";
+    }
+    else if (property.format != null) {
+        // Use a markup or property format if available
+        if (Array.isArray(value)) {
+            var array = value;
+            displayValue = array.map(function (item) { return property.format.convert(item); });
+        }
+        else {
+            displayValue = property.format.convert(value);
+        }
+    }
+    else if (Array.isArray(value)) {
+        // If no format exists, then fall back to toString
+        var array = value;
+        displayValue = array.map(function (item) {
+            if (value === null || value === undefined) {
+                return "";
+            }
+            else {
+                return item.toString();
+            }
+        });
+    }
+    else {
+        displayValue = value.toString();
+    }
+    displayValue = Array.isArray(displayValue) ? displayValue.join(", ") : displayValue;
+    return displayValue;
+}
+// Notify subscribers that options are available
+function SourcePathAdapter$_signalOptionsReady() {
+    // if (this._disposed) {
+    // 	return;
+    // }
+    // Delete backing fields so that options can be recalculated (and loaded)
+    delete this._options;
+    // Get the `Dep` object for the options property
+    var optionsPropertyDep = this.__ob__.getPropertyDep('options');
+    if (optionsPropertyDep) {
+        // Notify of change in order to cause subscribers to fetch the new value
+        optionsPropertyDep.notify();
+    }
+}
+function SourcePathAdapter$_clearInvalidOptions(allowedValues) {
+    var property = this.property;
+    var value = this.value;
+    if (allowedValues) {
+        // Remove option values that are no longer valid
+        if (value instanceof Array) {
+            var array = value;
+            array.batchUpdate(function (array) {
+                // From the `purge()` function in ExoWeb...
+                for (var i = 0; i < array.length; i++) {
+                    var item = array[i];
+                    if (allowedValues.indexOf(item) < 0) {
+                        array.splice(i--, 1);
+                    }
+                }
+            });
+        }
+        else if (value !== null && allowedValues.indexOf(value) < 0) {
+            property.value(this.source.value, null);
+        }
+    }
+    else if (value instanceof Array) {
+        var array = value;
+        array.splice(0, array.length);
+    }
+    else if (value !== null) {
+        property.value(this.source.value, null);
+    }
+}
+// If the given rule is allowed values, signal options ready
+function SourcePathAdapter$_checkAllowedValuesRuleExists(rule) {
+    if (rule instanceof AllowedValuesRule) {
+        this.property.ruleRegistered.unsubscribe(this._allowedValuesRuleExistsHandler);
+        SourcePathAdapter$_signalOptionsReady.call(this);
+    }
+}
+function SourcePathAdapter$_checkAllowedValuesExist(args) {
+    // TODO: Support property chains
+    // var lastProperty = this._propertyChain.lastProperty();
+    var property = this.property;
+    var allowedValuesRule = this.allowedValuesRule;
+    // TODO: Support property chains...
+    // var targetObj = property.getLastTarget(this.source.value);
+    var targetObj = this.source.value;
+    var allowedValues = allowedValuesRule.values(targetObj, this.allowedValuesMayBeNull);
+    if (allowedValues instanceof Array) {
+        var allowedValuesSource = this.allowedValuesSource;
+        if (allowedValuesSource) {
+            Property$removeChanged(allowedValuesSource, this._allowedValuesExistHandler);
+            delete this._allowedValuesExistHandler;
+        }
+        SourcePathAdapter$_signalOptionsReady.call(this);
+    }
+}
+function SourcePathAdapter$_allowedValuesChanged(args) {
+    // TODO: Support property chains
+    // var lastProperty = this._propertyChain.lastProperty();
+    var property = this.property;
+    // TODO: Support property chains...
+    // var targetObj = property.getLastTarget(this.source.value);
+    var targetObj = this.source.value;
+    var allowedValuesRule = this.allowedValuesRule;
+    var allowedValuesFromRule = allowedValuesRule.values(targetObj, this.allowedValuesMayBeNull);
+    var allowedValues = this._allowedValues;
+    allowedValues.batchUpdate(function (array) {
+        updateArray(array, allowedValuesFromRule);
+    });
+    // Clear out invalid selections
+    if (!allowedValuesRule.ignoreValidation) {
+        SourcePathAdapter$_clearInvalidOptions.call(this, allowedValues);
+    }
+    // TODO: Lazy load allowed values?
+    // ensureAllowedValuesLoaded(newItems, refreshOptionsFromAllowedValues.prependArguments(optionsSourceArray), this);
+    // Get the `Dep` object for the options property
+    var allowedValuesPropertyDep = this.__ob__.getPropertyDep('allowedValues');
+    if (allowedValuesPropertyDep) {
+        // Notify of change in order to cause subscribers to fetch the new value
+        allowedValuesPropertyDep.notify();
+    }
+}
+function SourcePathAdapter$_allowedValuesCollectionChanged(args) {
+    var _this = this;
+    var allowedValues = this._allowedValues;
+    var options = this._options;
+    if (options) {
+        // Attempt to project changes to allowed values onto the options list
+        var canUpdateOptions_1 = true;
+        args.changes.forEach(function (c) {
+            if (canUpdateOptions_1) {
+                if (c.type === ArrayChangeType.add) {
+                    var newOptions = c.items.map(function (i) { return new SourceOptionAdapter(_this, i); });
+                    options.splice.apply(options, [c.startIndex, 0].concat(newOptions));
+                }
+                else if (c.type === ArrayChangeType.remove) {
+                    options.splice(c.startIndex, c.items.length);
+                }
+                else {
+                    canUpdateOptions_1 = false;
+                }
+            }
+        });
+        // Fall back to rebuilding the list if needed
+        if (!canUpdateOptions_1) {
+            delete this._options;
+            if (this._allowedValuesCollectionChangedHandler) {
+                allowedValues.changed.unsubscribe(this._allowedValuesCollectionChangedHandler);
+                delete this._allowedValuesCollectionChangedHandler;
+            }
+        }
+        // Get the `Dep` object for the options property
+        var optionsPropertyDep = this.__ob__.getPropertyDep('options');
+        if (optionsPropertyDep) {
+            // Notify of change in order to cause subscribers to fetch the new value
+            optionsPropertyDep.notify();
+        }
+    }
+}
+
+var SourceIndexAdapter = /** @class */ (function () {
+    function SourceIndexAdapter(source, index) {
+        // Public read-only properties
+        Object.defineProperty(this, "source", { enumerable: true, value: source });
+        // Backing fields for properties
+        Object.defineProperty(this, "_index", { enumerable: false, value: index, writable: true });
+        Object.defineProperty(this, "_isOrphaned", { enumerable: false, value: false, writable: true });
+        Object.defineProperty(this, "__ob__", { configurable: false, enumerable: false, value: new CustomObserver(this), writable: false });
+        // If the source array is modified, then update the index if needed
+        this.subscribeToSourceChanges();
+    }
+    SourceIndexAdapter.prototype.subscribeToSourceChanges = function () {
+        var _this = this;
+        var array = ObservableArray.ensureObservable(this.source.value);
+        array.changed.subscribe(function (args) {
+            var index = _this._index;
+            var isOrphaned = _this._isOrphaned;
+            args.changes.forEach(function (c) {
+                if (c.type === ArrayChangeType.remove) {
+                    if (c.startIndex === index) {
+                        index = -1;
+                        isOrphaned = true;
+                    }
+                    else if (c.startIndex < index) {
+                        if (c.items.length > index - c.startIndex) {
+                            index = -1;
+                            isOrphaned = true;
+                        }
+                        else {
+                            index -= c.items.length;
+                        }
+                    }
+                }
+                else if (c.type === ArrayChangeType.add) {
+                    if (c.startIndex >= 0) {
+                        if (c.startIndex <= index) {
+                            index += c.items.length;
+                        }
+                    }
+                }
+            });
+            if (isOrphaned != _this._isOrphaned) {
+                _this._isOrphaned = isOrphaned;
+                _this.__ob__.onPropertyChange('isOrphaned', isOrphaned);
+            }
+            if (index != _this._index) {
+                _this._index = index;
+                _this.__ob__.onPropertyChange('index', index);
+            }
+        });
+    };
+    Object.defineProperty(SourceIndexAdapter.prototype, "index", {
+        get: function () {
+            var index = this._index;
+            this.__ob__.onPropertyAccess('index', index);
+            return index;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SourceIndexAdapter.prototype, "isOrphaned", {
+        get: function () {
+            return this._isOrphaned;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SourceIndexAdapter.prototype, "value", {
+        get: function () {
+            var list = this.source.value;
+            var value = list[this.index];
+            this.__ob__.onPropertyAccess('value', value);
+            return value;
+        },
+        set: function (value) {
+            var list = this.source.value;
+            var previousValue = list[this.index];
+            if (value !== previousValue) {
+                list[this.index] = value;
+                var eventArgs = { entity: this.source.source.value, property: this.source.property, newValue: list, oldValue: undefined };
+                eventArgs['changes'] = [{ type: ArrayChangeType.replace, startIndex: this.index, endIndex: this.index }];
+                eventArgs['collectionChanged'] = true;
+                this.source.property._events.changedEvent.publish(this.source.source.value, eventArgs);
+                this.__ob__.onPropertyChange('value', value);
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(SourceIndexAdapter.prototype, "displayValue", {
+        get: function () {
+            var list = this.source.value;
+            var value = list[this.index];
+            var displayValue;
+            if (this.source.property.format != null) {
+                // Use a markup or property format if available
+                displayValue = this.source.property.format.convert(value);
+            }
+            else {
+                displayValue = value.toString();
+            }
+            this.__ob__.onPropertyAccess('displayValue', displayValue);
+            return displayValue;
+        },
+        set: function (text) {
+            var list = this.source.value;
+            var previousValue = list[this.index];
+            var value = this.source.property.format != null ? this.source.property.format.convertBack(text) : text;
+            this.value = value;
+            if (value !== previousValue) {
+                this.__ob__.onPropertyChange('displayValue', text);
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    SourceIndexAdapter.prototype.toString = function () {
+        return "Source[" + this.index + "]";
+    };
+    return SourceIndexAdapter;
+}());
+
+function isSourceAdapter(obj) {
+    if (obj instanceof SourceRootAdapter)
+        return true;
+    if (obj instanceof SourcePathAdapter)
+        return true;
+    if (obj instanceof SourceIndexAdapter)
+        return true;
+    return false;
+}
+
+function defineDollarSourceProperty(vm, sourceAdapter) {
+    var vm$private = vm;
+    if (!hasOwnProperty$1(vm$private, '_source') || !isSourceAdapter(vm$private._source)) {
+        vm$private._source = sourceAdapter;
+    }
+    if (!hasOwnProperty$1(vm, '$source')) {
+        Object.defineProperty(vm, '$source', {
+            configurable: false,
+            enumerable: true,
+            get: function () {
+                return this._source;
+            },
+            set: function () {
+                // TODO: Warn about setting `$source`?
+            }
+        });
+    }
+}
+function getImplicitSource(vm, detect) {
+    if (detect === void 0) { detect = false; }
+    var vm$private = vm;
+    if (hasOwnProperty$1(vm, '$source')) {
+        // Source is explicit and has been established
+        return null;
+    }
+    if (vm$private._source) {
+        var source = vm$private._source;
+        if (typeof source === "string") {
+            // Source is explicit (but has not been established)
+            return null;
+        }
+        else if (source instanceof Entity) {
+            // An entity was previously flagged as a potential implicit source
+            return source;
+        }
+        else if (isSourceAdapter(source)) {
+            // A source adapter was previously flagged as a potential implicit source
+            return source;
+        }
+        // Source of unknown type
+        return null;
+    }
+    if (detect) {
+        var data = vm$private._data;
+        if (data) {
+            if (data instanceof Entity) {
+                debug("Found implicit source as data of type <" + data.meta.type.fullName + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
+                vm$private._source = data;
+                return data;
+            }
+            else if (isSourceAdapter(data)) {
+                debug("Found implicit source as source adapter <" + data + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
+                vm$private._source = data;
+                return data;
+            }
+        }
+        if (vm$private._entity) {
+            var entity = vm$private._entity;
+            if (entity instanceof Entity) {
+                // Mark the entity as a potential implicit source
+                debug("Found implicit source as pending entity of type <" + entity.meta.type.fullName + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
+                vm$private._source = entity;
+                return entity;
+            }
+        }
+    }
+}
+function getSourceBindingContainer(vm, detectImplicitSource) {
+    if (detectImplicitSource === void 0) { detectImplicitSource = false; }
+    var firstImplicitSourceVm = null;
+    var firstImplicitSourceVmLevel = -1;
+    for (var parentVm = vm.$parent, parentLevel = 1; parentVm != null; parentVm = parentVm.$parent, parentLevel += 1) {
+        var parentVm$private = parentVm;
+        var parentSource = parentVm$private.$source;
+        if (parentSource) {
+            // if (process.env.NODE_ENV === "development") {
+            if (typeof parentSource === "string") {
+                debug("Found pending source on level " + parentLevel + " parent component of type <" + (parentVm$private.$options._componentTag || "???") + ">.");
+            }
+            else if (isSourceAdapter(parentSource)) {
+                debug("Found established source on level " + parentLevel + " parent component of type <" + (parentVm$private.$options._componentTag || "???") + ">.");
+            }
+            else {
+                debug("Found unknown source on level " + parentLevel + " parent component of type <" + (parentVm$private.$options._componentTag || "???") + ">.");
+            }
+            // }
+            return parentVm;
+        }
+        else if (detectImplicitSource) {
+            var implicitSource = getImplicitSource(parentVm, true);
+            if (implicitSource !== undefined && !firstImplicitSourceVm) {
+                firstImplicitSourceVm = parentVm;
+                firstImplicitSourceVmLevel = parentLevel;
+            }
+        }
+    }
+    if (detectImplicitSource && firstImplicitSourceVm) {
+        var implicitSource = getImplicitSource(firstImplicitSourceVm);
+        if (implicitSource instanceof Entity) {
+            debug("Found implicit source on level " + firstImplicitSourceVmLevel + " parent component of type <" + (firstImplicitSourceVm.$options._componentTag || "???") + ">.");
+            return firstImplicitSourceVm;
+        }
+    }
+}
+
+function preprocessPropsToInterceptSource(vm) {
+    var vm$private = vm;
+    if (vm$private._source) {
+        // TODO: Warn about _source already defined?
+        return;
+    }
+    var props = vm.$options.propsData;
+    if (hasOwnProperty$1(props, 'source')) {
+        vm$private._source = props.source;
+    }
+}
+function establishBindingSource(vm) {
+    var vm$private = vm;
+    if (vm$private._sourcePending) {
+        // Detect re-entrance
+        return;
+    }
+    if (!vm.$options.propsData) {
+        return;
+    }
+    var props = vm.$options.propsData;
+    if (!hasOwnProperty$1(props, 'source')) {
+        return;
+    }
+    vm$private._sourcePending = true;
+    debug("Found component of type '" + vm$private.$options._componentTag + "' with source '" + props.source + "'.");
+    var sourceVm = getSourceBindingContainer(vm, true);
+    if (sourceVm) {
+        var sourceVm$private = sourceVm;
+        var source = sourceVm$private._source;
+        if (typeof source === "string") {
+            establishBindingSource(sourceVm);
+            source = sourceVm$private._source;
+        }
+        var sourceIndex = parseInt(props.source, 10);
+        if (isNaN(sourceIndex)) {
+            sourceIndex = null;
+        }
+        var sourceAdapter = null;
+        if (source instanceof Entity) {
+            debug("Found source entity of type <" + source.meta.type.fullName + ">.");
+            sourceAdapter = new SourcePathAdapter(new SourceRootAdapter(source), props.source);
+        }
+        else if (isSourceAdapter(source)) {
+            if (sourceIndex !== null) {
+                sourceAdapter = new SourceIndexAdapter(source, parseInt(props.source, 10));
+            }
+            else {
+                sourceAdapter = new SourcePathAdapter(source, props.source);
+            }
+        }
+        if (sourceAdapter != null) {
+            defineDollarSourceProperty(vm, sourceAdapter);
+            // proxySourceAdapterPropertiesOntoComponentInstance(vm, '_source', false, false);
+        }
+    }
+    delete vm$private['_sourcePending'];
+}
+var SourceProviderMixin = {
+    props: {
+        source: {},
+        sourceIndex: {
+            type: Number,
+            validator: function (value) {
+                return value >= 0;
+            }
+        }
+    },
+    beforeCreate: function () {
+        var vm = this;
+        if (vm.$options.propsData) {
+            // Intercept the `source` prop so that it can be marked as having a source
+            // and lazily evaluated if needed, or detected by other components
+            preprocessPropsToInterceptSource(vm);
+        }
+    },
+    created: function () {
+        var vm = this;
+        var vm$private = vm;
+        if (isSourceAdapter(vm$private._data)) {
+            var sourceAdapter = vm$private._data;
+            // Define the `$source` property if not already defined
+            defineDollarSourceProperty(vm, sourceAdapter);
+            // TODO: Who wins, props or data?
+            // Vue proxies the data objects `Object.keys()` onto the component itself,
+            // so that the data objects properties can be used directly in templates
+            // proxySourceAdapterPropertiesOntoComponentInstance(vm, '_data', false, false);
+        }
+        if (vm.$options.propsData) {
+            var props = vm.$options.propsData;
+            if (hasOwnProperty$1(props, 'source')) {
+                establishBindingSource(vm);
+            }
+        }
+    }
+};
+
+function establishBindingSource$1(vm) {
+    var sourceVm = getSourceBindingContainer(vm);
+    var sourceVm$private = sourceVm;
+    if (sourceVm$private.$source) {
+        var source = sourceVm$private.$source;
+        if (isSourceAdapter(source)) {
+            defineDollarSourceProperty(vm, source);
+        }
+    }
+}
+var SourceConsumerMixin = {
+    beforeCreate: function () {
+        var vm = this;
+        var vm$private = vm;
+        var originalData = vm.$options.data;
+        vm$private.$options.data = function () {
+            // Establish the `$source` variable
+            establishBindingSource$1(vm);
+            if (originalData) {
+                // Return the original data
+                if (originalData instanceof Function) {
+                    var dataFn = originalData;
+                    return dataFn.apply(this, arguments);
+                }
+                else {
+                    return originalData;
+                }
+            }
+            else {
+                return {};
+            }
+        };
+    },
+    created: function () {
+        var vm = this;
+        var vm$private = vm;
+        if (!vm$private.$source) {
+            establishBindingSource$1(vm);
+        }
+    }
+};
+
+var calculationErrorDefault;
+var CalculatedPropertyRule = /** @class */ (function (_super) {
+    __extends$1(CalculatedPropertyRule, _super);
+    function CalculatedPropertyRule(rootType, name, options, skipRegistration) {
+        if (skipRegistration === void 0) { skipRegistration = false; }
+        var _this = this;
+        var property;
+        var defaultIfError = calculationErrorDefault;
+        var calculateFn;
+        if (!name) {
+            name = options.name;
+        }
+        if (options) {
+            var thisOptions = extractCalculatedPropertyRuleOptions(options);
+            if (thisOptions.property) {
+                property = typeof thisOptions.property === "string" ? rootType.getProperty(thisOptions.property) : thisOptions.property;
+                // indicate that the rule is responsible for returning the value of the calculated property
+                options.returns = [property];
+            }
+            if (!name) {
+                // Generate a reasonable default rule name if not specified
+                name = options.name = (rootType.fullName + "." + (typeof property === "string" ? property : property.name) + ".Calculated");
+            }
+            defaultIfError = thisOptions.defaultIfError;
+            calculateFn = thisOptions.calculate;
+        }
+        // Call the base rule constructor 
+        _this = _super.call(this, rootType, name, options, true) || this;
+        // Public read-only properties
+        Object.defineProperty(_this, "property", { enumerable: true, value: property });
+        // Public settable properties
+        _this.defaultIfError = defaultIfError;
+        // Backing fields for properties
+        if (calculateFn)
+            Object.defineProperty(_this, "_calculateFn", { enumerable: false, value: calculateFn, writable: true });
+        if (!skipRegistration) {
+            // Register the rule after loading has completed
+            rootType.model.registerRule(_this);
+        }
+        return _this;
+    }
+    CalculatedPropertyRule.prototype.execute = function (obj) {
+        var calculateFn;
+        // Convert string functions into compiled functions on first execution
+        if (this._calculateFn.constructor === String) {
+            // TODO: Calculation expression support
+            var calculateExpr = this._calculateFn;
+            var calculateCompiledFn = new Function("return " + calculateExpr + ";");
+            calculateFn = this._calculateFn = calculateCompiledFn;
+        }
+        else {
+            calculateFn = this._calculateFn;
+        }
+        // Calculate the new property value
+        var newValue;
+        if (this.defaultIfError === undefined) {
+            newValue = calculateFn.call(obj);
+        }
+        else {
+            try {
+                newValue = calculateFn.apply(obj);
+            }
+            catch (e) {
+                newValue = this.defaultIfError;
+            }
+        }
+        // Exit immediately if the calculated result was undefined
+        if (newValue === undefined) {
+            return;
+        }
+        // modify list properties to match the calculated value instead of overwriting the property
+        if (this.property.isList) {
+            // re-calculate the list values
+            var newList = newValue;
+            // compare the new list to the old one to see if changes were made
+            var curList = this.property.value(obj);
+            if (newList.length === curList.length) {
+                var noChanges = true;
+                for (var i = 0; i < newList.length; ++i) {
+                    if (newList[i] !== curList[i]) {
+                        noChanges = false;
+                        break;
+                    }
+                }
+                if (noChanges) {
+                    return;
+                }
+            }
+            // update the current list so observers will receive the change events
+            curList.batchUpdate(function (array) {
+                updateArray(array, newList);
+            });
+        }
+        else {
+            // Otherwise, just set the property to the new value
+            this.property.value(obj, newValue, { calculated: true });
+        }
+    };
+    CalculatedPropertyRule.prototype.toString = function () {
+        return "calculation of " + this.property.name;
+    };
+    // perform addition initialization of the rule when it is registered
+    CalculatedPropertyRule.prototype.onRegister = function () {
+        // register the rule with the target property
+        registerPropertyRule(this);
+        this.property.isCalculated = true;
+    };
+    return CalculatedPropertyRule;
+}(Rule));
+function extractCalculatedPropertyRuleOptions(obj) {
+    if (!obj) {
+        return;
+    }
+    var options = {};
+    var keys = Object.keys(obj);
+    var extractedKeys = keys.filter(function (key) {
+        var value = obj[key];
+        if (key === 'property') {
+            if (value instanceof Property) {
+                options.property = value;
+                return true;
+            }
+        }
+        else if (key === 'calculate' || key === 'fn') {
+            if (value instanceof Function) {
+                options.calculate = value;
+                return true;
+            }
+            else if (typeof value === "string") {
+                options.calculate = value;
+                return true;
+            }
+        }
+        else if (key === 'defaultIfError') {
+            options.defaultIfError = value;
+            return true;
+        }
+        else {
+            // TODO: Warn about unsupported rule options?
+            return;
+        }
+        // TODO: Warn about invalid rule option value?
+        return;
+    }).forEach(function (key) {
+        delete obj[key];
+    });
+    return options;
+}
+
+var RequiredRule = /** @class */ (function (_super) {
+    __extends$1(RequiredRule, _super);
+    function RequiredRule(rootType, options, skipRegistration) {
+        /// <summary>Creates a rule that validates that a property has a value.</summary>
+        /// <param name="rootType" type="Type">The model type the rule is for.</param>
+        /// <param name="options" type="Object">
+        ///		The options for the rule, including:
+        ///			property:			the property being validated (either a Property instance or string property name)
+        ///			name:				the optional unique name of the type of validation rule
+        ///			conditionType:		the optional condition type to use, which will be automatically created if not specified
+        ///			category:			ConditionType.Error || ConditionType.Warning (defaults to ConditionType.Error)
+        ///			message:			the message to show the user when the validation fails
+        ///			requiredValue:		the optional required value
+        /// </param>
+        /// <returns type="RequiredRule">The new required rule.</returns>
+        if (skipRegistration === void 0) { skipRegistration = false; }
+        var _this = this;
+        // ensure the rule name is specified
+        options.name = options.name || "Required";
+        // ensure the error message is specified
+        options.message = options.message || Resource.get("required");
+        // call the base type constructor
+        _this = _super.call(this, rootType, options, true) || this;
+        if (options.requiredValue)
+            Object.defineProperty(_this, "requiredValue", { value: options.requiredValue });
+        if (!skipRegistration) {
+            // Register the rule after loading has completed
+            rootType.model.registerRule(_this);
+        }
+        return _this;
+    }
+    // define a global function that determines if a value exists
+    RequiredRule.hasValue = function (val) {
+        return val !== undefined && val !== null && (val.constructor !== String || val.trim() !== "") && (!(val instanceof Array) || val.length > 0);
+    };
+    // returns true if the property is valid, otherwise false
+    RequiredRule.prototype.isValid = function (obj, prop, val) {
+        if (this.requiredValue)
+            return val === this.requiredValue;
+        else
+            return RequiredRule.hasValue(val);
+    };
+    // get the string representation of the rule
+    RequiredRule.prototype.toString = function () {
+        return this.property.containingType.fullName + "." + this.property.name + " is required";
+    };
+    return RequiredRule;
+}(ValidatedPropertyRule));
+
+var RequiredIfRule = /** @class */ (function (_super) {
+    __extends$1(RequiredIfRule, _super);
+    function RequiredIfRule(rootType, options, skipRegistration) {
+        /// <summary>Creates a rule that conditionally validates whether a property has a value.</summary>
+        /// <param name="rootType" type="Type">The model type the rule is for.</param>
+        /// <param name="options" type="Object">
+        ///		The options for the rule, including:
+        ///			property:			the property being validated (either a Property instance or string property name)
+        ///			isRequired:			a predicate function indicating whether the property should be required
+        ///			name:				the optional unique name of the type of validation rule
+        ///			conditionType:		the optional condition type to use, which will be automatically created if not specified
+        ///			category:			ConditionType.Error || ConditionType.Warning (defaults to ConditionType.Error)
+        ///			message:			the message to show the user when the validation fails
+        ///		    onInit:				true to indicate the rule should run when an instance of the root type is initialized, otherwise false
+        ///		    onInitNew:			true to indicate the rule should run when a new instance of the root type is initialized, otherwise false
+        ///		    onInitExisting:		true to indicate the rule should run when an existing instance of the root type is initialized, otherwise false
+        ///		    onChangeOf:			an array of property paths (strings, Property or PropertyChain instances) that drive when the rule should execute due to property changes
+        ///			requiredValue:		the optional required value
+        /// </param>
+        /// <returns type="RequiredIfRule">The new required if rule.</returns>
+        if (skipRegistration === void 0) { skipRegistration = false; }
+        var _this = this;
+        options.name = options.name || "RequiredIf";
+        // ensure changes to the compare source triggers rule execution
+        if (!options.onChangeOf && options.compareSource) {
+            options.onChangeOf = [options.compareSource];
+        }
+        if (!options.isRequired && options.fn) {
+            options.isRequired = options.fn;
+            options.fn = null;
+        }
+        // predicate-based rule
+        if (options.isRequired) {
+            options.message = options.message || Resource.get("required");
+        }
+        // call the base type constructor
+        _this = _super.call(this, rootType, options, true) || this;
+        // predicate-based rule
+        if (options.isRequired) {
+            Object.defineProperty(_this, "_isRequired", { value: options.isRequired, writable: true });
+        }
+        if (options.requiredValue)
+            Object.defineProperty(_this, "requiredValue", { value: options.requiredValue });
+        if (!skipRegistration) {
+            // Register the rule after loading has completed
+            rootType.model.registerRule(_this);
+        }
+        return _this;
+    }
+    // returns false if the property is valid, true if invalid, or undefined if unknown
+    RequiredIfRule.prototype.assert = function (obj) {
+        var isReq;
+        // convert string functions into compiled functions on first execution
+        if (typeof this._isRequired === "string") {
+            this._isRequired = (new Function(this._isRequired));
+        }
+        try {
+            isReq = this._isRequired.call(obj);
+        }
+        catch (e) {
+            isReq = false;
+        }
+        if (this.requiredValue)
+            return isReq && this.property.value(obj) !== this.requiredValue;
+        else
+            return isReq && !RequiredRule.hasValue(this.property.value(obj));
+    };
+    return RequiredIfRule;
+}(ValidatedPropertyRule));
+
 var RangeRule = /** @class */ (function (_super) {
-    __extends(RangeRule, _super);
+    __extends$1(RangeRule, _super);
     function RangeRule(rootType, options, skipRegistration) {
         /// <summary>Creates a rule that validates a property value is within a specific range.</summary>
         /// <param name="rootType" type="Type">The model type the rule is for.</param>
@@ -5545,7 +6058,7 @@ var RangeRule = /** @class */ (function (_super) {
 }(ValidatedPropertyRule));
 
 var StringLengthRule = /** @class */ (function (_super) {
-    __extends(StringLengthRule, _super);
+    __extends$1(StringLengthRule, _super);
     function StringLengthRule(rootType, options, skipRegistration) {
         /// <summary>Creates a rule that validates that the length of a string property is within a specific range.</summary>
         /// <param name="rootType" type="Type">The model type the rule is for.</param>
@@ -5596,7 +6109,7 @@ var StringLengthRule = /** @class */ (function (_super) {
 }(RangeRule));
 
 var StringFormatRule = /** @class */ (function (_super) {
-    __extends(StringFormatRule, _super);
+    __extends$1(StringFormatRule, _super);
     function StringFormatRule(rootType, options, skipRegistration) {
         /// <summary>Creates a rule that validates that a string property value is correctly formatted.</summary>
         /// <param name="rootType" type="Type">The model type the rule is for.</param>
@@ -5663,7 +6176,7 @@ var StringFormatRule = /** @class */ (function (_super) {
 }(ValidatedPropertyRule));
 
 var ListLengthRule = /** @class */ (function (_super) {
-    __extends(ListLengthRule, _super);
+    __extends$1(ListLengthRule, _super);
     function ListLengthRule(rootType, options, skipRegistration) {
         /// <summary>Creates a rule that validates a list property contains a specific range of items.</summary>
         /// <param name="rootType" type="Type">The model type the rule is for.</param>
@@ -5785,24 +6298,18 @@ mixin(Property, {
     }
 });
 
-var dependencies = {
-    entitiesAreVueObservable: false,
-    Model$Model: Model,
-    Model$Type: Type,
-    Model$Property: Property,
-    Model$Entity: Entity,
-};
 var api = VueModel;
 api.SourceRootAdapter = SourceRootAdapter;
 api.SourcePathAdapter = SourcePathAdapter;
 api.SourceIndexAdapter = SourceIndexAdapter;
 // TODO: Implement source-binding mixins
 api.mixins = {
-    SourceProvider: SourceProviderMixin(dependencies),
-    SourceConsumer: SourceConsumerMixin(dependencies),
+    SourceProvider: SourceProviderMixin,
+    SourceConsumer: SourceConsumerMixin,
 };
 api.install = function install(Vue) {
-    return VueModel$installPlugin(Vue, dependencies);
+    ensureVueInternalTypes(Vue);
+    return VueModel$installPlugin(Vue);
 };
 
 module.exports = api;

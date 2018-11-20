@@ -1,12 +1,8 @@
 import Vue from "vue";
 import { hasOwnProperty, debug } from "./helpers";
-import { Entity, EntityConstructor } from "../lib/model.js/src/entity";
+import { Entity } from "../lib/model.js/src/entity";
 import { SourceAdapter, isSourceAdapter, isSourcePropertyAdapter } from "./source-adapter";
 import { Vue$proxy } from "./vue-helpers";
-
-export interface SourceBindingDependencies {
-    Model$Entity: EntityConstructor;
-}
 
 export function proxySourceAdapterPropertiesOntoComponentInstance(vm: Vue, rootKey: string, force: boolean = false, overwrite: boolean = false) {
 
@@ -75,11 +71,9 @@ export function defineDollarSourceProperty(vm: Vue, sourceAdapter: SourceAdapter
 
 }
 
-export function getImplicitSource(vm: Vue, dependencies: SourceBindingDependencies, detect: boolean = false): Entity | SourceAdapter<any> {
+export function getImplicitSource(vm: Vue, detect: boolean = false): Entity | SourceAdapter<any> {
 
     let vm$private = vm as any;
-
-    let Model$Entity = dependencies.Model$Entity;
 
     if (hasOwnProperty(vm, '$source')) {
         // Source is explicit and has been established
@@ -91,7 +85,7 @@ export function getImplicitSource(vm: Vue, dependencies: SourceBindingDependenci
         if (typeof source === "string") {
             // Source is explicit (but has not been established)
             return null;
-        } else if (source instanceof Model$Entity) {
+        } else if (source instanceof Entity) {
             // An entity was previously flagged as a potential implicit source
             return source as Entity;
         } else if (isSourceAdapter(source)) {
@@ -106,7 +100,7 @@ export function getImplicitSource(vm: Vue, dependencies: SourceBindingDependenci
     if (detect) {
         let data = vm$private._data;
         if (data) {
-            if (data instanceof Model$Entity) {
+            if (data instanceof Entity) {
                 debug("Found implicit source as data of type <" + (data as Entity).meta.type.fullName + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
                 vm$private._source = data;
                 return data;
@@ -119,7 +113,7 @@ export function getImplicitSource(vm: Vue, dependencies: SourceBindingDependenci
 
         if (vm$private._entity) {
             let entity = vm$private._entity;
-            if (entity instanceof Model$Entity) {
+            if (entity instanceof Entity) {
                 // Mark the entity as a potential implicit source
                 debug("Found implicit source as pending entity of type <" + (entity as Entity).meta.type.fullName + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
                 vm$private._source = entity;
@@ -130,12 +124,10 @@ export function getImplicitSource(vm: Vue, dependencies: SourceBindingDependenci
 
 }
 
-export function getSourceBindingContainer(vm: Vue, dependencies: SourceBindingDependencies, detectImplicitSource: boolean = false): Vue {
+export function getSourceBindingContainer(vm: Vue, detectImplicitSource: boolean = false): Vue {
 
     let firstImplicitSourceVm: Vue = null;
     let firstImplicitSourceVmLevel = -1;
-
-    let Model$Entity = dependencies.Model$Entity;
 
     for (let parentVm: Vue = vm.$parent, parentLevel = 1; parentVm != null; parentVm = parentVm.$parent, parentLevel += 1) {
 
@@ -155,7 +147,7 @@ export function getSourceBindingContainer(vm: Vue, dependencies: SourceBindingDe
 
             return parentVm;
         } else if (detectImplicitSource) {
-            let implicitSource = getImplicitSource(parentVm, dependencies, true);
+            let implicitSource = getImplicitSource(parentVm, true);
             if (implicitSource !== undefined && !firstImplicitSourceVm) {
                 firstImplicitSourceVm = parentVm;
                 firstImplicitSourceVmLevel = parentLevel;
@@ -164,8 +156,8 @@ export function getSourceBindingContainer(vm: Vue, dependencies: SourceBindingDe
     }
 
     if (detectImplicitSource && firstImplicitSourceVm) {
-        let implicitSource = getImplicitSource(firstImplicitSourceVm, dependencies);
-        if (implicitSource instanceof Model$Entity) {
+        let implicitSource = getImplicitSource(firstImplicitSourceVm);
+        if (implicitSource instanceof Entity) {
             debug("Found implicit source on level " + firstImplicitSourceVmLevel + " parent component of type <" + ((firstImplicitSourceVm as any).$options._componentTag || "???") + ">.");
             return firstImplicitSourceVm;
         }

@@ -1,31 +1,9 @@
-import Vue from "vue";
-import { VueConstructor, ObserverConstructor, DepConstructor } from "./vue-internals";
-import { VueModel$makeEntitiesVueObservable, EntityObserverDependencies, Entity$getObserver } from "./entity-observer";
-import { preprocessDataToInterceptEntities, restoreComponentEntityData, VuePluginEntitiesDependencies } from "./vue-plugin-entities";
-import { TypeConstructor } from "../lib/model.js/src/type";
-import { EntityConstructor } from "../lib/model.js/src/entity";
+import Vue, { VueConstructor } from "vue";
+import { makeEntitiesVueObservable, getEntityObserver } from "./entity-observer";
+import { preprocessDataToInterceptEntities, restoreComponentEntityData } from "./vue-plugin-entities";
+import { Entity } from "../lib/model.js/src/entity";
 
-export interface VuePluginDependencies {
-    entitiesAreVueObservable: boolean;
-    Model$Entity: EntityConstructor;
-    Model$Type: TypeConstructor;
-    Vue$Observer?: ObserverConstructor;
-    Vue$Dep?: DepConstructor;
-}
-
-function interceptInternalTypes(obj: any, dependencies: VuePluginDependencies) {
-
-    if (!dependencies.Vue$Observer && obj.__ob__) {
-        dependencies.Vue$Observer = obj.__ob__.constructor;
-    }
-
-    if (!dependencies.Vue$Dep && obj.__ob__ && obj.__ob__.dep) {
-        dependencies.Vue$Dep = obj.__ob__.dep.constructor;
-    }
-
-}
-
-export function VueModel$installPlugin(Vue: VueConstructor, dependencies: VuePluginDependencies) {
+export function VueModel$installPlugin(Vue: VueConstructor) {
 
     Vue.mixin({
         beforeCreate: function VueModel$Plugin$beforeCreate() {
@@ -35,14 +13,8 @@ export function VueModel$installPlugin(Vue: VueConstructor, dependencies: VuePlu
             if (vm.$options.data) {
                 // Intercept data that is an entity or data function that returns an entity
                 // so that this plugin can make the entity observable and create proxy properties
-                preprocessDataToInterceptEntities(vm, dependencies);
+                preprocessDataToInterceptEntities(vm);
             }
-
-            // if (vm.$options.propsData) {
-            //     // Intercept the `source` prop so that it can be marked as having a source
-            //     // and lazily evaluated if needed, or detected by other components
-            //     preprocessPropsToInterceptSource(vm);
-            // }
 
         },
         created: function VueModel$Plugin$created() {
@@ -51,46 +23,21 @@ export function VueModel$installPlugin(Vue: VueConstructor, dependencies: VuePlu
 
             let vm$private: any = vm as any;
 
-            if (vm$private._data) {
-                interceptInternalTypes(vm$private._data, dependencies);
-            }
-
             if (vm$private._entity) {
-                interceptInternalTypes(vm$private._entity, dependencies);
+                let entity = vm$private._entity as Entity;
 
-                if (!dependencies.entitiesAreVueObservable) {
+                if (!(entity.meta.type.model as any)._entitiesAreVueObservable) {
                     // Ensure that Model entities are observable objects compatible with Vue's observer
-                    VueModel$makeEntitiesVueObservable(vm$private._entity.meta.type.model, dependencies as EntityObserverDependencies);
+                    makeEntitiesVueObservable(vm$private._entity.meta.type.model);
                 }
 
-                Entity$getObserver(vm$private._entity, dependencies as EntityObserverDependencies, true).ensureObservable();
+                getEntityObserver(vm$private._entity, true).ensureObservable();
 
                 // Restore the data by attempting to emulate what would have happened to
                 // the `data` object had it gone through normal component intialization
-                restoreComponentEntityData(vm, (dependencies as any) as VuePluginEntitiesDependencies);
+                restoreComponentEntityData(vm);
 
             }
-
-            // if (isSourceAdapter(vm$private._data)) {
-            //     let sourceAdapter = vm$private._data as SourceAdapter<any>;
-
-            //     // Define the `$source` property if not already defined
-            //     defineDollarSourceProperty(vm, sourceAdapter);
-
-            //     // TODO: Who wins, props or data?
-            //     // Vue proxies the data objects `Object.keys()` onto the component itself,
-            //     // so that the data objects properties can be used directly in templates
-            //     proxySourceAdapterPropertiesOntoComponentInstance(vm, '_data', false, false);
-            // }
-
-            // Handle computed `source` property that is of type `SourceAdapter`?
-
-            // if (vm.$options.propsData) {
-            //     let props = vm.$options.propsData as any;
-            //     if (hasOwnProperty(props, 'source')) {
-            //         establishBindingSource(vm, dependencies as VuePluginSourceBindingDependencies);
-            //     }
-            // }
 
         }
     });

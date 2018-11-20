@@ -1,24 +1,14 @@
 import Vue from "vue";
 import { Entity } from "../lib/model.js/src/entity";
-import { EntityConstructor } from "../lib/model.js/src/entity";
 import { debug, hasOwnProperty } from "./helpers";
 import { Vue$isReserved, Vue$proxy } from "./vue-helpers";
-import { ObserveEntityMethod } from "./entity-observer";
-import { VuePluginDependencies } from "./vue-plugin";
+import { observeEntity } from "./entity-observer";
 
-export interface VuePluginEntitiesDependencies {
-    entitiesAreVueObservable: boolean;
-    Model$Entity: EntityConstructor;
-    VueModel$observeEntity: ObserveEntityMethod;
-}
-
-function replaceEntityData(vm: Vue, data: any, dependencies: VuePluginDependencies){
-
-    let Model$Entity = dependencies.Model$Entity;
+function replaceEntityData(vm: Vue, data: any){
 
     let vm$private = vm as any;
 
-    if (data != null && data instanceof Model$Entity) {
+    if (data != null && data instanceof Entity) {
         debug("Data is an entity, returning empty object...");
         vm$private._entity = data;
         return {};
@@ -28,7 +18,7 @@ function replaceEntityData(vm: Vue, data: any, dependencies: VuePluginDependenci
 
 }
 
-export function preprocessDataToInterceptEntities(vm: Vue, dependencies: VuePluginDependencies){
+export function preprocessDataToInterceptEntities(vm: Vue){
 
     if (!vm.$options.data) {
         return;
@@ -40,14 +30,11 @@ export function preprocessDataToInterceptEntities(vm: Vue, dependencies: VuePlug
         debug("Data is a function...wrapping to intercept the return value...");
         var dataFn = vm.$options.data;
         vm.$options.data = function () {
-            return replaceEntityData(vm, dataFn.apply(this, arguments), dependencies);
+            return replaceEntityData(vm, dataFn.apply(this, arguments));
         };
     } else {
-        let entitiesAreVueObservable = dependencies.entitiesAreVueObservable;
-        if (!entitiesAreVueObservable) {
-            // Don't let Vue from getting an Entity prior to setting up Entity observability
-            vm.$options.data = replaceEntityData(vm, vm.$options.data, dependencies);
-        }
+        // Don't let Vue from getting an Entity prior to setting up Entity observability
+        vm.$options.data = replaceEntityData(vm, vm.$options.data);
     }
 
 }
@@ -71,9 +58,7 @@ export function proxyEntityPropertiesOntoComponentInstance(vm: Vue, entity: Enti
     }
 }
 
-export function restoreComponentEntityData(vm: Vue, dependencies: VuePluginEntitiesDependencies) {
-
-    let VueModel$observeEntity = dependencies.VueModel$observeEntity;
+export function restoreComponentEntityData(vm: Vue) {
 
     let vm$private: any = vm as any;
 
@@ -88,7 +73,7 @@ export function restoreComponentEntityData(vm: Vue, dependencies: VuePluginEntit
 
     // The internal `observe()` method basically makes the given object observable,
     // (entities should already be at this point) but it also updates a `vmCount` counter
-    VueModel$observeEntity(vm$private._entity, true);
+    observeEntity(vm$private._entity, true);
 
     // Null out the field now that we've finished preparing the entity
     vm$private._entity = null;
