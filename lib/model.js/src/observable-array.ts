@@ -459,11 +459,15 @@ export function ObservableArray$sort<ItemType>(this: ObservableArrayImplementati
  */
 export function ObservableArray$splice<ItemType>(this: ObservableArrayImplementation<ItemType>, start: number, deleteCount?: number, ...items: ItemType[]): ItemType[] {
 	let removed: ItemType[] = Array.prototype.splice.apply(this, arguments);
-	if (removed.length > 0) {
-		this.__ob__.raiseEvents(
-			{ type: ArrayChangeType.remove, startIndex: start, endIndex: start + removed.length - 1, items: removed },
-			{ type: ArrayChangeType.add, startIndex: start, endIndex: start + items.length - 1, items }
-		);
+	if (removed.length > 0 || items.length > 0) {
+		let changeEvents: ArrayChange<ItemType>[] = [];
+		if (removed.length > 0) {
+			changeEvents.push({ type: ArrayChangeType.remove, startIndex: start, endIndex: start + removed.length - 1, items: removed });
+		}
+		if (items.length > 0) {
+			changeEvents.push({ type: ArrayChangeType.add, startIndex: start, endIndex: start + items.length - 1, items });
+		}
+		this.__ob__.raiseEvents(changeEvents);
 	}
 	return removed;
 }
@@ -507,14 +511,20 @@ export class ArrayObserver<ItemType> {
 		this._isQueuingChanges = false;
 	}
 
-	raiseEvents(...changes: ArrayChange<ItemType>[]): void {
+	raiseEvents(changes: ArrayChange<ItemType>[] | ArrayChange<ItemType>): void {
 		if (this._isQueuingChanges) {
 			if (!this._queuedChanges) {
 				this._queuedChanges = [];
 			}
-			Array.prototype.push.apply(this._queuedChanges, changes);
-		} else {
+			if (Array.isArray(changes)) {
+				Array.prototype.push.apply(this._queuedChanges, changes);
+			} else {
+				this._queuedChanges.push(changes);
+			}
+		} else if (Array.isArray(changes)) {
 			this.changedEvent.publish(this.array, { changes: changes });
+		} else {
+			this.changedEvent.publish(this.array, { changes: [changes] });
 		}
 	}
 
@@ -528,7 +538,7 @@ export class ArrayObserver<ItemType> {
 	stopQueueingChanges(raiseEvents: boolean): void {
 		this._isQueuingChanges = false;
 		if (raiseEvents) {
-			this.raiseEvents(...this._queuedChanges);
+			this.raiseEvents(this._queuedChanges);
 			delete this._queuedChanges;
 		}
 	}
@@ -568,7 +578,7 @@ function observableSplice(arr: any[], events: any[], index: number, removeCount:
 		} else {
 			var addItemsArgs = addItems.slice();
 			addItemsArgs.splice(0, 0, index, 0);
-			Array.prototype.splice.apply(arr, addItemsArgs);
+			arr.splice.apply(arr, addItemsArgs);
 		}
 
 		if (events) {

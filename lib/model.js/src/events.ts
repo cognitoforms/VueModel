@@ -26,6 +26,7 @@ export interface EventPublisher<This, EventArgsType> extends EventSubscriber<Thi
 }
 
 export interface ContextualEventRegistration<This, EventArgsType, TContext> {
+	registeredHandler: EventHandler<This, EventArgsType>;
 	handler: EventHandler<This, EventArgsType>;
 	context?: TContext;
 }

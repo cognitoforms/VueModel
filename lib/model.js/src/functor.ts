@@ -24,6 +24,8 @@ export function Functor$create(returns: boolean = false): Functor & Function {
 
 	var funcs: FunctorItem[] = [];
 
+	// TODO: Detect functor invocation resulting in continually adding subscribers
+
 	function Functor$fn() {
 		let returnsArray: Array<any>;
 

@@ -25,7 +25,9 @@ export class PropertyChain {
 	readonly _properties: Property[];
 	readonly _propertyFilters: ((obj: Entity) => boolean)[];
 	readonly _propertyAccessSubscriptions: ContextualEventRegistration<Entity, PropertyAccessEventArgs, Entity>[];
+	readonly _propertyChainAccessSubscriptions: ContextualEventRegistration<Entity, PropertyChainAccessEventArgs, Entity>[];
 	readonly _propertyChangeSubscriptions: ContextualEventRegistration<Entity, PropertyChangeEventArgs, Entity>[];
+	readonly _propertyChainChangeSubscriptions: ContextualEventRegistration<Entity, PropertyChainChangeEventArgs, Entity>[];
 	readonly _events: PropertyChainEvents;
 
 	private _path: string;
@@ -39,7 +41,9 @@ export class PropertyChain {
 		Object.defineProperty(this, "_properties", { value: properties });
 		Object.defineProperty(this, "_propertyFilters", { value: filters || new Array(properties.length) });
 		Object.defineProperty(this, "_propertyAccessSubscriptions", { value: [] });
+		Object.defineProperty(this, "_propertyChainAccessSubscriptions", { value: [] });
 		Object.defineProperty(this, "_propertyChangeSubscriptions", { value: [] });
+		Object.defineProperty(this, "_propertyChainChangeSubscriptions", { value: [] });
 
 		Object.defineProperty(this, "_events", { value: new PropertyChainEvents() });
 	}
@@ -586,7 +590,7 @@ function updatePropertyAccessSubscriptions(chain: PropertyChain, props: (Propert
 			var priorProp = (index === 0) ? undefined : props[index - 1];
 			let handler = function (this: Entity, args: PropertyAccessEventArgs) { onPropertyChainStepAccessed(chain, priorProp, this, args) };
 			prop._events.accessedEvent.subscribe(handler);
-			subscriptions.push({ handler: handler });
+			subscriptions.push({ registeredHandler: handler, handler });
 		}, chain);
 	}
 }
@@ -595,8 +599,13 @@ export function PropertyChain$_addAccessedHandler(chain: PropertyChain, handler:
 
 	let propertyAccessFilters = Functor$create(true) as FunctorWith1Arg<Entity, boolean> & ((entity: Entity) => boolean[]);
 
+	let context: Entity = null;
+
+	let filteredHandler: (this: Entity, args: EventObject & PropertyChainAccessEventArgs) => void = null;
+
 	if (obj) {
 		propertyAccessFilters.add((entity) => entity === obj);
+		context = obj;
 	}
 
 	// TODO: Implement partial access tolerance if implementing lazy loading...
@@ -605,13 +614,25 @@ export function PropertyChain$_addAccessedHandler(chain: PropertyChain, handler:
 
 	updatePropertyAccessSubscriptions(chain, chain._properties, chain._propertyAccessSubscriptions);
 
-	chain._events.accessedEvent.subscribe(function (args) {
+	filteredHandler = function (args) {
 		let filterResults = propertyAccessFilters(args.entity);
 		if (!filterResults.some(b => !b)) {
 			handler.call(this, args);
 		}
-	});
+	};
 
+	chain._events.accessedEvent.subscribe(filteredHandler);
+
+	chain._propertyChainAccessSubscriptions.push({ registeredHandler: filteredHandler, handler, context });
+
+}
+
+export function PropertyChain$_removeAccessedHandler(chain: PropertyChain, handler: PropertyChainAccessEventHandler, obj: Entity = null, toleratePartial: boolean): void {
+	chain._propertyAccessSubscriptions.forEach(sub => {
+		if (handler === sub.handler && ((!obj && !sub.context) || (obj && obj === sub.context))) {
+			chain._events.accessedEvent.unsubscribe(sub.registeredHandler);
+		}
+	});
 }
 
 function onPropertyChainStepChanged(chain: PropertyChain, priorProp: Property, entity: Entity, args: PropertyChangeEventArgs) {
@@ -644,7 +665,7 @@ function updatePropertyChangeSubscriptions(chain: PropertyChain, props: Property
 
 	if (!chainEventSubscriptionsExist && subscribedToPropertyChanges) {
 		// If there are no more subscribers then unsubscribe from property-level events
-		props.forEach((prop: Property, index: number) => prop.changed.unsubscribe(subscriptions[index].handler));
+		props.forEach((prop: Property, index: number) => prop.changed.unsubscribe(subscriptions[index].registeredHandler));
 		subscriptions.length = 0;
 	}
 
@@ -655,7 +676,7 @@ function updatePropertyChangeSubscriptions(chain: PropertyChain, props: Property
 			var priorProp = (index === 0) ? undefined : props[index - 1];
 			let handler = function (this: Entity, args: PropertyChangeEventArgs) { onPropertyChainStepChanged(chain, priorProp, this, args) };
 			prop.changed.subscribe(handler);
-			subscriptions.push({ handler: handler });
+			subscriptions.push({ registeredHandler: handler, handler });
 		}, chain);
 	}
 }
@@ -666,8 +687,13 @@ export function PropertyChain$_addChangedHandler(chain: PropertyChain, handler: 
 
 	let propertyChangeFilters = Functor$create(true) as FunctorWith1Arg<Entity, boolean> & ((entity: Entity) => boolean[]);
 
+	let context: Entity;
+
+	let filteredHandler: (this: Entity, args: EventObject & PropertyChainChangeEventArgs) => void = null;
+
 	if (obj) {
 		propertyChangeFilters.add((entity) => entity === obj);
+		context = obj;
 	}
 
 	/*
@@ -707,11 +733,23 @@ export function PropertyChain$_addChangedHandler(chain: PropertyChain, handler: 
 
 	updatePropertyChangeSubscriptions(chain, chain._properties, chain._propertyChangeSubscriptions);
 
-	chain._events.changedEvent.subscribe(function (args) {
+	filteredHandler = function (args) {
 		let filterResults = propertyChangeFilters(args.entity);
 		if (!filterResults.some(b => !b)) {
 			handler.call(this, args);
 		}
-	});
+	};
 
+	chain._events.changedEvent.subscribe(filteredHandler);
+
+	chain._propertyChainChangeSubscriptions.push({ registeredHandler: filteredHandler, handler, context });
+
+}
+
+export function PropertyChain$_removeChangedHandler(chain: PropertyChain, handler: PropertyChainChangeEventHandler, obj: Entity = null, toleratePartial: boolean): void {
+	chain._propertyChangeSubscriptions.forEach(sub => {
+		if (handler === sub.handler && ((!obj && !sub.context) || (obj && obj === sub.context))) {
+			chain._events.changedEvent.unsubscribe(sub.registeredHandler);
+		}
+	});
 }

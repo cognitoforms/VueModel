@@ -2,7 +2,7 @@ import { Event, EventObject, EventSubscriber, ContextualEventRegistration } from
 import { Entity, EntityConstructorForType } from "./entity";
 import { Format } from "./format";
 import { Type } from "./type";
-import { PropertyChain$_addChangedHandler, PropertyChain$_addAccessedHandler, PropertyChain, PropertyChainAccessEventHandler, PropertyChainChangeEventHandler } from "./property-chain";
+import { PropertyChain$_addAccessedHandler, PropertyChain$_removeAccessedHandler, PropertyChain$_addChangedHandler, PropertyChain$_removeChangedHandler, PropertyChain, PropertyChainAccessEventHandler, PropertyChainChangeEventHandler } from "./property-chain";
 import { getTypeName, getDefaultValue, parseFunctionName, toTitleCase, ObjectLiteral, merge } from "./helpers";
 import { ObservableArray, updateArray } from "./observable-array";
 import { RuleRegisteredEventArgs, Rule } from "./rule";
@@ -81,6 +81,10 @@ export class Property {
 
 	get accessed(): EventSubscriber<Entity, PropertyAccessEventArgs> {
 		return this._events.accessedEvent.asEventSubscriber();
+	}
+
+	get ruleRegistered(): EventSubscriber<Property, RuleRegisteredEventArgs> {
+		return this._events.ruleRegisteredEvent.asEventSubscriber();
 	}
 
 	getPath(): string {
@@ -651,25 +655,32 @@ function Property$_makeSetter(prop: Property, setter: PropertySetMethod, skipTyp
 
 function Property$_addAccessedHandler(prop: Property, handler: (this: Entity, args: EventObject & PropertyAccessEventArgs) => void, obj: Entity = null): void {
 	
-	let property = prop as Property;
-
 	let context: Entity = null;
 
+	let filteredHandler: (this: Entity, args: EventObject & PropertyAccessEventArgs) => void = null;
+
 	if (obj) {
-		let innerHandler = handler;
-		handler = function(this: Entity, args: PropertyAccessEventArgs) {
+		filteredHandler = function(this: Entity, args: PropertyAccessEventArgs) {
 			if (args.entity === obj) {
-				innerHandler.call(this, args);
+				handler.call(this, args);
 			}
 		};
 
 		context = obj;
 	}
 
-	property._events.accessedEvent.subscribe(handler);
+	prop._events.accessedEvent.subscribe(filteredHandler || handler);
 
-	property._propertyAccessSubscriptions.push({ handler, context });
+	prop._propertyAccessSubscriptions.push({ registeredHandler: filteredHandler || handler, handler, context });
 
+}
+
+function Property$_removeAccessedHandler(prop: Property, handler: (this: Entity, args: EventObject & PropertyAccessEventArgs) => void, obj: Entity = null): void {
+	prop._propertyAccessSubscriptions.forEach(sub => {
+		if (handler === sub.handler && ((!obj && !sub.context) || (obj && obj === sub.context))) {
+			prop._events.accessedEvent.unsubscribe(sub.registeredHandler);
+		}
+	});
 }
 
 export function Property$addAccessed(prop: Property | PropertyChain, handler: PropertyAccessEventHandler | PropertyChainAccessEventHandler, obj: Entity = null, toleratePartial: boolean = false): void {
@@ -682,27 +693,45 @@ export function Property$addAccessed(prop: Property | PropertyChain, handler: Pr
 	}
 }
 
-function Property$_addChangedHandler(prop: Property, handler: (this: Entity, args: EventObject & PropertyChangeEventArgs) => void, obj: Entity = null): void {
+export function Property$removeAccessed(prop: Property | PropertyChain, handler: PropertyAccessEventHandler | PropertyChainAccessEventHandler, obj: Entity = null, toleratePartial: boolean = false): void {
+	if (prop instanceof Property) {
+		Property$_removeAccessedHandler(prop, handler as PropertyAccessEventHandler, obj);
+	} else if (prop instanceof PropertyChain) {
+		PropertyChain$_removeAccessedHandler(prop as any, handler as PropertyChainAccessEventHandler, obj, toleratePartial);
+	} else {
+		throw new Error("Invalid property passed to `Property$removeAccessed(prop)`.");
+	}
+}
 
-	let property = prop as Property;
+function Property$_addChangedHandler(prop: Property, handler: (this: Entity, args: EventObject & PropertyChangeEventArgs) => void, obj: Entity = null): void {
 
 	let context: Entity = null;
 
+	let filteredHandler: (this: Entity, args: EventObject & PropertyChangeEventArgs) => void = null;
+
 	if (obj) {
-		let innerHandler = handler;
-		handler = function (this: Entity, args: PropertyChangeEventArgs) {
+		filteredHandler = function (this: Entity, args: PropertyChangeEventArgs) {
 			if (args.entity === obj) {
-				innerHandler.call(this, args);
+				handler.call(this, args);
 			}
 		};
 
 		context = obj;
 	}
 
-	property._events.changedEvent.subscribe(handler);
 
-	(prop as any)._propertyChangeSubscriptions.push({ handler, context });
+	prop._events.changedEvent.subscribe(filteredHandler || handler);
 
+	prop._propertyChangeSubscriptions.push({ registeredHandler: filteredHandler || handler, handler, context });
+
+}
+
+function Property$_removeChangedHandler(prop: Property, handler: (this: Entity, args: EventObject & PropertyChangeEventArgs) => void, obj: Entity = null): void {
+	prop._propertyChangeSubscriptions.forEach(sub => {
+		if (handler === sub.handler && ((!obj && !sub.context) || (obj && obj === sub.context))) {
+			prop._events.changedEvent.unsubscribe(sub.registeredHandler);
+		}
+	});
 }
 
 // starts listening for change events along the property chain on any known instances. Use obj argument to
@@ -712,6 +741,16 @@ export function Property$addChanged(prop: Property | PropertyChain, handler: Pro
 		Property$_addChangedHandler(prop, handler as PropertyChangeEventHandler, obj);
 	} else if (prop instanceof PropertyChain) {
 		PropertyChain$_addChangedHandler(prop as any, handler as PropertyChainChangeEventHandler, obj, toleratePartial);
+	} else {
+		throw new Error("Invalid property passed to `Property$addChanged(prop)`.");
+	}
+}
+
+export function Property$removeChanged(prop: Property | PropertyChain, handler: PropertyChangeEventHandler | PropertyChainChangeEventHandler, obj: Entity = null, toleratePartial: boolean = false) {
+	if (prop instanceof Property) {
+		Property$_removeChangedHandler(prop, handler as PropertyChangeEventHandler, obj);
+	} else if (prop instanceof PropertyChain) {
+		PropertyChain$_removeChangedHandler(prop as any, handler as PropertyChainChangeEventHandler, obj, toleratePartial);
 	} else {
 		throw new Error("Invalid property passed to `Property$addChanged(prop)`.");
 	}
