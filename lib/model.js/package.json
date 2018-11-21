@@ -1,5 +1,5 @@
 {
-  "version": "0.0.21",
+  "version": "0.0.22",
   "name": "model.js",
   "license": "MIT",
   "main": "dist/model.cjs.js",

@@ -1,7 +1,7 @@
 import { Model, ModelNamespace } from "./model";
 import { Entity, EntityConstructorForType, EntityDestroyEventArgs, EntityInitNewEventArgs, EntityInitExistingEventArgs, EntityConstructor } from "./entity";
 import { Property, Property$_generateStaticProperty, Property$_generatePrototypeProperty, Property$_generateOwnProperty, Property$_generateShortcuts } from "./property";
-import { navigateAttribute, getTypeName, parseFunctionName, ensureNamespace } from "./helpers";
+import { navigateAttribute, getTypeName, parseFunctionName, ensureNamespace, getGlobalObject } from "./helpers";
 import { ObjectMeta } from "./object-meta";
 import { Event, EventSubscriber } from "./events";
 import { ObservableArray } from "./observable-array";
@@ -17,7 +17,7 @@ export class Type {
 	// changed without fundamentally changing what it represents
 	readonly model: Model;
 	readonly fullName: string;
-	readonly ctor: EntityConstructorForType<Entity>;
+	readonly jstype: EntityConstructorForType<Entity>;
 	readonly baseType: Type;
 
 	// Public settable properties that are simple values with no side-effects or logic
@@ -41,7 +41,7 @@ export class Type {
 		// Public read-only properties
 		Object.defineProperty(this, "model", { enumerable: true, value: model });
 		Object.defineProperty(this, "fullName", { enumerable: true, value: fullName });
-		Object.defineProperty(this, "ctor", { enumerable: true, value: Type$_generateConstructor(this, fullName, baseType) });
+		Object.defineProperty(this, "jstype", { enumerable: true, value: Type$_generateConstructor(this, fullName, baseType, model.settings.useGlobalObject ? getGlobalObject() : null) });
 		Object.defineProperty(this, "baseType", { enumerable: true, value: baseType });
 	
 		// Public settable properties
@@ -259,18 +259,18 @@ export class Type {
 		// TODO: Implement static and instance property storage?
 		// (isStatic ? this._staticProperties : this._instanceProperties)[name] = property;
 
-		Property$_generateShortcuts(property, property.containingType.ctor);
+		Property$_generateShortcuts(property, property.containingType.jstype);
 
 		if (property.isStatic) {
-			Property$_generateStaticProperty(property, this.ctor);
+			Property$_generateStaticProperty(property, this.jstype);
 		} else if (this.model.settings.createOwnProperties === true) {
 			for (var id in this._pool) {
 				if (Object.prototype.hasOwnProperty.call(this._pool, id)) {
 					Property$_generateOwnProperty(property, this._pool[id]);
-			}
+				}
 			}
 		} else {
-			Property$_generatePrototypeProperty(property, this.ctor.prototype);
+			Property$_generatePrototypeProperty(property, this.jstype.prototype);
 		}
 
 		this.model._events.propertyAddedEvent.publish(this.model, { property });
@@ -392,17 +392,19 @@ function Type$_validateId(this: Type, id: string) {
 // TODO: Get rid of disableConstruction?
 let disableConstruction: boolean = false;
 
-export function Type$_generateConstructor(type: Type, fullName: string, baseType: Type = null) {
+export function Type$_generateConstructor(type: Type, fullName: string, baseType: Type = null, global: any = null) {
 
 	// Create namespaces as needed
 	let nameTokens: string[] = fullName.split("."),
 		token: string = nameTokens.shift(),
 		namespaceObj: ModelNamespace = type.model._allTypesRoot,
-		globalObj: any = window;
+		globalObj: any = global;
 
 	while (nameTokens.length > 0) {
 		namespaceObj = ensureNamespace(token, namespaceObj);
-		globalObj = ensureNamespace(token, globalObj);
+		if (global) {
+			globalObj = ensureNamespace(token, globalObj);
+		}
 		token = nameTokens.shift();
 	}
 
@@ -481,29 +483,31 @@ export function Type$_generateConstructor(type: Type, fullName: string, baseType
 		namespaceObj['$' + finalName] = ctor;
 	}
 
-	// If the global object already contains a type with this name, append a '$' to the name
-	if (!globalObj[finalName]) {
-		globalObj[finalName] = ctor;
-	} else {
-		globalObj['$' + finalName] = ctor;
+	if (global) {
+		// If the global object already contains a type with this name, append a '$' to the name
+		if (!globalObj[finalName]) {
+			globalObj[finalName] = ctor;
+		} else {
+			globalObj['$' + finalName] = ctor;
+		}
 	}
 
 	// Setup inheritance
 
-	let baseCtor: EntityConstructor;
+	let baseConstructor: EntityConstructor;
 
 	if (baseType) {
-		baseCtor = baseType.ctor;
+		baseConstructor = baseType.jstype;
 		// // TODO: Implement `inheritBaseTypePropShortcuts`
 		// // inherit all shortcut properties that have aleady been defined
 		// inheritBaseTypePropShortcuts(ctor, baseType);
 	} else {
-		baseCtor = Entity;
+		baseConstructor = Entity;
 	}
 
 	disableConstruction = true;
 
-	ctor.prototype = new baseCtor();
+	ctor.prototype = new baseConstructor();
 
 	disableConstruction = false;
 

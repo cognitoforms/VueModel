@@ -435,10 +435,10 @@ export function PropertyChain$create(rootType: Type, pathTokens: PathTokens /*, 
 				return null;
 			}
 
-			var ctor = type.ctor;
-			filterTypes[properties.length] = ctor;
+			var jstype = type.jstype;
+			filterTypes[properties.length] = jstype;
 			filters[properties.length] = function (target: Entity) {
-				return target instanceof ctor;
+				return target instanceof jstype;
 			};
 		} else {
 			type = prop.propertyType.meta;

@@ -3,7 +3,7 @@ import { Entity, EntityConstructorForType } from "./entity";
 import { Format } from "./format";
 import { Type } from "./type";
 import { PropertyChain$_addAccessedHandler, PropertyChain$_removeAccessedHandler, PropertyChain$_addChangedHandler, PropertyChain$_removeChangedHandler, PropertyChain, PropertyChainAccessEventHandler, PropertyChainChangeEventHandler } from "./property-chain";
-import { getTypeName, getDefaultValue, parseFunctionName, toTitleCase, ObjectLiteral, merge } from "./helpers";
+import { getTypeName, getDefaultValue, parseFunctionName, toTitleCase, ObjectLookup, merge } from "./helpers";
 import { ObservableArray, updateArray } from "./observable-array";
 import { RuleRegisteredEventArgs, Rule } from "./rule";
 
@@ -159,7 +159,7 @@ export class Property {
 		// for entities check base types as well
 		if (val.constructor && val.constructor.meta) {
 			for (var valType: Type = val.constructor.meta; valType; valType = valType.baseType) {
-				if (valType.ctor === this.propertyType) {
+				if (valType.jstype === this.propertyType) {
 					return true;
 				}
 			}
@@ -209,7 +209,7 @@ export class Property {
 	}
 
 	value(obj: Entity = null, val: any = null, additionalArgs: any = null): any {
-		var target = (this.isStatic ? this.containingType.ctor : obj);
+		var target = (this.isStatic ? this.containingType.jstype : obj);
 
 		if (target === undefined || target === null) {
 			throw new Error(`Cannot ${(arguments.length > 1 ? "set" : "get")} value for ${(this.isStatic ? "" : "non-")}static property \"${this.name}\" on type \"${this.containingType}\": target is null or undefined.`)
@@ -230,7 +230,7 @@ export class Property {
 
 	isInited(obj: Entity): boolean {
 
-		var target = (this.isStatic ? this.containingType.ctor : obj);
+		var target = (this.isStatic ? this.containingType.jstype : obj);
 
 		if (!target.hasOwnProperty(this.fieldName)) {
 			// If the backing field has not been created, then property is not initialized
@@ -454,9 +454,9 @@ export function Property$getRules(property: Property): PropertyRule[] {
 }
 
 export function Property$pendingInit(obj: Entity | EntityConstructorForType<Entity>, prop: Property, value: boolean = null): boolean | void {
-	let pendingInit: ObjectLiteral<boolean>;
+	let pendingInit: ObjectLookup<boolean>;
 
-	var target = (prop.isStatic ? prop.containingType.ctor : obj);
+	var target = (prop.isStatic ? prop.containingType.jstype : obj);
 
 	if (Object.prototype.hasOwnProperty.call(target, "_pendingInit")) {
 		pendingInit = (target as any)._pendingInit;
@@ -473,7 +473,7 @@ export function Property$pendingInit(obj: Entity | EntityConstructorForType<Enti
 	} else {
 		let storageTarget: any;
 		if (prop.isStatic) {
-			storageTarget = prop.containingType.ctor;
+			storageTarget = prop.containingType.jstype;
 		} else {
 			storageTarget = obj;
 		}
@@ -517,7 +517,7 @@ function Property$_getInitialValue(property: Property) {
 }
 
 function Property$_ensureInited(property: Property, obj: Entity) {
-	var target = (property.isStatic ? property.containingType.ctor : obj);
+	var target = (property.isStatic ? property.containingType.jstype : obj);
 
     // Determine if the property has been initialized with a value
     // and initialize the property if necessary

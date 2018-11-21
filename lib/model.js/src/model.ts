@@ -24,8 +24,8 @@ export class Model {
 
 	readonly _fieldNamePrefix: string;
 
-	constructor(createOwnProperties: boolean = undefined) {
-		Object.defineProperty(this, "settings", { configurable: false, enumerable: true, value: new ModelSettings(createOwnProperties), writable: false });
+	constructor(createOwnProperties: boolean = undefined, useGlobalObject: boolean = undefined) {
+		Object.defineProperty(this, "settings", { configurable: false, enumerable: true, value: new ModelSettings(createOwnProperties, useGlobalObject), writable: false });
 
 		Object.defineProperty(this, "_types", { value: {} });
 		Object.defineProperty(this, "_allTypesRoot", { value: {} });
@@ -120,8 +120,12 @@ export class ModelSettings {
 	// which may be noticeable with very large object counts.
 	readonly createOwnProperties: boolean = false;
 
-	constructor(createOwnProperties: boolean = false) {
+	// Don't pollute the window object by default
+	readonly useGlobalObject: boolean = false;
+
+	constructor(createOwnProperties: boolean = false, useGlobalObject: boolean = false) {
 		Object.defineProperty(this, "createOwnProperties", { configurable: false, enumerable: true, value: createOwnProperties, writable: false });
+		Object.defineProperty(this, "useGlobalObject", { configurable: false, enumerable: true, value: useGlobalObject, writable: false });
 	}
 
 }

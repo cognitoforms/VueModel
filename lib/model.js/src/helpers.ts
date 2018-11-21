@@ -1,12 +1,30 @@
 import { Event, EventSubscription } from "./events";
 import { FunctorItem, FunctorWith1Arg } from "./functor";
 
-export function ensureNamespace(name: string, parentNamespace: any) {
-    var result, nsTokens, target = parentNamespace;
+export interface ObjectLiteral {
+	[key: string]: ObjectLiteral | any;
+}
 
-    if (target.constructor === String) {
+export interface ObjectLookup<T> {
+	[key: string]: T;
+}
+
+export function getGlobalObject(): Window | NodeJS.Global | void {
+	if (typeof window === "object" && Object.prototype.toString.call(window) === "[object Window]") {
+		return window;
+	} else if (typeof global === "object") {
+		return global;
+	} else {
+		return null;
+	}
+}
+
+export function ensureNamespace(name: string, parentNamespace: string | ObjectLiteral) {
+    var result, nsTokens, target: any = parentNamespace;
+
+    if (typeof target === "string") {
         nsTokens = target.split(".");
-        target = window;
+        target = getGlobalObject();
         nsTokens.forEach(function (token: string) {
             target = target[token];
 
@@ -15,7 +33,7 @@ export function ensureNamespace(name: string, parentNamespace: any) {
             }
         });
     } else if (target === undefined || target === null) {
-        target = window;
+        target = getGlobalObject();
     }
 
     // create the namespace object if it doesn't exist, otherwise return the existing namespace
@@ -217,10 +235,6 @@ export function getEventSubscriptions<TypeType, EventArgsType>(event: Event<Type
 			return null;
 		}
 	}
-}
-
-export interface ObjectLiteral<T> {
-	[key: string]: T;
 }
 
 export function mixin<T>(ctor: { new(...args: any[]): T }, methods: { [name: string]: (this: T, ...args: any[]) => any }) {

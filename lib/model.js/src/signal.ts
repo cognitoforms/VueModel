@@ -67,7 +67,7 @@ export class Signal {
 }
 
 var setupCallbacks = function setupCallbacks(thisPtr: any, args: any[] = null) {
-	window.setTimeout(function () {
+	setTimeout(function () {
 		var callbacks, maxBatch = isNumber(signalMaxBatchSize) ? signalMaxBatchSize : null;
 		if (maxBatch && pendingSignalTimeouts.length > maxBatch) {
 			// Exceeds max batch size, so only invoke the max number and delay the rest

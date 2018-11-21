@@ -293,7 +293,7 @@ function pendingInvocation(target: Type | ObjectMeta, rule: Rule, value: boolean
 
 function canExecuteRule(rule: Rule, obj: Entity, args: any): boolean {
 	// ensure the rule target is a valid rule root type
-	return obj instanceof rule.rootType.ctor;
+	return obj instanceof rule.rootType.jstype;
 };
 
 function executeRule(rule: Rule, obj: Entity, args: any): void {
