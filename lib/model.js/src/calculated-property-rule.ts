@@ -17,13 +17,13 @@ export class CalculatedPropertyRule extends Rule {
 
 	// Backing fields for properties that are settable and also derived from
 	// other data, calculated in some way, or cannot simply be changed
-	private _calculateFn: string | ((entity: Entity) => any);
+	private _calculateFn: string | ((this: Entity) => any);
 
 	constructor(rootType: Type, name: string, options: RuleOptions & RuleTypeOptions & CalculatedPropertyRuleOptions, skipRegistration: boolean = false) {
 
 		let property: Property;
 		let defaultIfError: any = calculationErrorDefault;
-		let calculateFn: string | ((entity: Entity) => any);
+		let calculateFn: string | ((this: Entity) => any);
 
 		if (!name) {
 			name = options.name;
@@ -87,7 +87,7 @@ export class CalculatedPropertyRule extends Rule {
 			newValue = calculateFn.call(obj);
 		} else {
 			try {
-				newValue = calculateFn.apply(obj);
+				newValue = calculateFn.call(obj);
 			} catch (e) {
 				newValue = this.defaultIfError;
 			}

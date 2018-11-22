@@ -2,11 +2,11 @@ import { Model, ModelNamespace } from "./model";
 import { Entity, EntityConstructorForType, EntityDestroyEventArgs, EntityInitNewEventArgs, EntityInitExistingEventArgs, EntityConstructor } from "./entity";
 import { Property, Property$_generateStaticProperty, Property$_generatePrototypeProperty, Property$_generateOwnProperty, Property$_generateShortcuts } from "./property";
 import { navigateAttribute, getTypeName, parseFunctionName, ensureNamespace, getGlobalObject } from "./helpers";
-import { ObjectMeta } from "./object-meta";
+import { ObjectMeta, ObjectMetaEvents } from "./object-meta";
 import { Event, EventSubscriber } from "./events";
 import { ObservableArray } from "./observable-array";
 import { RuleOptions, Rule } from "./rule";
-import { Format } from "./format";
+import { Format, getFormat } from "./format";
 import { ConditionTargetsChangedEventArgs } from "./condition-target";
 
 export const Type$newIdPrefix = "+c"
@@ -27,12 +27,15 @@ export class Type {
 	// Backing fields for properties that are settable and also derived from
 	// other data, calculated in some way, or cannot simply be changed
 	private _lastId: number;
+	private _format: Format<Entity>;
 	private _known: ObservableArray<Entity>;
 	private readonly _pool: { [id: string]: Entity };
 	private readonly _legacyPool: { [id: string]: Entity }
 	private readonly _derivedTypes: Type[];
 
 	readonly _properties: { [name: string]: Property };
+
+	readonly _formats: { [name: string]: Format<any> };
 
 	readonly _events: TypeEvents;
 
@@ -53,6 +56,7 @@ export class Type {
 		Object.defineProperty(this, "_pool", { enumerable: false, value: {}, writable: false });
 		Object.defineProperty(this, "_legacyPool", { enumerable: false, value: {}, writable: false });
 		Object.defineProperty(this, "_properties", { enumerable: false, value: {}, writable: false });
+		Object.defineProperty(this, "_formats", { configurable: false, enumerable: false, value: {}, writable: false });
 		Object.defineProperty(this, '_derivedTypes', { enumerable: false, value: [], writable: false });
 
 		Object.defineProperty(this, "_events", { value: new TypeEvents() });
@@ -90,6 +94,23 @@ export class Type {
 	// 	if (value.length === 0) throw new Error("Property `Type.newIdPrefix` cannot be empty string");
 	// 	newIdPrefix = "+" + value;
 	// }
+
+	get format(): string | Format<Entity> {
+		if (this._format) {
+			return this._format;
+		}
+		if (this.baseType) {
+			return this.baseType.format;
+		}
+	}
+
+	set format(value: string | Format<Entity>) {
+		if (value && typeof value === "string") {
+			value = getFormat(this.model, this.jstype, value);
+		}
+
+		Object.defineProperty(this, "_format", { configurable: true, enumerable: false, value: value, writable: true });
+	}
 
 	newId() {
 		// Get the next id for this type's heirarchy.
@@ -240,19 +261,18 @@ export class Type {
 	}
 
 	addProperty(name: string, jstype: any, isList: boolean, isStatic: boolean, options: TypePropertyOptions = {}): Property {
-		// TODO: Compile format specifier to format object
-		// let format: Format = null;
-		// if (options.format) {
-		// 	if (typeof(options.format) === "string") {
-		// 		format = getFormat(jstype, options.format);
-		// 	} else if (format.constructor === Format) {
-		// 		format = options.format;
-		// 	} else {
-		// 		// TODO: Warn about format option that is neither Format or string
-		// 	}
-		// }
+		let format: Format<any> = null;
+		if (options.format) {
+			if (typeof(options.format) === "string") {
+				format = getFormat(this.model, jstype, options.format);
+			} else if (format.constructor === Format) {
+				format = options.format;
+			} else {
+				// TODO: Warn about format option that is neither Format or string
+			}
+		}
 
-		var property = new Property(this, name, jstype, options.label, options.helptext, options.format, isList, isStatic, options.isPersisted, options.isCalculated, options.defaultValue);
+		var property = new Property(this, name, jstype, options.label, options.helptext, format, isList, isStatic, options.isPersisted, options.isCalculated, options.defaultValue);
 
 		this._properties[name] = property;
 
@@ -302,8 +322,8 @@ export class Type {
 		return propertiesArray;
 	}
 
-	addRule(optionsOrFunction: ((entity: Entity) => void) | RuleOptions): Rule {
-			
+	addRule(optionsOrFunction: ((this: Entity) => void) | RuleOptions): Rule {
+
 		let options: RuleOptions;
 
 		if (optionsOrFunction) {
@@ -356,7 +376,7 @@ export interface TypeConstructor {
 export interface TypePropertyOptions {
 	label?: string;
 	helptext?: string;
-	format?: Format;
+	format?: string | Format<any>;
 	isPersisted?: boolean;
 	isCalculated?: boolean;
 	defaultValue?: any;

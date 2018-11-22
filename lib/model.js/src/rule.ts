@@ -30,7 +30,8 @@ export class Rule {
 	readonly rootType: Type;
 	readonly name: string;
 
-	executeFn: (entity: Entity) => void;
+	_execute: (this: Entity) => void;
+
 	invocationTypes: RuleInvocationType = 0;
 	predicates: (Property | PropertyChain)[] = [];
 	returnValues: Property[] = [];
@@ -64,7 +65,7 @@ export class Rule {
 			if (thisOptions.returns)
 				this.returns(thisOptions.returns);
 			if (thisOptions.execute instanceof Function)
-				this.executeFn = thisOptions.execute;
+				this._execute = thisOptions.execute;
 		}
 
 		if (!skipRegistration) {
@@ -73,9 +74,9 @@ export class Rule {
 		}
 	}
 
-	execute(entity: Entity): void {
-		if (this.executeFn) {
-			this.executeFn(entity);
+	execute(entity: Entity, ...args: any[]): void {
+		if (this._execute) {
+			this._execute.call(entity);
 		} else {
 			// TODO: Warn about execute function not implemented?
 		}
@@ -223,7 +224,7 @@ export interface RuleOptions {
 	name?: string;
 
 	/** The source property for the allowed values (either a Property or PropertyChain instance or a string property path). */
-	execute?: (entity: Entity) => void;
+	execute?: (this: Entity) => void;
 
 	/** Indicates that the rule should run when an instance of the root type is initialized. */
 	onInit?: boolean;
@@ -252,23 +253,6 @@ export interface RuleRegisteredEventArgs {
 	rule: Rule;
 }
 
-// export function Rule$create(rootType: Type & Type, optionsOrFunction: ((entity: Entity) => void) | RuleOptions): Rule {
-
-// 	let options: RuleOptions;
-
-// 	if (optionsOrFunction) {
-// 		// The options are the function to execute
-// 		if (optionsOrFunction instanceof Function) {
-// 			options = { execute: optionsOrFunction };
-// 		} else {
-// 			options = optionsOrFunction as RuleOptions;
-// 		}
-// 	}
-
-// 	return new Rule(rootType, options.name, options);
-
-// }
-
 function pendingInvocation(target: Type | ObjectMeta, rule: Rule, value: boolean = null): boolean | void {
 	let pendingInvocation: Rule[];
 
@@ -291,14 +275,14 @@ function pendingInvocation(target: Type | ObjectMeta, rule: Rule, value: boolean
 	}
 }
 
-function canExecuteRule(rule: Rule, obj: Entity, args: any): boolean {
+function canExecuteRule(rule: Rule, obj: Entity, eventArgument: any): boolean {
 	// ensure the rule target is a valid rule root type
 	return obj instanceof rule.rootType.jstype;
-};
+}
 
-function executeRule(rule: Rule, obj: Entity, args: any): void {
+function executeRule(rule: Rule, obj: Entity, eventArgument: any): void {
 	// Ensure that the rule can be executed.
-	if (!canExecuteRule(rule, obj, args)) {
+	if (!canExecuteRule(rule, obj, eventArgument)) {
 		// TODO: Warn that rule can't be executed?
 		return;
 	}
@@ -325,7 +309,7 @@ function executeRule(rule: Rule, obj: Entity, args: any): void {
 			}
 		}
 
-		rule.execute.call(rule, obj, args);
+		rule.execute(obj);
 	});
 };
 
@@ -575,7 +559,7 @@ function extractRuleOptions(obj: any): RuleOptions {
 			}
 		} else if (key === 'execute') {
 			if (value instanceof Function) {
-				options.execute = value as (entity: Entity) => void;
+				options.execute = value as (this: Entity) => void;
 				return true;
 			}
 		} else {

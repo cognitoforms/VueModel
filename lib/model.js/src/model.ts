@@ -6,8 +6,9 @@ import { Rule } from "./rule";
 import { PropertyAddedEventArgs, Property } from "./property";
 import { PropertyChain$create, PropertyChain } from "./property-chain";
 import { PathTokens } from "./path-tokens";
+import { Format } from "./format";
 
-export const intrinsicJsTypes = ["Object", "String", "Number", "Boolean", "Date", "TimeSpan", "Array"];
+export const intrinsicJsTypes = ["Object", "String", "Number", "Boolean", "Date", "Array"];
 
 export class Model {
 
@@ -20,6 +21,8 @@ export class Model {
 
 	private _ruleQueue: Rule[];
 
+	readonly _nativeTypeFormats: { [name: string]: { [name: string]: Format<any> } };
+
 	readonly _allTypesRoot: ModelNamespace;
 
 	readonly _fieldNamePrefix: string;
@@ -29,6 +32,7 @@ export class Model {
 
 		Object.defineProperty(this, "_types", { value: {} });
 		Object.defineProperty(this, "_allTypesRoot", { value: {} });
+		Object.defineProperty(this, "_nativeTypeFormats", { configurable: false, enumerable: false, value: {}, writable: false });
 		Object.defineProperty(this, "_fieldNamePrefix", { value: ("_fN" + randomText(3, false, true)) });
 		Object.defineProperty(this, "_events", { value: new ModelEvents() });
 	}

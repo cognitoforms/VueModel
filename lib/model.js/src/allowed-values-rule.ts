@@ -13,7 +13,7 @@ export class AllowedValuesRule extends ValidatedPropertyRule {
 
 	private _source: Property | PropertyChain;
 	private _sourcePath: string;
-	private _sourceFn: string | ((entity: Entity) => any[]);
+	private _sourceFn: string | ((this: Entity) => any[]);
 
 	ignoreValidation: boolean;
 
@@ -33,7 +33,7 @@ export class AllowedValuesRule extends ValidatedPropertyRule {
 
 		let source: Property | PropertyChain;
 		let sourcePath: string;
-		let sourceFn: string | ((entity: Entity) => any[]);
+		let sourceFn: string | ((this: Entity) => any[]);
 	
 		// subscribe to changes to the source property
 		if (options.source) {
@@ -159,10 +159,10 @@ export class AllowedValuesRule extends ValidatedPropertyRule {
 
 			// convert string functions into compiled functions on first execution
 			if (typeof this._sourceFn === "string") {
-				this._sourceFn = (new Function("obj", this._sourceFn)) as (entity: Entity) => any[];
+				this._sourceFn = (new Function(this._sourceFn)) as (this: Entity) => any[];
 			}
 
-			return this._sourceFn.call(obj, obj);
+			return this._sourceFn.call(obj);
 		}
 
 		// Property path-based allowed values
@@ -204,7 +204,7 @@ export interface AllowedValuesRuleOptions {
 	property?: string | Property;
 
 	/** The source property for the allowed values (either a Property or PropertyChain instance or a string property path). */
-	source?: string | Property | PropertyChain | ((entity: Entity) => any[]);
+	source?: string | Property | PropertyChain | ((this: Entity) => any[]);
 
 	ignoreValidation?: boolean;
 

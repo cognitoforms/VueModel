@@ -291,7 +291,7 @@ export class PropertyChain {
 		return this.lastProperty.propertyType;
 	}
 
-	get format(): Format {
+	get format(): Format<any> {
 		return this.lastProperty.format;
 	}
 

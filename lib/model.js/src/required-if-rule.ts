@@ -74,15 +74,15 @@ export class RequiredIfRule extends ValidatedPropertyRule {
 
 		try {
 			isReq = this._isRequired.call(obj);
-		}
-		catch (e) {
+		} catch (e) {
 			isReq = false;
 		}
 
-		if (this.requiredValue)
+		if (this.requiredValue) {
 			return isReq && this.property.value(obj) !== this.requiredValue;
-		else
+		} else {
 			return isReq && !RequiredRule.hasValue(this.property.value(obj));
+		}
 	}
 
 }

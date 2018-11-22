@@ -5,8 +5,8 @@ import { Condition } from "./condition";
 
 export class FormatError {
 
-	message: string;
-	invalidValue: any;
+	readonly message: string;
+	readonly invalidValue: any;
 
 	static _conditionType: ErrorConditionType;
 

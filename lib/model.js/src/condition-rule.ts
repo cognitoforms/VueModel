@@ -10,7 +10,7 @@ export class ConditionRule extends Rule {
 
 	_message: string | ((this: Entity) => string);
 
-	_assert: (obj: Entity) => boolean;
+	_assert: (this: Entity) => boolean;
 
 	// an array of property paths the validation condition should be attached to when asserted, in addition to the target property
 	_properties: Property[];
@@ -97,31 +97,28 @@ export class ConditionRule extends Rule {
 
 	// subclasses may override this function to indicate whether the condition should be asserted
 	assert(obj: Entity): boolean {
+
+		// call assert the root object as "this" if the assertion function was overriden in the constructor
+		if (hasOwnProperty(this, "_assert")) {
+
+			// convert string functions into compiled functions on first execution
+			if (typeof this._assert === "string") {
+				this._assert = (new Function((this.assert as any) as string)) as (this: Entity) => boolean;
+			}
+
+			return this._assert.call(obj);
+		}
+
 		throw new Error("ConditionRule.assert() must be passed into the constructor or overriden by subclasses.");
+
 	}
 
 	// asserts the condition and adds or removes it from the model if necessary
-	execute(obj: Entity, args: any = null) {
+	execute(obj: Entity) {
 
-		var assert;
+		var assert = this.assert(obj);
 
-		// call assert the root object as "this" if the assertion function was overriden in the constructor
-		if (hasOwnProperty(this, "assert")) {
-
-			// convert string functions into compiled functions on first execution
-			if (typeof this.assert === "string") {
-				this.assert = (new Function("obj", (this.assert as any) as string)) as (obj: Entity) => boolean;
-			}
-
-			assert = this.assert.call(obj, obj, args);
-		}
-
-		// otherwise, allow "this" to be the current rule to support subclasses that override assert
-		else {
-			assert = this.assert(obj);
-		}
-
-		let message: ((entity: Entity) => string);
+		let message: ((this: Entity) => string);
 		if (hasOwnProperty(this, "message")) {
 			message = ConditionRule.prototype.getMessage.bind(this);
 		}
@@ -146,10 +143,10 @@ export type ConditionTypeCategory = "Error" | "Warning";
 export interface ConditionRuleOptions {
 
 	// a predicate that returns true when the condition should be asserted
-	assert?: (obj: Entity) => boolean;
+	assert?: (this: Entity) => boolean;
 
 	// a predicate that returns true when the condition should be asserted
-	fn?: (obj: Entity) => boolean;
+	fn?: (this: Entity) => boolean;
 
 	// an array of property paths the validation condition should be attached to when asserted, in addition to the target property
 	properties?: (Property | string)[];

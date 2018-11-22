@@ -51,12 +51,12 @@ export class ConditionType {
 
 	/**
 	* Adds or removes a condition from the model for the specified target if necessary.
-	* @param condition The condition to add/remove
+	* @param condition Whether or not the condition should be present
 	* @param target The target instance
 	* @param properties The properties to attach the condition to
 	* @param message The condition message (or a function to generate the message)
 	*/
-	when(condition: Condition, target: Entity, properties: string[], message: string | ((target: Entity) => string)): Condition | void {
+	when(condition: boolean, target: Entity, properties: string[], message: string | ((target: Entity) => string)): Condition | void {
 
 		// get the current condition if it exists
 		var conditionTarget = target.meta.getCondition(this);

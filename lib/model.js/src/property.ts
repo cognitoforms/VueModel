@@ -25,7 +25,8 @@ export class Property {
 	// Backing fields for properties that are settable and also derived from
 	// other data, calculated in some way, or cannot simply be changed
 	private _label: string;
-	private _format: Format;
+	// TODO: If this was Property<T> then format, and other properties, could leverage generics
+	private _format: Format<any>;
 	private _origin: string;
 	private _defaultValue: any;
 
@@ -37,7 +38,7 @@ export class Property {
 	readonly getter: (args?: any) => any;
 	readonly setter: (value: any, args?: any) => void;
 
-	constructor(containingType: Type, name: string, jstype: any, label: string, helptext: string, format: Format, isList: boolean, isStatic: boolean, isPersisted: boolean, isCalculated: boolean, defaultValue: any = undefined, origin: string = "client") {
+	constructor(containingType: Type, name: string, jstype: any, label: string, helptext: string, format: Format<any>, isList: boolean, isStatic: boolean, isPersisted: boolean, isCalculated: boolean, defaultValue: any = undefined, origin: string = "client") {
 
 		// Public read-only properties
 		Object.defineProperty(this, "containingType", { enumerable: true, value: containingType });
@@ -119,7 +120,7 @@ export class Property {
 		return this._label || toTitleCase(this.name.replace(/([^A-Z]+)([A-Z])/g, "$1 $2"));
 	}
 
-	get format(): Format {
+	get format(): Format<any> {
 		// TODO: Compile format from specifier if needed
 		return this._format;
 	}
@@ -255,7 +256,7 @@ export class Property {
 }
 
 export interface PropertyConstructor {
-	new(containingType: Type, name: string, jstype: any, label: string, helptext: string, format: Format, isList: boolean, isStatic: boolean, isPersisted: boolean, isCalculated: boolean, defaultValue?: any, origin?: string): Property;
+	new(containingType: Type, name: string, jstype: any, label: string, helptext: string, format: Format<any>, isList: boolean, isStatic: boolean, isPersisted: boolean, isCalculated: boolean, defaultValue?: any, origin?: string): Property;
 }
 
 export type PropertyGetMethod = (property: Property, entity: Entity, additionalArgs: any) => any;

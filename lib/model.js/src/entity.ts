@@ -1,5 +1,5 @@
 import { Event, EventSubscriber, EventObject } from "./events";
-import { Format } from "./format";
+import { Format, getFormat } from "./format";
 import { Model$getJsType, Model } from "./model";
 import { Type } from "./type";
 import { ObjectMeta } from "./object-meta";
@@ -83,20 +83,20 @@ export class Entity {
 	}
 
 	toString(format: string): string {
-		let formatter: Format = null;
+		let formatter: Format<Entity> = null;
 		if (format) {
 			// TODO: Use format to convert entity to string
-			// formatter = getFormat(this.constructor, format);
-		}
-		else {
+			formatter = getFormat(this.meta.type.model, this.constructor as EntityConstructorForType<Entity>, format);
+		} else {
 			// TODO: Use format to convert entity to string
-			// formatter = this.meta.type.get_format();
+			formatter = this.meta.type.format as Format<Entity>;
 		}
 
-		if (formatter)
+		if (formatter) {
 			return formatter.convert(this);
-		else
+		} else {
 			return Entity$toIdString(this);
+		}
 	}
 
 }

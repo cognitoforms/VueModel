@@ -8,7 +8,7 @@ export class ValidatedPropertyRule extends ConditionRule implements PropertyRule
 
 	property: Property;
 
-	private _isValid: (obj: Entity, prop: Property, val: any) => boolean;
+	private _isValid: (this: Entity, prop: Property, val: any) => boolean;
 
 	constructor(rootType: Type, options: RuleOptions & ConditionRuleOptions & ValidatedPropertyRuleOptions, skipRegistration: boolean = false) {
 		/// <summary>Creates a rule that validates the value of a property in the model.</summary>
@@ -64,7 +64,7 @@ export class ValidatedPropertyRule extends ConditionRule implements PropertyRule
 
 		// call the base rule constructor
 		super(rootType, options, true);
-		
+
 		Object.defineProperty(this, "property", { value: property });
 
 		// override the prototype isValid function if specified
@@ -81,7 +81,7 @@ export class ValidatedPropertyRule extends ConditionRule implements PropertyRule
 
 	// returns false if the property is valid, true if invalid, or undefined if unknown
 	isValid(obj: Entity, prop: Property, val: any): boolean {
-		return this._isValid(obj, prop, val);
+		return this._isValid.call(obj, prop, val);
 	}
 
 	// returns false if the property is valid, true if invalid, or undefined if unknown
@@ -105,7 +105,7 @@ export interface ValidatedPropertyRuleOptions {
 	property: Property;
 
 	// function (obj, prop, val) { return true; } (a predicate that returns true when the property is valid)
-	isValid: string | ((obj: Entity, prop: Property, val: any) => boolean);
+	isValid: string | ((this: Entity, prop: Property, val: any) => boolean);
 
 }
 
