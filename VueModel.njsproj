@@ -54,12 +54,15 @@
     <TypeScriptCompile Include="lib\model.js\src\format.ts" />
     <TypeScriptCompile Include="lib\model.js\src\functor.ts" />
     <TypeScriptCompile Include="lib\model.js\src\helpers.ts" />
+    <TypeScriptCompile Include="lib\model.js\src\indexed-array.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
     <TypeScriptCompile Include="lib\model.js\src\legacy-api.ts" />
     <TypeScriptCompile Include="lib\model.js\src\list-length-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\main.ts" />
     <TypeScriptCompile Include="lib\model.js\src\model.ts" />
     <TypeScriptCompile Include="lib\model.js\src\object-meta.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\observable-list.ts" />
+    <TypeScriptCompile Include="lib\model.js\src\observable-array.ts" />
     <TypeScriptCompile Include="lib\model.js\src\path-tokens.ts" />
     <TypeScriptCompile Include="lib\model.js\src\property-chain.ts" />
     <TypeScriptCompile Include="lib\model.js\src\property.ts" />

@@ -367,13 +367,137 @@ export class Type {
 		return this.fullName;
 	}
 
+	extend(options: TypeOptions) {
+
+		//// Set the format
+		//if (options.format)
+		//	this.format = options.format;
+
+		//// Set the origin
+		//if (options.origin)
+		//	this.origin = options.origin;
+
+		//// Add or extend properties
+		//if (options.properties) {
+
+		//	for (let propName in options.properties) {
+
+		//		let propOptions = options.properties[propName];
+
+		//		// See if the property already exists
+		//		let prop = this.getProperty(propName);
+
+		//		// Create the property if it does not already exist
+		//		if (!prop) {
+
+		//			// Type
+		//			if (typeof (propOptions.type) === "string") {
+		//				if (propOptions.type.substr(propOptions.type.length - 2) === "[]") {
+							
+		//					propOptions.type = propOptions.type.substring(0, propOptions.type.length - 2);
+		//					propOptions.isList = true;
+		//				}
+		//				propOptions.type = this.model.getTypes()
+		//			}
+		//			if (propOptions.type instanceof Function)
+		//			if (propOptions.type.endsWith("[]")) {
+		//				propType = propType.toString().substring(0, propType.length - 2);
+		//				propJson.isList = true;
+		//			}
+		//			propType = getJsType(model, propType);
+		//		}
+
+				
+
+		//		// Format
+		//		var format = getFormat(propType, propJson.format);
+
+		//		// Add the property
+		//		var prop = mtype.addProperty({
+		//			name: propName,
+		//			type: propType,
+		//			label: propJson.label,
+		//			helptext: propJson.helptext,
+		//			format: format,
+		//			isList: propJson.isList === true,
+		//			isStatic: propJson.isStatic === true,
+		//			isPersisted: propJson.isPersisted !== false,
+		//			isCalculated: propJson.isCalculated === true,
+		//			index: propJson.index,
+		//			defaultValue: propJson.defaultValue ? mtype.compileExpression(propJson.defaultValue) : undefined
+		//		});
+
+		//		// setup static properties for lazy loading
+		//		if (propJson.isStatic && propJson.isList) {
+		//			Property$_init.call(prop, null, ListLazyLoader.register(null, prop));
+		//		}
+
+		//		// process property specific rules, which have a specialized json syntax to improve readability and minimize type json size
+		//		if (propJson.rules) {
+		//			for (var rule in propJson.rules) {
+		//				var options = propJson.rules[rule];
+
+		//				// default the type to the rule name if not specified
+		//				if (!options.type) {
+		//					options.type = rule;
+
+		//					// calculate the name of the rule if not specified in the json, assuming it will be unique
+		//					if (!options.name) {
+		//						options.name = mtype.get_fullName() + "." + prop.get_name() + "." + rule.substr(0, 1).toUpperCase() + rule.substr(1);
+		//					}
+		//				}
+
+		//				// initialize the name of the rule if not specified in the json
+		//				else if (!options.name) {
+		//					options.name = rule;
+		//				}
+
+		//				options.property = prop;
+		//				ruleFromJson(mtype, options);
+		//			}
+		//		}
+		//	}
+		//}
+
+		//// ensure all properties added from now on are considered client properties
+		//mtype.set_originForNewProperties("client");
+
+		//// define methods
+		//for (var methodName in json.methods) {
+		//	var methodJson = json.methods[methodName];
+		//	mtype.addMethod({ name: methodName, parameters: methodJson.parameters, isStatic: methodJson.isStatic });
+		//}
+
+		//// define condition types
+		//if (json.conditionTypes)
+		//	conditionTypesFromJson(model, mtype, json.conditionTypes);
+
+		//// define rules 
+		//if (json.rules) {
+		//	for (var i = 0; i < json.rules.length; ++i) {
+		//		ruleFromJson(mtype, json.rules[i]);
+		//	}
+		//}
+	}
 }
 
 export interface TypeConstructor {
 	new(model: Model, fullName: string, baseType?: Type, origin?: string): Type;
 }
 
+export interface TypeOptions {
+	fullName: string;
+	baseType?: Type;
+	origin?: string;
+	format: string | Format<Entity>;
+	properties: TypePropertyOptions[];
+}
+
 export interface TypePropertyOptions {
+	type: string | Function;
+	isList: boolean;
+	isStatic: boolean;
+	origin: string;
 	label?: string;
 	helptext?: string;
 	format?: string | Format<any>;
