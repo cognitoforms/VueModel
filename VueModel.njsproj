@@ -78,6 +78,9 @@
     <TypeScriptCompile Include="lib\model.js\src\type.ts" />
     <TypeScriptCompile Include="lib\model.js\src\validated-property-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\validation-rule.ts" />
+    <TypeScriptCompile Include="model-definition-example.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
     <TypeScriptCompile Include="out\vuemodel.d.ts" />
     <TypeScriptCompile Include="src\entity-observer.ts" />
     <TypeScriptCompile Include="src\source-adapter.ts" />
