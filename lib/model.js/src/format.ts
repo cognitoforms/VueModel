@@ -3,7 +3,7 @@ import { FormatError } from "./format-error";
 import { Model$getPropertyOrPropertyChain, Model } from "./model";
 import { Property } from "./property";
 import { PropertyChain } from "./property-chain";
-import { Type } from "./type";
+import { Type, isEntityType } from "./type";
 import { Entity, EntityConstructorForType } from "./entity";
 import { evalPath, hasOwnProperty } from "./helpers";
 
@@ -478,7 +478,7 @@ function getFormatStorage(model: Model, type: EntityConstructorForType<Entity> |
 
 }
 
-export function getFormat<T>(model: Model, type: EntityConstructorForType<Entity>, format: string): Format<T> {
+export function getFormat<T>(model: Model, type: EntityConstructorForType<Entity> | Function, format: string): Format<T> {
 
 	// return null if a format specifier was not provided
 	if (!format || format === '') {
@@ -495,9 +495,8 @@ export function getFormat<T>(model: Model, type: EntityConstructorForType<Entity
 	}
 
 	// then see if it is an entity type
-	if (type.meta && type.meta instanceof Type) {
-		let entityConstructor = type as EntityConstructorForType<Entity>;
-		formats[format] = f = Format.fromTemplate(entityConstructor.meta, format);
+	if (isEntityType(type)) {
+		formats[format] = f = Format.fromTemplate(type.meta, format);
 	} else {
 		// otherwise, call the format provider to create a new format
 		formats[format] = f = createFormat(type, format);

@@ -5,200 +5,99 @@ import * as bob from 'dist/vuemodel'
 	return this;
 }
 
+var model = new Model
+
 let options =
 {
-	types: {
-		'Cognito.Forms.FormEntryRef': {
-			"properties": {
-				"Id": String
-			}
+	"Forms.FormEntryRef": {
+		Id: String
+	},
+	"Forms.EntryMeta": {
+		AdminLink: String,
+		CustomerCard: "Cognito.Payment.CustomerCard",
+		DateCreated: { type: Date, format: "g" },
+		DateSubmitted: { type: Date, format: "g" },
+		DateUpdated: { type: Date, format: "g" },
+		EditLink: String,
+		LastPageViewed: String,
+		Number: { type: Number, format: "N0" },
+		Order: "Cognito.Payment.OrderRef",
+		Origin: "Cognito.Origin",
+		PaymentToken: "Cognito.Payment.PaymentToken",
+		Status: String,
+		Timestamp: { type: Date, format: "g" },
+		ViewLink: String
+	},
+	'Origin': {
+		City: String,
+		CountryCode: String,
+		IpAddress: String,
+		IsImported: Boolean,
+		Region: String,
+		Timezone: String,
+		UserAgent: String
+	},
+	'Forms.FormEntry': {
+		Id: String,
+		Entry: "Cognito.Forms.EntryMeta",
+		Form: "Cognito.Forms.FormRef"
+	},
+	'Forms.FormEntry.ThomasFamily.Form': {
+		$extends: "Cognito.Forms.FormEntry",
+		$format: "[TextSingleLine]",
+		TextSingleLine: {
+			type: String,
+			label: "Text - Single Line",
+			required: true,
+			defaultValue: "Text"
 		},
-		'Cognito.Forms.EntryMeta': {
-			"properties": {
-				"AdminLink": {
-					type: "String",
-					"isPersisted": false,
-					label: "Admin Link"
+		TextMultipleLines: {
+			type: String,
+			label: "Text - Multiple Lines",
+			required: {
+				function() {
+					return (this ? this.get('TextMultipleLines_IsRequired') : null);
 				},
-				"CustomerCard": {
-					type: "Cognito.Payment.CustomerCard",
-					label: "Customer Card"
-				},
-				"DateCreated": {
-					type: "Date",
-					"format": "g",
-					label: "Date Created"
-				},
-				"DateSubmitted": {
-					type: "Date",
-					"format": "g",
-					label: "Date Submitted"
-				},
-				"DateUpdated": {
-					type: "Date",
-					"format": "g",
-					label: "Date Updated"
-				},
-				"EditLink": {
-					type: "String",
-					"isPersisted": false,
-					label: "Edit Link"
-				},
-				"LastPageViewed": {
-					type: "String",
-					label: "Last Page Viewed"
-				},
-				"Number": {
-					type: "Number",
-					"format": "N0",
-					label: "Number"
-				},
-				"Order": {
-					type: "Cognito.Payment.OrderRef",
-					label: "Order"
-				},
-				"Origin": {
-					type: "Cognito.Origin",
-					label: "Origin"
-				},
-				"PaymentToken": {
-					type: "Cognito.Payment.PaymentToken",
-					label: "Payment Token"
-				},
-				"Status": {
-					type: "String",
-					label: "Status"
-				},
-				"Timestamp": {
-					type: "Date",
-					"isPersisted": false,
-					"format": "g",
-					label: "Timestamp"
-				},
-				"ViewLink": {
-					type: "String",
-					"isPersisted": false,
-					label: "View Link"
-				}
-			}
-		},
-		'Cognito.Origin': {
-			"properties": {
-				"City": {
-					type: "String",
-					label: "City"
-				},
-				"CountryCode": {
-					type: "String",
-					label: "Country Code"
-				},
-				"IpAddress": {
-					type: "String",
-					label: "Ip Address"
-				},
-				"IsImported": {
-					type: "Boolean",
-					label: "Is Imported"
-				},
-				"Region": {
-					type: "String",
-					label: "Region"
-				},
-				"Timezone": {
-					type: "String",
-					label: "Timezone"
-				},
-				"UserAgent": {
-					type: "String",
-					label: "User Agent"
-				}
-			}
-		},
-		'Cognito.Forms.FormEntry': {
-			"properties": {
-				"Entry": {
-					type: "Cognito.Forms.EntryMeta",
-					label: "Entry"
-				},
-				"Form": {
-					type: "Cognito.Forms.FormRef",
-					label: "Form"
-				},
-				"Id": {
-					type: "String",
-					label: "Id"
-				}
+				dependsOn: "TextMultipleLines_IsRequired",
 			},
-			"methods": {
-				"ShouldEncrypt": {
-					"parameters": [],
-					"isStatic": false
-				}
+			default: {
+				function() {
+					return (this ? this.get('TextSingleLine') : null);
+				},
+				dependsOn: "TextSingleLine"
 			}
 		},
-		'Cognito.Forms.FormEntry.ThomasFamily.Form': {
-			"baseType": "Cognito.Forms.FormEntry",
-			"format": "[TextSingleLine]",
-			"properties": {
-				TextSingleLine: {
-					type: String,
-					label: "Text - Single Line",
-					required: true,
-					defaultValue: "Text"
+		TextPassword: {
+			type: String,
+			label: "Text - Password",
+			validation: {
+				function() {
+					return ((this ? this.get('TextPassword') : null) === null);
 				},
-				TextMultipleLines: {
-					type: String,
-					label: "Text - Multiple Lines",
-					required: {
-						function() {
-							return (this ? this.get('TextMultipleLines_IsRequired') : null);
-						},
-						dependsOn: "TextMultipleLines_IsRequired",
-					},
-					default: {
-						function() {
-							return (this ? this.get('TextSingleLine') : null);
-						},
-						dependsOn: "TextSingleLine"
-					}
-				},
-				TextPassword: {
-					type: String,
-					label: "Text - Password",
-					validation: {
-						function() {
-							return ((this ? this.get('TextPassword') : null) === null);
-						},
-						message: "Password must be specified.",
-						dependsOn: "TextPassword"
-					}
-				},
-				Calculation: {
-					type: Number,
-					format: "N0",
-					get: function(){ var result = (1 + 1); return isFinite(result) ? result : null; }
-				},
-				"TextMultipleLines_IsRequired": {
-					type: "Boolean",
-					"isPersisted": false,
-					"isCalculated": true,
-					label: "Text - Multiple Lines Required",
-					"rules": {
-						"calculated": {
-							"onChangeOf": ["TextSingleLine"],
-							"calculate": "((this ? this.get('TextSingleLine') : null) !== null)"
-						}
-					}
-				}
+				message: "Password must be specified.",
+				dependsOn: "TextPassword"
 			}
 		},
-		'Cognito.EndpointNotification': {
-			baseType: "Cognito.Notification",
-			properties: {
-				SubmitEndpoint: String,
-				UpdateEndpoint: String
+		Calculation: {
+			type: Number,
+			format: "N0",
+			get: function () { var result = (1 + 1); return isFinite(result) ? result : null; }
+		},
+		TextMultipleLines_IsRequired: {
+			type: Boolean,
+			label: "Text - Multiple Lines Required",
+			get: {
+				function() {
+					return (this ? this.get('TextSingleLine') : null) !== null;
+				},
+				dependsOn: "TextSingleLine"
 			}
 		}
+	},
+	'Cognito.EndpointNotification': {
+		$extends: "Cognito.Notification",
+		SubmitEndpoint: String,
+		UpdateEndpoint: String
 	}
 };
 

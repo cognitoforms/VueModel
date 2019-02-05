@@ -260,7 +260,7 @@ export class Type {
 		return known;
 	}
 
-	addProperty(name: string, jstype: any, isList: boolean, isStatic: boolean, options: TypePropertyOptions = {}): Property {
+	addProperty(name: string, jstype: any, isList: boolean, isStatic: boolean, options: TypePropertyOptions): Property {
 		let format: Format<any> = null;
 		if (options.format) {
 			if (typeof(options.format) === "string") {
@@ -506,10 +506,6 @@ export interface TypePropertyOptions {
 	defaultValue?: any;
 }
 
-export interface TypeAddedEventArgs {
-	type: Type;
-}
-
 export class TypeEvents {
 	readonly initNewEvent: Event<Type, EntityInitNewEventArgs>;
 	readonly initExistingEvent: Event<Type, EntityInitExistingEventArgs>;
@@ -521,6 +517,10 @@ export class TypeEvents {
 		this.destroyEvent = new Event<Type, EntityDestroyEventArgs>();
 		this.conditionsChangedEvent = new Event<Type, ConditionTargetsChangedEventArgs>();
 	}
+}
+
+export function isEntityType(type: any): type is EntityConstructorForType<Entity> {
+	return type.meta && type.meta instanceof Type;
 }
 
 function Type$_validateId(this: Type, id: string) {

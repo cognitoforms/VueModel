@@ -1,12 +1,12 @@
 import { Event, EventSubscriber } from "./events";
 import { randomText } from "./helpers";
 import { EntityConstructor, EntityRegisteredEventArgs, EntityUnregisteredEventArgs, Entity, EntityConstructorForType } from "./entity";
-import { Type, TypeAddedEventArgs } from "./type";
+import { Type } from "./type";
 import { Rule } from "./rule";
 import { PropertyAddedEventArgs, Property } from "./property";
 import { PropertyChain$create, PropertyChain } from "./property-chain";
 import { PathTokens } from "./path-tokens";
-import { Format } from "./format";
+import { Format, getFormat } from "./format";
 
 export const intrinsicJsTypes = ["Object", "String", "Number", "Boolean", "Date", "Array"];
 
@@ -35,10 +35,6 @@ export class Model {
 		Object.defineProperty(this, "_nativeTypeFormats", { configurable: false, enumerable: false, value: {}, writable: false });
 		Object.defineProperty(this, "_fieldNamePrefix", { value: ("_fN" + randomText(3, false, true)) });
 		Object.defineProperty(this, "_events", { value: new ModelEvents() });
-	}
-
-	get typeAdded(): EventSubscriber<Model, TypeAddedEventArgs> {
-		return this._events.typeAddedEvent.asEventSubscriber();
 	}
 
 	get entityRegistered(): EventSubscriber<Model, EntityRegisteredEventArgs> {
@@ -73,7 +69,6 @@ export class Model {
 	addType(fullName: string, baseType: Type = null, origin: string = "client"): Type {
 		var type = new Type(this, fullName, baseType ? (baseType as any) as Type : null, origin);
 		this._types[fullName] = type;
-		this._events.typeAddedEvent.publish(this, { type: type });
 		return type;
 	}
 
@@ -93,6 +88,102 @@ export class Model {
 		}
 	}
 
+	extend(options: ModelOptions) {
+
+		const isMethod = (value: any): value is MethodOptions => value.hasOwnProperty('function');
+
+		// Types
+		for (let typeName in options) {
+			let typeOptions = options[typeName];
+			let type = this._types[typeName];
+
+			// Create New Type
+			if (!type) {
+				let baseType = this._types[typeOptions["$extends"] as string];
+				type = this.addType(typeName, baseType);
+			}
+
+			// Set Format
+			let format = typeOptions["$format"] as string;
+			if (format)
+				type.format = getFormat(this, type.jstype, format);
+
+			// Remove Type Attributes
+			delete typeOptions["$extends"];
+			delete typeOptions["$format"];
+		}
+
+		// Properties & Methods
+		for (let typeName in options) {
+			let typeOptions = options[typeName];
+			let type = this._types[typeName];
+
+			// Type Options
+			for (let attr in typeOptions) {
+				let value = typeOptions[attr];
+
+				// Property Type Name
+				if (typeof (value) === "string")
+					value = { type: value };
+
+				// Property Type or Method Function
+				else if (typeof (value) === "function") {
+
+					// Property Type
+					if (value === String || value === Number || value === Date || value === Boolean)
+						value = { type: value };
+						
+					// Method Function
+					else
+						value = { function: value as (this: Entity) => any };
+				}
+
+				// Method
+				if (isMethod(value)) {
+
+					// Add rule/method here
+				}
+
+				// Property
+				else {
+
+					// Get Property
+					let property = type.getProperty(attr);
+
+					// Add Property
+					if (!property) {
+						// IsCalculated
+						let isCalculated = !!value.get;
+
+						// Label
+						if (!value.label)
+							value.label = attr.replace(/(^[a-z]+|[A-Z]{2,}(?=[A-Z][a-z]|$)|[A-Z][a-z]*)/g, " $1").trimLeft();
+
+						// Type & IsList
+						let isList = false;
+						if (typeof (value.type) === "string") {
+
+							// Type names ending in [] are lists
+							if (value.type.lastIndexOf("[]") === (value.type.length - 2)) {
+								isList = true;
+								value.type = value.type.substr(0, value.type.length - 2);
+							}
+
+							// Convert type names to javascript types
+							value.type = Model$getJsType(value.type, this._allTypesRoot, false);
+						}
+
+						// Format
+						if (typeof (value.format) === "string")
+							value.format = getFormat(this, value.type, value.format);
+
+						// Add Property
+						type.addProperty(attr, value.type, isList, value.static, { });
+					}
+				}
+			}
+		}
+	}
 }
 
 export interface ModelConstructor {
@@ -104,18 +195,75 @@ export interface ModelNamespace {
 }
 
 export class ModelEvents {
-	readonly typeAddedEvent: Event<Model, TypeAddedEventArgs>;
 	readonly entityRegisteredEvent: Event<Model, EntityRegisteredEventArgs>;
 	readonly entityUnregisteredEvent: Event<Model, EntityUnregisteredEventArgs>;
 	readonly propertyAddedEvent: Event<Model, PropertyAddedEventArgs>;
 	constructor() {
 		// TODO: Don't construct events by default, only when subscribed (optimization)
 		// TODO: Extend `EventDispatcher` with `any()` function to check for subscribers (optimization)
-		this.typeAddedEvent = new Event<Model, TypeAddedEventArgs>();
 		this.entityRegisteredEvent = new Event<Model, EntityRegisteredEventArgs>();
 		this.entityUnregisteredEvent = new Event<Model, EntityUnregisteredEventArgs>();
 		this.propertyAddedEvent = new Event<Model, PropertyAddedEventArgs>();
 	}
+}
+
+export interface ModelOptions {
+
+	/** The name of the type. */
+	[name: string]: {
+
+		/** The name of the property, method, or type attribute */
+		[name: string]: string | ((this: Entity) => any) | Function | PropertyOptions | MethodOptions
+	}
+}
+
+export interface PropertyOptions {
+
+	/** The name or Javascript type of the property */
+	type: string | Function,
+
+	/**
+		*  The optional label for the property.
+		*  The property name will be used as the label when not specified.
+		*/
+	label?: string,
+
+	/** The optional helptext for the property */
+	helptext?: string,
+
+	/** The optional format specifier for the property. */
+	format?: string | Format<any>,
+
+	/** True if the property is static, or type level. */
+	static?: boolean,
+
+	/** An optional function or dependency function object that calculates the value of this property. */
+	get?: (this: Entity) => any | { function: (this: Entity) => any, dependsOn: string },
+
+	/** An optional function to call when this property is updated. */
+	set?: (this: Entity, value: any) => void,
+
+	/** An optional constant default value, or a function or dependency function object that calculates the default value of this property. */
+	default?: (this: Entity) => any | { function: (this: Entity) => any, dependsOn: string } | any,
+
+	/** True if the property is always required, or a dependency function object for conditionally required properties. */
+	required?: boolean | { function: (this: Entity) => boolean, dependsOn: string },
+
+	/** An optional dependency function object that adds an error with the specified message when true. */
+	error?: { function: (this: Entity) => boolean, dependsOn: string, message: string }
+
+}
+
+export interface MethodOptions {
+
+	function: (this: Entity) => any,
+
+	dependsOn?: string,
+
+	onInitNew?: boolean,
+
+	onInitExisting?: boolean
+
 }
 
 export class ModelSettings {

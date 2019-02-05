@@ -1,6 +1,6 @@
 /*!
  * VueModel.js v0.0.21
- * (c) 2018 Cognito LLC
+ * (c) 2019 Cognito LLC
  * Released under the MIT License.
  */
 (function (global, factory) {
@@ -479,35 +479,6 @@
         };
         return Event;
     }());
-
-    /*! *****************************************************************************
-    Copyright (c) Microsoft Corporation. All rights reserved.
-    Licensed under the Apache License, Version 2.0 (the "License"); you may not use
-    this file except in compliance with the License. You may obtain a copy of the
-    License at http://www.apache.org/licenses/LICENSE-2.0
-
-    THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-    KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
-    WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
-    MERCHANTABLITY OR NON-INFRINGEMENT.
-
-    See the Apache Version 2.0 License for specific language governing permissions
-    and limitations under the License.
-    ***************************************************************************** */
-    /* global Reflect, Promise */
-
-    var extendStatics$1 = function(d, b) {
-        extendStatics$1 = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics$1(d, b);
-    };
-
-    function __extends$1(d, b) {
-        extendStatics$1(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    }
 
     var Resource = {
         "allowed-values": "{property} is not in the list of allowed values.",
@@ -1361,7 +1332,7 @@
         ArrayChangeType[ArrayChangeType["reorder"] = 4] = "reorder";
     })(ArrayChangeType || (ArrayChangeType = {}));
     var ObservableArrayImplementation = /** @class */ (function (_super) {
-        __extends$1(ObservableArrayImplementation, _super);
+        __extends(ObservableArrayImplementation, _super);
         /**
          * Creates a new observable array
          * @param items The array of initial items
@@ -2670,7 +2641,7 @@
         return ConditionTypeEvents;
     }());
     var ErrorConditionType = /** @class */ (function (_super) {
-        __extends$1(ErrorConditionType, _super);
+        __extends(ErrorConditionType, _super);
         function ErrorConditionType(code, message, sets, origin) {
             if (origin === void 0) { origin = null; }
             return _super.call(this, code, "Error", message, sets, origin) || this;
@@ -2678,7 +2649,7 @@
         return ErrorConditionType;
     }(ConditionType));
     var WarningConditionType = /** @class */ (function (_super) {
-        __extends$1(WarningConditionType, _super);
+        __extends(WarningConditionType, _super);
         function WarningConditionType(code, message, sets, origin) {
             if (origin === void 0) { origin = null; }
             return _super.call(this, code, "Warning", message, sets, origin) || this;
@@ -2686,7 +2657,7 @@
         return WarningConditionType;
     }(ConditionType));
     var PermissionConditionType = /** @class */ (function (_super) {
-        __extends$1(PermissionConditionType, _super);
+        __extends(PermissionConditionType, _super);
         function PermissionConditionType(code, message, sets, isAllowed, origin) {
             if (origin === void 0) { origin = null; }
             var _this = _super.call(this, code, "Warning", message, sets, origin) || this;
@@ -2779,7 +2750,7 @@
         return Format;
     }());
     var CustomFormat = /** @class */ (function (_super) {
-        __extends$1(CustomFormat, _super);
+        __extends(CustomFormat, _super);
         function CustomFormat(options) {
             var _this = _super.call(this, options.specifier, options.description, options.nullString, options.undefinedString) || this;
             Object.defineProperty(_this, "_convert", { enumerable: false, value: options.convert, writable: true });
@@ -2817,7 +2788,7 @@
         return CustomFormat;
     }(Format));
     var ModelFormat = /** @class */ (function (_super) {
-        __extends$1(ModelFormat, _super);
+        __extends(ModelFormat, _super);
         function ModelFormat(type, specifier, formatEval) {
             if (formatEval === void 0) { formatEval = null; }
             var _this = _super.call(this, specifier) || this;
@@ -4127,7 +4098,6 @@
             return known;
         };
         Type.prototype.addProperty = function (name, jstype, isList, isStatic, options) {
-            if (options === void 0) { options = {}; }
             var format = null;
             if (options.format) {
                 if (typeof (options.format) === "string") {
@@ -4220,6 +4190,95 @@
         };
         Type.prototype.toString = function () {
             return this.fullName;
+        };
+        Type.prototype.extend = function (options) {
+            //// Set the format
+            //if (options.format)
+            //	this.format = options.format;
+            //// Set the origin
+            //if (options.origin)
+            //	this.origin = options.origin;
+            //// Add or extend properties
+            //if (options.properties) {
+            //	for (let propName in options.properties) {
+            //		let propOptions = options.properties[propName];
+            //		// See if the property already exists
+            //		let prop = this.getProperty(propName);
+            //		// Create the property if it does not already exist
+            //		if (!prop) {
+            //			// Type
+            //			if (typeof (propOptions.type) === "string") {
+            //				if (propOptions.type.substr(propOptions.type.length - 2) === "[]") {
+            //					propOptions.type = propOptions.type.substring(0, propOptions.type.length - 2);
+            //					propOptions.isList = true;
+            //				}
+            //				propOptions.type = this.model.getTypes()
+            //			}
+            //			if (propOptions.type instanceof Function)
+            //			if (propOptions.type.endsWith("[]")) {
+            //				propType = propType.toString().substring(0, propType.length - 2);
+            //				propJson.isList = true;
+            //			}
+            //			propType = getJsType(model, propType);
+            //		}
+            //		// Format
+            //		var format = getFormat(propType, propJson.format);
+            //		// Add the property
+            //		var prop = mtype.addProperty({
+            //			name: propName,
+            //			type: propType,
+            //			label: propJson.label,
+            //			helptext: propJson.helptext,
+            //			format: format,
+            //			isList: propJson.isList === true,
+            //			isStatic: propJson.isStatic === true,
+            //			isPersisted: propJson.isPersisted !== false,
+            //			isCalculated: propJson.isCalculated === true,
+            //			index: propJson.index,
+            //			defaultValue: propJson.defaultValue ? mtype.compileExpression(propJson.defaultValue) : undefined
+            //		});
+            //		// setup static properties for lazy loading
+            //		if (propJson.isStatic && propJson.isList) {
+            //			Property$_init.call(prop, null, ListLazyLoader.register(null, prop));
+            //		}
+            //		// process property specific rules, which have a specialized json syntax to improve readability and minimize type json size
+            //		if (propJson.rules) {
+            //			for (var rule in propJson.rules) {
+            //				var options = propJson.rules[rule];
+            //				// default the type to the rule name if not specified
+            //				if (!options.type) {
+            //					options.type = rule;
+            //					// calculate the name of the rule if not specified in the json, assuming it will be unique
+            //					if (!options.name) {
+            //						options.name = mtype.get_fullName() + "." + prop.get_name() + "." + rule.substr(0, 1).toUpperCase() + rule.substr(1);
+            //					}
+            //				}
+            //				// initialize the name of the rule if not specified in the json
+            //				else if (!options.name) {
+            //					options.name = rule;
+            //				}
+            //				options.property = prop;
+            //				ruleFromJson(mtype, options);
+            //			}
+            //		}
+            //	}
+            //}
+            //// ensure all properties added from now on are considered client properties
+            //mtype.set_originForNewProperties("client");
+            //// define methods
+            //for (var methodName in json.methods) {
+            //	var methodJson = json.methods[methodName];
+            //	mtype.addMethod({ name: methodName, parameters: methodJson.parameters, isStatic: methodJson.isStatic });
+            //}
+            //// define condition types
+            //if (json.conditionTypes)
+            //	conditionTypesFromJson(model, mtype, json.conditionTypes);
+            //// define rules 
+            //if (json.rules) {
+            //	for (var i = 0; i < json.rules.length; ++i) {
+            //		ruleFromJson(mtype, json.rules[i]);
+            //	}
+            //}
         };
         return Type;
     }());
@@ -4422,6 +4481,8 @@
             for (i = 0; i < rules.length; i += 1) {
                 rules[i].register();
             }
+        };
+        Model.prototype.extend = function (options) {
         };
         return Model;
     }());
@@ -5035,7 +5096,7 @@
     }());
 
     var ConditionRule = /** @class */ (function (_super) {
-        __extends$1(ConditionRule, _super);
+        __extends(ConditionRule, _super);
         /**
          * Creates a rule that asserts a condition based on a predicate
          * @param rootType The model type the rule is for
@@ -5132,7 +5193,7 @@
     }(Rule));
 
     var ValidatedPropertyRule = /** @class */ (function (_super) {
-        __extends$1(ValidatedPropertyRule, _super);
+        __extends(ValidatedPropertyRule, _super);
         function ValidatedPropertyRule(rootType, options, skipRegistration) {
             /// <summary>Creates a rule that validates the value of a property in the model.</summary>
             /// <param name="rootType" type="Type">The model type the rule is for.</param>
@@ -5212,7 +5273,7 @@
     }(ConditionRule));
 
     var AllowedValuesRule = /** @class */ (function (_super) {
-        __extends$1(AllowedValuesRule, _super);
+        __extends(AllowedValuesRule, _super);
         /**
          * Creates a rule that validates whether a selected value or values is in a list of allowed values.
          * @param rootType The root type to bind the rule to
@@ -6163,7 +6224,7 @@
 
     var calculationErrorDefault;
     var CalculatedPropertyRule = /** @class */ (function (_super) {
-        __extends$1(CalculatedPropertyRule, _super);
+        __extends(CalculatedPropertyRule, _super);
         function CalculatedPropertyRule(rootType, name, options, skipRegistration) {
             if (skipRegistration === void 0) { skipRegistration = false; }
             var _this = this;
@@ -6311,7 +6372,7 @@
     }
 
     var RequiredRule = /** @class */ (function (_super) {
-        __extends$1(RequiredRule, _super);
+        __extends(RequiredRule, _super);
         function RequiredRule(rootType, options, skipRegistration) {
             /// <summary>Creates a rule that validates that a property has a value.</summary>
             /// <param name="rootType" type="Type">The model type the rule is for.</param>
@@ -6360,7 +6421,7 @@
     }(ValidatedPropertyRule));
 
     var RequiredIfRule = /** @class */ (function (_super) {
-        __extends$1(RequiredIfRule, _super);
+        __extends(RequiredIfRule, _super);
         function RequiredIfRule(rootType, options, skipRegistration) {
             /// <summary>Creates a rule that conditionally validates whether a property has a value.</summary>
             /// <param name="rootType" type="Type">The model type the rule is for.</param>
@@ -6432,7 +6493,7 @@
     }(ValidatedPropertyRule));
 
     var RangeRule = /** @class */ (function (_super) {
-        __extends$1(RangeRule, _super);
+        __extends(RangeRule, _super);
         function RangeRule(rootType, options, skipRegistration) {
             /// <summary>Creates a rule that validates a property value is within a specific range.</summary>
             /// <param name="rootType" type="Type">The model type the rule is for.</param>
@@ -6547,7 +6608,7 @@
     }(ValidatedPropertyRule));
 
     var StringLengthRule = /** @class */ (function (_super) {
-        __extends$1(StringLengthRule, _super);
+        __extends(StringLengthRule, _super);
         function StringLengthRule(rootType, options, skipRegistration) {
             /// <summary>Creates a rule that validates that the length of a string property is within a specific range.</summary>
             /// <param name="rootType" type="Type">The model type the rule is for.</param>
@@ -6598,7 +6659,7 @@
     }(RangeRule));
 
     var StringFormatRule = /** @class */ (function (_super) {
-        __extends$1(StringFormatRule, _super);
+        __extends(StringFormatRule, _super);
         function StringFormatRule(rootType, options, skipRegistration) {
             /// <summary>Creates a rule that validates that a string property value is correctly formatted.</summary>
             /// <param name="rootType" type="Type">The model type the rule is for.</param>
@@ -6665,7 +6726,7 @@
     }(ValidatedPropertyRule));
 
     var ListLengthRule = /** @class */ (function (_super) {
-        __extends$1(ListLengthRule, _super);
+        __extends(ListLengthRule, _super);
         function ListLengthRule(rootType, options, skipRegistration) {
             /// <summary>Creates a rule that validates a list property contains a specific range of items.</summary>
             /// <param name="rootType" type="Type">The model type the rule is for.</param>
