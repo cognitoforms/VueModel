@@ -1,7 +1,7 @@
-import { VueConstructor } from "vue";
+import { default as Vue, PluginObject } from "vue";
 import { ensureVueInternalTypes } from "./vue-internals";
 import { VueModel$installPlugin } from "./vue-plugin";
-import { VueModel } from "./vue-model";
+import { VueModel, VueModelConstructor } from "./vue-model";
 import { SourceRootAdapter, SourceRootAdapterConstructor } from "./source-root-adapter";
 import { SourcePathAdapter, SourcePathAdapterConstructor } from "./source-path-adapter";
 import { SourceIndexAdapter, SourceIndexAdapterConstructor } from "./source-index-adapter";
@@ -11,12 +11,11 @@ import { SourceConsumerMixin } from "./source-consumer";
 // TODO: Do we need to take `toggleObserving()` into account?
 // var shouldObserve = true;
 
-export interface VueModelApi extends VueModel {
+export interface VueModelExports {
     SourceRootAdapter: SourceRootAdapterConstructor,
     SourcePathAdapter: SourcePathAdapterConstructor,
     SourceIndexAdapter: SourceIndexAdapterConstructor,
     mixins: VueModelMixins,
-    install: (Vue: VueConstructor) => void;
 }
 
 export interface VueModelMixins {
@@ -36,11 +35,11 @@ api.mixins = {
     SourceConsumer: SourceConsumerMixin,
 };
 
-api.install = function install(Vue: VueConstructor) {
-    ensureVueInternalTypes(Vue);
-    return VueModel$installPlugin(Vue);
+api.install = function install(vue: typeof Vue, options?: any) {
+    ensureVueInternalTypes(vue);
+    return VueModel$installPlugin(vue);
 };
 
 import "../lib/model.js/src/legacy-api";
 
-export default api as VueModelApi;
+export default api as VueModelConstructor & VueModelExports & PluginObject<any>;

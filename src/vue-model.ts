@@ -37,6 +37,10 @@ export class VueModel {
     }
 }
 
+export interface VueModelConstructor {
+	new(options: VueModelOptions): VueModel;
+}
+
 function VueModel$prepareOptions(options: VueModelOptions = null): VueModelOptions {
     let result: VueModelOptions = { createOwnProperties: false, extendModel: null };
 

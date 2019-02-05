@@ -1,14 +1,25 @@
 {
-  "files": [
-    "./src/main.ts"
-  ],
-  "compilerOptions": {
-    "typeRoots" : ["./node_modules/@types"],
-    "outDir": "./out/",
-    "sourceMap": true,
-    "noImplicitAny": true,
-    "module": "commonjs",
-    "target": "es5",
-    "allowJs": true,
-  },
+	"compilerOptions": {
+		"typeRoots": [ "./node_modules/@types" ],
+		"outDir": "./dist/",
+		"declaration": true,
+		"sourceMap": true,
+		"noImplicitAny": true,
+		"module": "commonjs",
+		"target": "es5"
+	},
+	"exclude": [
+		"bin",
+		"dist",
+		"lib/model.js/bin",
+		"lib/model.js/dist",
+		"lib/model.js/node_modules",
+		"lib/model.js/obj",
+		"lib/model.js/out",
+		"node_modules",
+		"obj",
+		"out",
+		"ref",
+		"model-definition-example.ts"
+	]
 }

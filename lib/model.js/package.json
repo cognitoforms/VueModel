@@ -2,17 +2,13 @@
   "version": "0.0.23",
   "name": "model.js",
   "license": "MIT",
-  "main": "dist/model.cjs.js",
-  "module": "dist/model.esm.js",
-  "browser": "dist/model.umd.js",
-  "iife": "dist/model.js",
-  "types": "dist/model.d.ts",
+  "main": "dist/src/index.js",
+  "browser": "dist/model.js",
+  "types": "dist/src/index.d.ts",
   "private": true,
   "scripts": {
     "build": "tsc -p .",
-    "dist": "rollup -c",
-    "dist-dev": "rollup -c -w",
-    "dist-def": "dts-generator --project . --out .\\out\\model.d.ts --name model.js"
+    "dist": "tsc -p . & rollup -c"
   },
   "devDependencies": {
     "rollup": "^0.66.6",

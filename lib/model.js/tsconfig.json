@@ -1,12 +1,17 @@
 {
-    "files": [
-        "./src/main.ts"
-    ],
-    "compilerOptions": {
-        "outDir": "./out/",
-        "sourceMap": true,
-        "noImplicitAny": true,
-        "module": "commonjs",
-        "target": "es5",
-    }
+	"compilerOptions": {
+		"outDir": "./dist/src/",
+		"declaration": true,
+		"sourceMap": true,
+		"noImplicitAny": true,
+		"module": "commonjs",
+		"target": "es5"
+	},
+	"exclude": [
+		"bin",
+		"dist",
+		"node_modules",
+		"obj",
+		"out"
+	]
 }

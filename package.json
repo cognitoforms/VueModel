@@ -2,16 +2,13 @@
   "version": "0.0.21",
   "name": "vuemodel",
   "license": "MIT",
-  "main": "dist/vuemodel.cjs.js",
-  "module": "dist/vuemodel.esm.js",
-  "browser": "dist/vuemodel.umd.js",
-  "types": "dist/vuemodel.d.ts",
+  "main": "dist/src/index.js",
+  "browser": "dist/vuemodel.js",
+  "types": "dist/src/index.d.ts",
   "private": true,
   "scripts": {
     "build": "tsc -p .",
-    "dist": "rollup -c",
-    "dist-dev": "rollup -c -w",
-    "dist-def": "dts-generator --project . --out .\\out\\vuemodel.d.ts --name VueModel"
+    "dist": "tsc -p . & rollup -c"
   },
   "devDependencies": {
     "rollup": "^0.66.6",

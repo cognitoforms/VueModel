@@ -55,7 +55,7 @@ export class ValidationRule extends ValidatedPropertyRule {
 	 * @param prop the property to validate
 	 * @param val the value to test
 	 */
-	isValid(entity, prop, val) {
+	isValid(entity: Entity, prop: Property, val: any): boolean {
 
 		// convert string functions into compiled functions on first execution
 		if (typeof this._isError === "string") {

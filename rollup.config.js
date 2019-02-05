@@ -32,72 +32,41 @@ function getMinFileName(fileName) {
 	}
 }
 
-// const modelJsContent = fs.readFileSync(__dirname + "/../model.js/dist/model.js", { encoding: "utf8" });
-// const modelJsMinContent = fs.readFileSync(__dirname + "/../model.js/dist/model.min.js", { encoding: "utf8" });
+function createConfig(fileName, format, minified) {
+	if (minified) {
+		fileName = getMinFileName(fileName);
+	}
+
+	let plugins = [
+		resolve(), // so Rollup can find NPM dependencies
+		commonjs(), // so Rollup can convert NPM dependencies to ES modules
+		typescript() // so Rollup can compile TypeScript files to JavaScript
+	];
+
+	if (minified) {
+		plugins.push(
+			uglify() // so Rollup can minify the output
+		);
+	}
+
+	return {
+		input: 'src/index.ts',
+		output: {
+			name: 'VueModel',
+			file: fileName,
+			format: format,
+			banner: banner
+		},
+		plugins: plugins
+	};
+}
 
 export default [
+
 	// UMD (for browsers) build (development)
-	{
-		input: 'src/main.ts',
-		output: {
-			name: 'VueModel',
-			file: pkg.browser,
-			format: Format.umd,
-			banner: banner,
-			// intro: modelJsContent,
-		},
-		plugins: [
-			resolve(), // so Rollup can find NPM dependencies
-			commonjs(), // so Rollup can convert NPM dependencies to ES modules
-			typescript(), // so Rollup can compile TypeScript files to JavaScript
-		],
-	},
+	createConfig(pkg.browser, Format.umd, false),
 
 	// UMD (for browsers) build (production)
-	{
-		input: 'src/main.ts',
-		output: {
-			name: 'VueModel',
-			file: getMinFileName(pkg.browser),
-			format: Format.umd,
-			banner: banner,
-			// intro: modelJsMinContent,
-		},
-		plugins: [
-			resolve(), // so Rollup can find NPM dependencies
-			commonjs(), // so Rollup can convert NPM dependencies to ES modules
-			typescript(), // so Rollup can compile TypeScript files to JavaScript
-			uglify(), // so Rollup can minify the output
-		],
-	},
+	createConfig(pkg.browser, Format.umd, true)
 
-	// CommonJS (for Node) build
-	{
-		input: 'src/main.ts',
-		output: {
-			file: pkg.main,
-			format: 'cjs',
-			banner: banner,
-		},
-		plugins: [
-			resolve(), // so Rollup can find NPM dependencies
-			commonjs(), // so Rollup can convert NPM dependencies to ES modules
-			typescript(), // so Rollup can compile TypeScript files to JavaScript
-		]
-	},
-
-	// CommonJS (for Node) and ES module (for bundlers) build
-	{
-		input: 'src/main.ts',
-		output: {
-			file: pkg.module,
-			format: 'es',
-			banner: banner,
-		},
-		plugins: [
-			resolve(), // so Rollup can find NPM dependencies
-			commonjs(), // so Rollup can convert NPM dependencies to ES modules
-			typescript(), // so Rollup can compile TypeScript files to JavaScript
-		]
-	},
 ];
