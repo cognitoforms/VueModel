@@ -494,10 +494,10 @@ export interface TypeOptions {
 }
 
 export interface TypePropertyOptions {
-	type: string | Function;
-	isList: boolean;
-	isStatic: boolean;
-	origin: string;
+	type?: string | Function;
+	isList?: boolean;
+	isStatic?: boolean;
+	origin?: string;
 	label?: string;
 	helptext?: string;
 	format?: string | Format<any>;

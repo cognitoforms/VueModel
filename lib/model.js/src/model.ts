@@ -329,7 +329,7 @@ export function Model$getJsType<TEntity extends Entity>(fullName: string, allTyp
 		}
 
 		if (ns !== undefined) {
-			obj = ns[steps.length - 1];
+			obj = ns[steps[steps.length - 1]];
 		}
 
 		if (obj === undefined) {

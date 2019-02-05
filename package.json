@@ -11,16 +11,17 @@
     "dist": "tsc -p . & rollup -c"
   },
   "devDependencies": {
+    "dts-generator": "^2.1.0",
     "rollup": "^0.66.6",
     "rollup-plugin-commonjs": "^9.2.0",
     "rollup-plugin-node-resolve": "^3.4.0",
     "rollup-plugin-typescript": "^1.0.0",
-    "rollup-plugin-uglify": "^6.0.0",
+    "rollup-plugin-uglify": "^6.0.2",
     "rollup-watch": "^4.3.1",
     "tslib": "^1.9.3",
-    "typescript": "^3.1.3"
+    "typescript": "^3.3.1"
   },
   "dependencies": {
-    "vue": "^2.5.22"
+    "vue": "^2.6.2"
   }
 }

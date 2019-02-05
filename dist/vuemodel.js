@@ -3059,9 +3059,8 @@
             return f;
         }
         // then see if it is an entity type
-        if (type.meta && type.meta instanceof Type) {
-            var entityConstructor = type;
-            formats[format] = f = Format.fromTemplate(entityConstructor.meta, format);
+        if (isEntityType(type)) {
+            formats[format] = f = Format.fromTemplate(type.meta, format);
         }
         else {
             // otherwise, call the format provider to create a new format
@@ -4291,6 +4290,9 @@
         }
         return TypeEvents;
     }());
+    function isEntityType(type) {
+        return type.meta && type.meta instanceof Type;
+    }
     function Type$_validateId(id) {
         if (id === null || id === undefined) {
             throw new Error("Id cannot be " + (id === null ? "null" : "undefined") + " (entity = " + this.fullName + ").");
@@ -4416,13 +4418,6 @@
             Object.defineProperty(this, "_fieldNamePrefix", { value: ("_fN" + randomText(3, false, true)) });
             Object.defineProperty(this, "_events", { value: new ModelEvents() });
         }
-        Object.defineProperty(Model.prototype, "typeAdded", {
-            get: function () {
-                return this._events.typeAddedEvent.asEventSubscriber();
-            },
-            enumerable: true,
-            configurable: true
-        });
         Object.defineProperty(Model.prototype, "entityRegistered", {
             get: function () {
                 return this._events.entityRegisteredEvent.asEventSubscriber();
@@ -4464,7 +4459,6 @@
             if (origin === void 0) { origin = "client"; }
             var type = new Type(this, fullName, baseType ? baseType : null, origin);
             this._types[fullName] = type;
-            this._events.typeAddedEvent.publish(this, { type: type });
             return type;
         };
         Model.prototype.registerRule = function (rule) {
@@ -4483,6 +4477,76 @@
             }
         };
         Model.prototype.extend = function (options) {
+            var isMethod = function (value) { return value.hasOwnProperty('function'); };
+            // Types
+            for (var typeName in options) {
+                var typeOptions = options[typeName];
+                var type = this._types[typeName];
+                // Create New Type
+                if (!type) {
+                    var baseType = this._types[typeOptions["$extends"]];
+                    type = this.addType(typeName, baseType);
+                }
+                // Set Format
+                var format = typeOptions["$format"];
+                if (format)
+                    type.format = getFormat(this, type.jstype, format);
+                // Remove Type Attributes
+                delete typeOptions["$extends"];
+                delete typeOptions["$format"];
+            }
+            // Properties & Methods
+            for (var typeName in options) {
+                var typeOptions = options[typeName];
+                var type = this._types[typeName];
+                // Type Options
+                for (var attr in typeOptions) {
+                    var value = typeOptions[attr];
+                    // Property Type Name
+                    if (typeof (value) === "string")
+                        value = { type: value };
+                    // Property Type or Method Function
+                    else if (typeof (value) === "function") {
+                        // Property Type
+                        if (value === String || value === Number || value === Date || value === Boolean)
+                            value = { type: value };
+                        // Method Function
+                        else
+                            value = { function: value };
+                    }
+                    // Method
+                    if (isMethod(value)) ;
+                    // Property
+                    else {
+                        // Get Property
+                        var property = type.getProperty(attr);
+                        // Add Property
+                        if (!property) {
+                            // IsCalculated
+                            var isCalculated = !!value.get;
+                            // Label
+                            if (!value.label)
+                                value.label = attr.replace(/(^[a-z]+|[A-Z]{2,}(?=[A-Z][a-z]|$)|[A-Z][a-z]*)/g, " $1").trimLeft();
+                            // Type & IsList
+                            var isList = false;
+                            if (typeof (value.type) === "string") {
+                                // Type names ending in [] are lists
+                                if (value.type.lastIndexOf("[]") === (value.type.length - 2)) {
+                                    isList = true;
+                                    value.type = value.type.substr(0, value.type.length - 2);
+                                }
+                                // Convert type names to javascript types
+                                value.type = Model$getJsType(value.type, this._allTypesRoot, false);
+                            }
+                            // Format
+                            if (typeof (value.format) === "string")
+                                value.format = getFormat(this, value.type, value.format);
+                            // Add Property
+                            type.addProperty(attr, value.type, isList, value.static, {});
+                        }
+                    }
+                }
+            }
         };
         return Model;
     }());
@@ -4490,7 +4554,6 @@
         function ModelEvents() {
             // TODO: Don't construct events by default, only when subscribed (optimization)
             // TODO: Extend `EventDispatcher` with `any()` function to check for subscribers (optimization)
-            this.typeAddedEvent = new Event();
             this.entityRegisteredEvent = new Event();
             this.entityUnregisteredEvent = new Event();
             this.propertyAddedEvent = new Event();
@@ -6857,9 +6920,9 @@
         SourceProvider: SourceProviderMixin,
         SourceConsumer: SourceConsumerMixin,
     };
-    api.install = function install(Vue) {
-        ensureVueInternalTypes(Vue);
-        return VueModel$installPlugin(Vue);
+    api.install = function install(vue, options) {
+        ensureVueInternalTypes(vue);
+        return VueModel$installPlugin(vue);
     };
 
     return api;
