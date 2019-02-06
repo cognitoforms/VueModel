@@ -281,7 +281,6 @@
     <Folder Include="lib\model.js\dist\" />
     <Folder Include="lib\model.js\dist\src\" />
     <Folder Include="lib\model.js\src\" />
-    <Folder Include="out" />
     <Folder Include="src" />
   </ItemGroup>
   <ItemGroup>
