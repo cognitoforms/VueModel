@@ -42,4 +42,4 @@ vm.install = function install(vue: typeof Vue, options?: any) {
 
 import "../lib/model.js/src/legacy-api";
 
-export default vm as VueModel & VueModelNamespace & PluginObject<any>;
+export default vm as typeof VueModel & VueModelNamespace & PluginObject<any>;
