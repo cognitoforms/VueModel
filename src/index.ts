@@ -23,23 +23,6 @@ export interface VueModelMixins {
     SourceConsumer: any;
 }
 
-let vm = VueModel as any;
-
-vm.SourceRootAdapter = SourceRootAdapter;
-vm.SourcePathAdapter = SourcePathAdapter;
-vm.SourceIndexAdapter = SourceIndexAdapter;
-
-// TODO: Implement source-binding mixins
-vm.mixins = {
-    SourceProvider: SourceProviderMixin,
-    SourceConsumer: SourceConsumerMixin,
-};
-
-vm.install = function install(vue: typeof Vue, options?: any) {
-    ensureVueInternalTypes(vue);
-    return VueModel$installPlugin(vue);
-};
-
 import "../lib/model.js/src/legacy-api";
 
-export default vm as typeof VueModel & VueModelNamespace & PluginObject<any>;
+export default VueModel;
