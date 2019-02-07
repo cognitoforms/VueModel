@@ -5,6 +5,9 @@ import { ensureVueInternalTypes } from "./vue-internals";
 import { VueModel$installPlugin } from "./vue-plugin";
 import { SourceProviderMixin } from "./source-provider";
 import { SourceConsumerMixin } from "./source-consumer";
+import { SourceRootAdapter } from "./source-root-adapter";
+import { SourcePathAdapter } from "./source-path-adapter";
+import { SourceIndexAdapter } from "./source-index-adapter";
 
 export interface VueModelOptions {
 	createOwnProperties?: boolean;
@@ -12,8 +15,7 @@ export interface VueModelOptions {
 }
 
 export class VueModel {
-	// Public read-only properties: aspects of the object that cannot be
-	// changed without fundamentally changing what the object is
+
 	readonly $meta: Model;
 
 	/**
@@ -28,6 +30,10 @@ export class VueModel {
 		SourceProvider: SourceProviderMixin,
 		SourceConsumer: SourceConsumerMixin,
 	};
+
+	static SourceRootAdapter = SourceRootAdapter;
+	static SourcePathAdapter = SourcePathAdapter;
+	static SourceIndexAdapter = SourceIndexAdapter;
 
 	constructor(options: VueModelOptions) {
 

@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{84111aa3-88c8-479d-81ee-308d0b9f5225}</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <ProjectView>ShowAllFiles</ProjectView>
+    <ProjectView>ProjectFiles</ProjectView>
     <StartupFile />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -26,41 +26,6 @@
   <ItemGroup>
     <Content Include=".gitignore" />
     <Content Include="lib\model.js\.gitignore" />
-    <Content Include="lib\model.js\dist\src\allowed-values-rule.js.map" />
-    <Content Include="lib\model.js\dist\src\calculated-property-rule.js.map" />
-    <Content Include="lib\model.js\dist\src\condition-rule.js.map" />
-    <Content Include="lib\model.js\dist\src\condition-target.js.map" />
-    <Content Include="lib\model.js\dist\src\condition-type-set.js.map" />
-    <Content Include="lib\model.js\dist\src\condition-type.js.map" />
-    <Content Include="lib\model.js\dist\src\condition.js.map" />
-    <Content Include="lib\model.js\dist\src\entity.js.map" />
-    <Content Include="lib\model.js\dist\src\event-scope.js.map" />
-    <Content Include="lib\model.js\dist\src\events.js.map" />
-    <Content Include="lib\model.js\dist\src\format-error.js.map" />
-    <Content Include="lib\model.js\dist\src\format.js.map" />
-    <Content Include="lib\model.js\dist\src\functor.js.map" />
-    <Content Include="lib\model.js\dist\src\helpers.js.map" />
-    <Content Include="lib\model.js\dist\src\index.js.map" />
-    <Content Include="lib\model.js\dist\src\legacy-api.js.map" />
-    <Content Include="lib\model.js\dist\src\list-length-rule.js.map" />
-    <Content Include="lib\model.js\dist\src\model.js.map" />
-    <Content Include="lib\model.js\dist\src\object-meta.js.map" />
-    <Content Include="lib\model.js\dist\src\observable-array.js.map" />
-    <Content Include="lib\model.js\dist\src\path-tokens.js.map" />
-    <Content Include="lib\model.js\dist\src\property-chain.js.map" />
-    <Content Include="lib\model.js\dist\src\property.js.map" />
-    <Content Include="lib\model.js\dist\src\range-rule.js.map" />
-    <Content Include="lib\model.js\dist\src\required-if-rule.js.map" />
-    <Content Include="lib\model.js\dist\src\required-rule.js.map" />
-    <Content Include="lib\model.js\dist\src\resource.js.map" />
-    <Content Include="lib\model.js\dist\src\rule-invocation-type.js.map" />
-    <Content Include="lib\model.js\dist\src\rule.js.map" />
-    <Content Include="lib\model.js\dist\src\signal.js.map" />
-    <Content Include="lib\model.js\dist\src\string-format-rule.js.map" />
-    <Content Include="lib\model.js\dist\src\string-length-rule.js.map" />
-    <Content Include="lib\model.js\dist\src\type.js.map" />
-    <Content Include="lib\model.js\dist\src\validated-property-rule.js.map" />
-    <Content Include="lib\model.js\dist\src\validation-rule.js.map" />
     <Content Include="lib\model.js\LICENSE" />
     <Content Include="lib\model.js\package-lock.json" />
     <Content Include="lib\model.js\package.json" />
@@ -72,41 +37,6 @@
     <Content Include="tsconfig.json" />
     <Content Include="tslint.json" />
     <Content Include="README.md" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\allowed-values-rule.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\calculated-property-rule.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\condition-rule.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\condition-target.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\condition-type-set.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\condition-type.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\condition.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\entity.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\event-scope.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\events.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\format-error.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\format.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\functor.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\helpers.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\index.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\legacy-api.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\list-length-rule.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\model.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\object-meta.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\observable-array.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\path-tokens.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\property-chain.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\property.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\range-rule.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\required-if-rule.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\required-rule.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\resource.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\rule-invocation-type.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\rule.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\signal.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\string-format-rule.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\string-length-rule.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\type.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\validated-property-rule.d.ts" />
-    <TypeScriptCompile Include="lib\model.js\dist\src\validation-rule.d.ts" />
     <TypeScriptCompile Include="lib\model.js\src\allowed-values-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\calculated-property-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\condition-rule.ts" />
@@ -167,52 +97,12 @@
     <TypeScriptCompile Include="src\vue-plugin.ts" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="dist" />
     <Folder Include="lib\" />
     <Folder Include="lib\model.js\" />
-    <Folder Include="lib\model.js\dist\" />
-    <Folder Include="lib\model.js\dist\src\" />
     <Folder Include="lib\model.js\src\" />
     <Folder Include="src" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="lib\model.js\dist\model.js" />
-    <Compile Include="lib\model.js\dist\model.min.js" />
-    <Compile Include="lib\model.js\dist\src\allowed-values-rule.js" />
-    <Compile Include="lib\model.js\dist\src\calculated-property-rule.js" />
-    <Compile Include="lib\model.js\dist\src\condition-rule.js" />
-    <Compile Include="lib\model.js\dist\src\condition-target.js" />
-    <Compile Include="lib\model.js\dist\src\condition-type-set.js" />
-    <Compile Include="lib\model.js\dist\src\condition-type.js" />
-    <Compile Include="lib\model.js\dist\src\condition.js" />
-    <Compile Include="lib\model.js\dist\src\entity.js" />
-    <Compile Include="lib\model.js\dist\src\event-scope.js" />
-    <Compile Include="lib\model.js\dist\src\events.js" />
-    <Compile Include="lib\model.js\dist\src\format-error.js" />
-    <Compile Include="lib\model.js\dist\src\format.js" />
-    <Compile Include="lib\model.js\dist\src\functor.js" />
-    <Compile Include="lib\model.js\dist\src\helpers.js" />
-    <Compile Include="lib\model.js\dist\src\index.js" />
-    <Compile Include="lib\model.js\dist\src\legacy-api.js" />
-    <Compile Include="lib\model.js\dist\src\list-length-rule.js" />
-    <Compile Include="lib\model.js\dist\src\model.js" />
-    <Compile Include="lib\model.js\dist\src\object-meta.js" />
-    <Compile Include="lib\model.js\dist\src\observable-array.js" />
-    <Compile Include="lib\model.js\dist\src\path-tokens.js" />
-    <Compile Include="lib\model.js\dist\src\property-chain.js" />
-    <Compile Include="lib\model.js\dist\src\property.js" />
-    <Compile Include="lib\model.js\dist\src\range-rule.js" />
-    <Compile Include="lib\model.js\dist\src\required-if-rule.js" />
-    <Compile Include="lib\model.js\dist\src\required-rule.js" />
-    <Compile Include="lib\model.js\dist\src\resource.js" />
-    <Compile Include="lib\model.js\dist\src\rule-invocation-type.js" />
-    <Compile Include="lib\model.js\dist\src\rule.js" />
-    <Compile Include="lib\model.js\dist\src\signal.js" />
-    <Compile Include="lib\model.js\dist\src\string-format-rule.js" />
-    <Compile Include="lib\model.js\dist\src\string-length-rule.js" />
-    <Compile Include="lib\model.js\dist\src\type.js" />
-    <Compile Include="lib\model.js\dist\src\validated-property-rule.js" />
-    <Compile Include="lib\model.js\dist\src\validation-rule.js" />
     <Compile Include="lib\model.js\rollup.config.js" />
     <Compile Include="rollup.config.js" />
   </ItemGroup>
