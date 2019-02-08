@@ -19,7 +19,7 @@ export class CalculatedPropertyRule extends Rule {
 	// other data, calculated in some way, or cannot simply be changed
 	private _calculateFn: string | ((this: Entity) => any);
 
-	constructor(rootType: Type, name: string, options: RuleOptions & RuleTypeOptions & CalculatedPropertyRuleOptions, skipRegistration: boolean = false) {
+	constructor(rootType: Type, name: string, options: RuleOptions & RuleTypeOptions & CalculatedPropertyRuleOptions) {
 
 		let property: Property;
 		let defaultIfError: any = calculationErrorDefault;
@@ -49,7 +49,7 @@ export class CalculatedPropertyRule extends Rule {
 		}
 
 		// Call the base rule constructor 
-		super(rootType, name, options, true);
+		super(rootType, name, options);
 
 		// Public read-only properties
 		Object.defineProperty(this, "property", { enumerable: true, value: property });
@@ -59,12 +59,6 @@ export class CalculatedPropertyRule extends Rule {
 
 		// Backing fields for properties
 		if (calculateFn) Object.defineProperty(this, "_calculateFn", { enumerable: false, value: calculateFn, writable: true });
-
-		if (!skipRegistration) {
-			// Register the rule after loading has completed
-			rootType.model.registerRule(this);
-		}
-
 	}
 
 	execute(obj: Entity) {

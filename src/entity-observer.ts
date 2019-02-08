@@ -135,11 +135,12 @@ export function makeEntitiesVueObservable(model: Model): void {
     });
 
     // Make existing entities observable
-    model.getTypes().forEach(function(type: Type) {
+	for (let typeName of Object.keys(model.types)) {
+		let type = model.types[typeName];
         type.known().forEach(function(entity: Entity) {
             observeEntity(entity);
         });
-    });
+    }
 
     vueCompatibleModels.push(model);
     (model as any)._entitiesAreVueObservable = true;

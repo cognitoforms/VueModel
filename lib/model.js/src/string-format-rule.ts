@@ -10,7 +10,7 @@ export class StringFormatRule extends ValidatedPropertyRule {
 	expression: RegExp;
 	reformat: string | Function;
 
-	constructor(rootType: Type, options: any, skipRegistration: boolean = false) {
+	constructor(rootType: Type, options: any) {
 		/// <summary>Creates a rule that validates that a string property value is correctly formatted.</summary>
 		/// <param name="rootType" type="Type">The model type the rule is for.</param>
 		/// <param name="options" type="Object">
@@ -39,17 +39,12 @@ export class StringFormatRule extends ValidatedPropertyRule {
 			options.message = options.message || Resource.get("string-format").replace("{formatDescription}", options.description);
 
 		// call the base type constructor
-		super(rootType, options, true);
+		super(rootType, options);
 	
 		// define properties for the rule
 		Object.defineProperty(this, "description", { value: options.description });
 		Object.defineProperty(this, "expression", { value: options.expression instanceof RegExp ? options.expression : RegExp(options.expression) });
 		Object.defineProperty(this, "reformat", { value: options.reformat });
-	
-		if (!skipRegistration) {
-			// Register the rule after loading has completed
-			rootType.model.registerRule(this);
-		}
 	}
 
 	// returns true if the property is valid, otherwise false

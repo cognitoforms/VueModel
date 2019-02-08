@@ -1,7 +1,7 @@
 import { Event, EventObject, EventSubscriber, ContextualEventRegistration } from "./events";
 import { Entity, EntityConstructorForType } from "./entity";
 import { Format } from "./format";
-import { Type } from "./type";
+import { Type, PropertyType, isEntityType } from "./type";
 import { PropertyChain$_addAccessedHandler, PropertyChain$_removeAccessedHandler, PropertyChain$_addChangedHandler, PropertyChain$_removeChangedHandler, PropertyChain, PropertyChainAccessEventHandler, PropertyChainChangeEventHandler } from "./property-chain";
 import { getTypeName, getDefaultValue, parseFunctionName, toTitleCase, ObjectLookup, merge } from "./helpers";
 import { ObservableArray, updateArray } from "./observable-array";
@@ -13,21 +13,17 @@ export class Property {
 	// changed without fundamentally changing what the object is
 	readonly containingType: Type;
 	readonly name: string;
-	readonly propertyType: any;
+	readonly propertyType: PropertyType;
 	readonly isList: boolean;
 	readonly isStatic: boolean;
 
 	// Public settable properties that are simple values with no side-effects or logic
+	label: string;
 	helptext: string;
 	isPersisted: boolean;
 	isCalculated: boolean;
+	format: Format<any>;
 
-	// Backing fields for properties that are settable and also derived from
-	// other data, calculated in some way, or cannot simply be changed
-	private _label: string;
-	// TODO: If this was Property<T> then format, and other properties, could leverage generics
-	private _format: Format<any>;
-	private _origin: string;
 	private _defaultValue: any;
 
 	readonly _events: PropertyEvents;
@@ -38,7 +34,7 @@ export class Property {
 	readonly getter: (args?: any) => any;
 	readonly setter: (value: any, args?: any) => void;
 
-	constructor(containingType: Type, name: string, jstype: any, label: string, helptext: string, format: Format<any>, isList: boolean, isStatic: boolean, isPersisted: boolean, isCalculated: boolean, defaultValue: any = undefined, origin: string = "client") {
+	constructor(containingType: Type, name: string, jstype: PropertyType, isList: boolean, isStatic: boolean, options?: PropertyOptions) {
 
 		// Public read-only properties
 		Object.defineProperty(this, "containingType", { enumerable: true, value: containingType });
@@ -47,33 +43,25 @@ export class Property {
 		Object.defineProperty(this, "isList", { enumerable: true, value: isList === true });
 		Object.defineProperty(this, "isStatic", { enumerable: true, value: isStatic === true });
 
-		// Public settable properties
-		this.helptext = helptext;
-		this.isPersisted = isPersisted;
-		this.isCalculated = isCalculated;
+		// Apply property options
+		if (options)
+			this.extend(options);
 
-		// Backing fields for properties
-		if (label) Object.defineProperty(this, "_label", { enumerable: false, value: label, writable: true });
-		if (format) Object.defineProperty(this, "_format", { enumerable: false, value: format, writable: true });
-		if (origin) Object.defineProperty(this, "_origin", { enumerable: false, value: origin, writable: true });
-		if (defaultValue) Object.defineProperty(this, "_defaultValue", { enumerable: false, value: defaultValue, writable: true });
-
+		// Initialize property infrastructure
 		Object.defineProperty(this, "_events", { value: new PropertyEvents() });
 		Object.defineProperty(this, "_propertyAccessSubscriptions", { value: [] });
 		Object.defineProperty(this, "_propertyChangeSubscriptions", { value: [] });
 		Object.defineProperty(this, "_rules", { value: [] });
-
 		Object.defineProperty(this, "getter", { value: Property$_makeGetter(this, Property$_getter) });
 		Object.defineProperty(this, "setter", { value: Property$_makeSetter(this, Property$_setter) });
-
-		if (this.origin === "client" && this.isPersisted) {
-			// TODO: Warn about client-origin property marked as persisted?
-			// logWarning($format("Client-origin properties should not be marked as persisted: Type = {0}, Name = {1}", containingType.get_fullName(), name));
-		}
 	}
 
 	get fieldName(): string {
 		return this.containingType.model._fieldNamePrefix + "_" + this.name;
+	}
+
+	get path(): string {
+		return this.isStatic ? (this.containingType + "." + this.name) : this.name;
 	}
 
 	get changed(): EventSubscriber<Entity, PropertyChangeEventArgs> {
@@ -84,12 +72,43 @@ export class Property {
 		return this._events.accessedEvent.asEventSubscriber();
 	}
 
-	get ruleRegistered(): EventSubscriber<Property, RuleRegisteredEventArgs> {
-		return this._events.ruleRegisteredEvent.asEventSubscriber();
+	get defaultValue() {
+		if (Object.prototype.hasOwnProperty.call(this, '_defaultValue')) {
+			// clone array and date defaults since they are mutable javascript types
+			return this._defaultValue instanceof Array ? this._defaultValue.slice() :
+				this._defaultValue instanceof Date ? new Date(+this._defaultValue) :
+					// TODO: Implement TimeSpan class/type?
+					// this._defaultValue instanceof TimeSpan ? new TimeSpan(this._defaultValue.totalMilliseconds) :
+					this._defaultValue instanceof Function ? this._defaultValue() :
+						this._defaultValue;
+		}
+		else {
+			return getDefaultValue(this.isList, this.propertyType);
+		}
 	}
 
-	getPath(): string {
-		return this.isStatic ? (this.containingType + "." + this.name) : this.name;
+	extend(options: PropertyOptions) {
+
+		// Label
+		if (options.label)
+			this.label = options.label;
+		else if (!this.label)
+			this.label = this.name.replace(/(^[a-z]+|[A-Z]{2,}(?=[A-Z][a-z]|$)|[A-Z][a-z]*)/g, " $1").trim();
+
+		// Helptext
+		this.helptext = options.helptext;
+
+		// Format
+		if (options.format) {
+			if (typeof (options.format) === "string") {
+				let format = options.format;
+				this.containingType.model.ready.then(() => {
+					this.format = this.containingType.model.getFormat(this.propertyType, format);
+				});
+			}
+			else
+				this.format = options.format;
+		}
 	}
 
 	equals(prop: Property | PropertyChain): boolean {
@@ -105,41 +124,14 @@ export class Property {
 		if (prop instanceof Property) {
 			return this === prop;
 		}
-
 	}
 
 	toString() {
 		if (this.isStatic) {
 			return `${this.containingType}.${this.name}`;
-		} else {
-			return `this<${this.containingType}>.${this.name}`;
 		}
-	}
-
-	get label(): string {
-		return this._label || toTitleCase(this.name.replace(/([^A-Z]+)([A-Z])/g, "$1 $2"));
-	}
-
-	get format(): Format<any> {
-		// TODO: Compile format from specifier if needed
-		return this._format;
-	}
-
-	get origin(): string {
-		return this._origin;
-	}
-
-	get defaultValue() {
-		if (Object.prototype.hasOwnProperty.call(this, '_defaultValue')) {
-			// clone array and date defaults since they are mutable javascript types
-			return this._defaultValue instanceof Array ? this._defaultValue.slice() :
-				this._defaultValue instanceof Date ? new Date(+this._defaultValue) :
-					// TODO: Implement TimeSpan class/type?
-					// this._defaultValue instanceof TimeSpan ? new TimeSpan(this._defaultValue.totalMilliseconds) :
-						this._defaultValue instanceof Function ? this._defaultValue() :
-							this._defaultValue;
-		} else {
-			return getDefaultValue(this.isList, this.propertyType);
+		else {
+			return `this<${this.containingType}>.${this.name}`;
 		}
 	}
 
@@ -223,40 +215,52 @@ export class Property {
 		}
 	}
 
-	// rootedPath(type: Type) {
-	// 	if (this.isDefinedBy(type)) {
-	// 		return this.isStatic ? this.containingType.fullName + "." + this.name : this.name;
-	// 	}
-	// }
-
 	isInited(obj: Entity): boolean {
 
+		// If the backing field has been created, the property is initialized
 		var target = (this.isStatic ? this.containingType.jstype : obj);
-
-		if (!target.hasOwnProperty(this.fieldName)) {
-			// If the backing field has not been created, then property is not initialized
-			return false;
-		}
-
-		/*
-		// TODO: Implement list lazy loading?
-		if (this.isList) {
-			var value = target[this.fieldName];
-			if (value === undefined || !LazyLoader.isLoaded(value)) {
-				// If the list is not-loaded, then the property is not initialized
-				return false;
-			}
-		}
-		*/
-
-		return true;
-
+		return target.hasOwnProperty(this.fieldName);
 	}
+}
 
+export interface PropertyOptions {
+
+	/** The name or Javascript type of the property */
+	type?: string | PropertyType,
+
+	/** True if the property is static, or type level. */
+	static?: boolean
+
+	/**
+	*  The optional label for the property.
+	*  The property name will be used as the label when not specified.
+	*/
+	label?: string,
+
+	/** The optional helptext for the property */
+	helptext?: string,
+
+	/** The optional format specifier for the property. */
+	format?: string | Format<PropertyType>,
+
+	/** An optional function or dependency function object that calculates the value of this property. */
+	get?: (this: Entity) => any | { function: (this: Entity) => any, dependsOn: string },
+
+	/** An optional function to call when this property is updated. */
+	set?: (this: Entity, value: any) => void,
+
+	/** An optional constant default value, or a function or dependency function object that calculates the default value of this property. */
+	default?: (this: Entity) => any | { function: (this: Entity) => any, dependsOn: string } | any,
+
+	/** True if the property is always required, or a dependency function object for conditionally required properties. */
+	required?: boolean | { function: (this: Entity) => boolean, dependsOn: string },
+
+	/** An optional dependency function object that adds an error with the specified message when true. */
+	error?: { function: (this: Entity) => boolean, dependsOn: string, message: string }
 }
 
 export interface PropertyConstructor {
-	new(containingType: Type, name: string, jstype: any, label: string, helptext: string, format: Format<any>, isList: boolean, isStatic: boolean, isPersisted: boolean, isCalculated: boolean, defaultValue?: any, origin?: string): Property;
+	new(containingType: Type, name: string, jstype: PropertyType, isList: boolean, isStatic: boolean, options?: PropertyOptions): Property;
 }
 
 export type PropertyGetMethod = (property: Property, entity: Entity, additionalArgs: any) => any;
@@ -574,7 +578,7 @@ function Property$_setter(property: Property, obj: Entity, val: any, additionalA
 function Property$_shouldSetValue(property: Property, obj: Entity, old: any, val: any, skipTypeCheck: boolean = false) {
 
     if (!property.canSetValue(obj, val)) {
-        throw new Error("Cannot set " + property.name + "=" + (val === undefined ? "<undefined>" : val) + " for instance " + obj.meta.type.fullName + "|" + obj.meta.id + ": a value of type " + (property.propertyType && property.propertyType.meta ? property.propertyType.meta.fullName : parseFunctionName(property.propertyType)) + " was expected.");
+        throw new Error("Cannot set " + property.name + "=" + (val === undefined ? "<undefined>" : val) + " for instance " + obj.meta.type.fullName + "|" + obj.meta.id + ": a value of type " + (isEntityType(property.propertyType) ? property.propertyType.meta.fullName : parseFunctionName(property.propertyType)) + " was expected.");
     }
 
     // Update lists as batch remove/add operations

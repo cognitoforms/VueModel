@@ -1,11 +1,10 @@
-import { Type } from "./type";
+import { Type, isEntityType, EntityType } from "./type";
 import { Property, PropertyAccessEventArgs, PropertyChangeEventArgs } from "./property";
 import { Event, EventSubscriber, ContextualEventRegistration, EventObject } from "./events";
 import { FunctorWith1Arg, Functor$create } from "./functor";
 import { Entity } from "./entity";
 import { Format } from "./format";
 import { getEventSubscriptions } from "./helpers";
-import { Model$getJsType } from "./model";
 import { PathTokens } from "./path-tokens";
 
 /**
@@ -66,7 +65,7 @@ export class PropertyChain {
 			if (step.cast) {
 
 				// Determine the filter type
-				type = Model$getJsType(step.cast, rootType.model._allTypesRoot, true).meta as Type;
+				type = rootType.model.types[step.cast];
 				if (!type) {
 					throw new Error(`Path '${pathTokens.expression}' references an invalid type: "${step.cast}".`);
 				}
@@ -75,8 +74,10 @@ export class PropertyChain {
 				filters[properties.length] = function (target: Entity) {
 					return target instanceof jstype;
 				};
-			} else {
+			} else if (isEntityType(prop.propertyType)) {
 				type = prop.propertyType.meta;
+			} else {
+				type = null;
 			}
 
 		}
@@ -445,7 +446,7 @@ function getPropertyChainPathFromIndex(chain: PropertyChain, startIndex: number)
 			}
 		}
 		steps.push(p.name);
-		previousStepType = p.propertyType.meta as Type;
+		previousStepType = (p.propertyType as EntityType).meta;
 	});
 
 	return steps.join(".");

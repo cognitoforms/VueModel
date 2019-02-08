@@ -10,7 +10,7 @@ export class ValidatedPropertyRule extends ConditionRule implements PropertyRule
 
 	private _isValid: (this: Entity, prop: Property, val: any) => boolean;
 
-	constructor(rootType: Type, options: RuleOptions & ConditionRuleOptions & ValidatedPropertyRuleOptions, skipRegistration: boolean = false) {
+	constructor(rootType: Type, options: RuleOptions & ConditionRuleOptions & ValidatedPropertyRuleOptions) {
 		/// <summary>Creates a rule that validates the value of a property in the model.</summary>
 		/// <param name="rootType" type="Type">The model type the rule is for.</param>
 		/// <param name="options" type="Object">
@@ -63,7 +63,7 @@ export class ValidatedPropertyRule extends ConditionRule implements PropertyRule
 		}
 
 		// call the base rule constructor
-		super(rootType, options, true);
+		super(rootType, options);
 
 		Object.defineProperty(this, "property", { value: property });
 
@@ -71,12 +71,6 @@ export class ValidatedPropertyRule extends ConditionRule implements PropertyRule
 		if (options.isValid instanceof Function) {
 			Object.defineProperty(this, "_isValid", { value: options.isValid });
 		}
-
-		if (!skipRegistration) {
-			// Register the rule after loading has completed
-			rootType.model.registerRule(this);
-		}
-
 	}
 
 	// returns false if the property is valid, true if invalid, or undefined if unknown

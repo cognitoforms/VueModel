@@ -1,40 +1,43 @@
 import { Event, EventSubscriber } from "./events";
 import { randomText } from "./helpers";
 import { EntityConstructor, EntityRegisteredEventArgs, EntityUnregisteredEventArgs, Entity, EntityConstructorForType } from "./entity";
-import { Type } from "./type";
-import { Rule } from "./rule";
-import { PropertyAddedEventArgs, Property } from "./property";
+import { Type, PropertyType, isEntityType, ValueType, TypeOptions } from "./type";
+import { Rule, RuleOptions } from "./rule";
+import { PropertyAddedEventArgs, Property, PropertyOptions } from "./property";
 import { PropertyChain } from "./property-chain";
 import { PathTokens } from "./path-tokens";
-import { Format, getFormat } from "./format";
+import { Format, createFormat } from "./format";
 
-export const intrinsicJsTypes = ["Object", "String", "Number", "Boolean", "Date", "Array"];
+const valueTypes: { [name: string]: ValueType } = { string: String, number: Number, date: Date, boolean: Boolean };
 
 export class Model {
 
-	readonly settings: ModelSettings;
+	readonly types: { [name: string]: Type };
 
-	// Readonly fields 
-	readonly _types: { [name: string]: Type };
+	ready: Promise<void>;
+
+	private _ready: () => void;
+
+	readonly settings: ModelSettings;
 
 	readonly _events: ModelEvents;
 
-	private _ruleQueue: Rule[];
-
-	readonly _nativeTypeFormats: { [name: string]: { [name: string]: Format<any> } };
-
-	readonly _allTypesRoot: ModelNamespace;
+	private readonly _formats: { [name: string]: { [name: string]: Format<ValueType> } };
 
 	readonly _fieldNamePrefix: string;
 
 	constructor(createOwnProperties: boolean = undefined, useGlobalObject: boolean = undefined) {
-		Object.defineProperty(this, "settings", { configurable: false, enumerable: true, value: new ModelSettings(createOwnProperties, useGlobalObject), writable: false });
 
-		Object.defineProperty(this, "_types", { value: {} });
-		Object.defineProperty(this, "_allTypesRoot", { value: {} });
-		Object.defineProperty(this, "_nativeTypeFormats", { configurable: false, enumerable: false, value: {}, writable: false });
+		this.types = {};
+
+		Object.defineProperty(this, "settings", { configurable: false, enumerable: true, value: new ModelSettings(createOwnProperties, useGlobalObject), writable: false });
 		Object.defineProperty(this, "_fieldNamePrefix", { value: ("_fN" + randomText(3, false, true)) });
 		Object.defineProperty(this, "_events", { value: new ModelEvents() });
+
+		this._formats = {};
+
+		// Indicate that the model is now ready
+		this.ready = Promise.resolve();
 	}
 
 	get entityRegistered(): EventSubscriber<Model, EntityRegisteredEventArgs> {
@@ -45,225 +48,135 @@ export class Model {
 		return this._events.entityUnregisteredEvent.asEventSubscriber();
 	}
 
-	get propertyAdded(): EventSubscriber<Model, PropertyAddedEventArgs> {
-		return this._events.propertyAddedEvent.asEventSubscriber();
-	}
-
-	// dispose() {
-	// 	// TODO: Implement model disposal
-	// 	// for (var key in this._types) {
-	// 	// 	delete window[key];
-	// 	// }
-	// }
-
-	getTypes(): Type[] {
-		let typesArray: Type[] = [];
-		for (var typeName in this._types) {
-			if (this._types.hasOwnProperty(typeName)) {
-				typesArray.push(this._types[typeName]);
-			}
-		}
-		return typesArray;
-	}
-
-	addType(fullName: string, baseType: Type = null, origin: string = "client"): Type {
-		var type = new Type(this, fullName, baseType ? (baseType as any) as Type : null, origin);
-		this._types[fullName] = type;
-		return type;
-	}
-
-	registerRule(rule: Rule): void {
-		if (!this._ruleQueue) {
-			this._ruleQueue.push(rule);
-		} else {
-			rule.register();
-		}
-	}
-
-	registerRules(): void {
-		var i, rules = this._ruleQueue;
-		delete this._ruleQueue;
-		for (i = 0; i < rules.length; i += 1) {
-			rules[i].register();
-		}
-	}
-
+	/**
+	 * Extends the model with the specified type information.
+	 * @param options The set of model types to add and/or extend.
+	 */
 	extend(options: ModelOptions) {
 
-		const isMethod = (value: any): value is MethodOptions => value.hasOwnProperty('function');
+		// Use prepare() to defer property path resolution while the model is being extended
+		this.prepare(() => {
 
-		// Types
-		for (let typeName in options) {
-			let typeOptions = options[typeName];
-			let type = this._types[typeName];
+			// Create New Types
+			for (let typeName in options) {
+				let typeOptions = options[typeName];
+				let type = this.types[typeName];
 
-			// Create New Type
-			if (!type) {
-				let baseType = this._types[typeOptions["$extends"] as string];
-				type = this.addType(typeName, baseType);
+				if (!type) {
+					let baseType = this.types[typeOptions.$extends];
+					type = new Type(this, typeName, baseType);
+					this.types[typeName] = type;
+					delete typeOptions["$extends"];
+				}
 			}
 
-			// Set Format
-			let format = typeOptions["$format"] as string;
-			if (format)
-				type.format = getFormat(this, type.jstype, format);
+			// Extend Types
+			for (let typeName in options) {
+				this.types[typeName].extend(options[typeName]);
+			}
+		});
+	}
 
-			// Remove Type Attributes
-			delete typeOptions["$extends"];
-			delete typeOptions["$format"];
+	/**
+	 * Prepares the model by invoking and extension function, which tracking the model
+	 * ready state to allow use of the @ready promise to defer property path resolution.
+	 * @param extend The function extending the model
+	 */
+	prepare(extend: () => void) {
+
+		// Create a model initialization scope
+		if (!this._ready) {
+
+			// Create a promise to track that the model is being extended
+			let _reject: (reason: any) => void;
+			this.ready = new Promise((resolve, reject) => {
+				this._ready = resolve;
+				_reject = reject;
+			});
+
+			// Extend the model
+			try {
+				extend();
+			}
+			catch (e) {
+				_reject(e);
+
+				return;
+			}
+
+			// Complete pending model initialization steps
+			this._ready();
+			this._ready = null;
 		}
 
-		// Properties & Methods
-		for (let typeName in options) {
-			let typeOptions = options[typeName];
-			let type = this._types[typeName];
+		// Leverage the current model initialization scope
+		else
+			extend();
+	}
 
-			// Type Options
-			for (let attr in typeOptions) {
-				let value = typeOptions[attr];
+	/**
+	 * Gets the format for the specified property type and format string.
+	 * @param type The type the format is for
+	 * @param format The format template or specifier
+	 */
+	getFormat<T>(type: PropertyType, format: string): Format<T> {
 
-				// Property Type Name
-				if (typeof (value) === "string")
-					value = { type: value };
+		// Return null if a format specifier was not provided
+		if (!format) {
+			return null;
+		}
 
-				// Property Type or Method Function
-				else if (typeof (value) === "function") {
+		// Get the format cache for the type
+		let formats = isEntityType(type) ?
+			type.meta._formats :
+			(this._formats[type.toString()] = (this._formats[type.toString()] || {}));
 
-					// Property Type
-					if (value === String || value === Number || value === Date || value === Boolean)
-						value = { type: value };
-						
-					// Method Function
-					else
-						value = { function: value as (this: Entity) => any };
-				}
+		// First see if the requested format is cached
+		let f = formats[format];
+		if (f) {
+			return f;
+		}
 
-				// Method
-				if (isMethod(value)) {
+		// Otherwise, create and cache the format
+		if (isEntityType(type)) {
+			return formats[format] = Format.fromTemplate(type.meta, format);
+		} else {
+			// otherwise, call the format provider to create a new format
+			return formats[format] = createFormat(type, format);
+		}
+	}
 
-					// Add rule/method here
-				}
-
-				// Property
-				else {
-
-					// Get Property
-					let property = type.getProperty(attr);
-
-					// Add Property
-					if (!property) {
-						// IsCalculated
-						let isCalculated = !!value.get;
-
-						// Label
-						if (!value.label)
-							value.label = attr.replace(/(^[a-z]+|[A-Z]{2,}(?=[A-Z][a-z]|$)|[A-Z][a-z]*)/g, " $1").trimLeft();
-
-						// Type & IsList
-						let isList = false;
-						if (typeof (value.type) === "string") {
-
-							// Type names ending in [] are lists
-							if (value.type.lastIndexOf("[]") === (value.type.length - 2)) {
-								isList = true;
-								value.type = value.type.substr(0, value.type.length - 2);
-							}
-
-							// Convert type names to javascript types
-							value.type = Model$getJsType(value.type, this._allTypesRoot, false);
-						}
-
-						// Format
-						if (typeof (value.format) === "string")
-							value.format = getFormat(this, value.type, value.format);
-
-						// Add Property
-						type.addProperty(attr, value.type, isList, value.static, { });
-					}
-				}
-			}
+	/**
+	 * Gets the javascript property type with the specified name.
+	 * @param type
+	 */
+	getJsType(type: string): PropertyType {
+		let jstype = valueTypes[type.toLowerCase()];
+		if (!jstype) {
+			let modelType = this.types[type];
+			return modelType ? modelType.jstype : null;
 		}
 	}
 }
+
 
 export interface ModelConstructor {
 	new(createOwnProperties?: boolean): Model;
 }
 
-export interface ModelNamespace {
-	[name: string]: ModelNamespace | EntityConstructor;
-}
-
 export class ModelEvents {
 	readonly entityRegisteredEvent: Event<Model, EntityRegisteredEventArgs>;
 	readonly entityUnregisteredEvent: Event<Model, EntityUnregisteredEventArgs>;
-	readonly propertyAddedEvent: Event<Model, PropertyAddedEventArgs>;
 	constructor() {
-		// TODO: Don't construct events by default, only when subscribed (optimization)
-		// TODO: Extend `EventDispatcher` with `any()` function to check for subscribers (optimization)
 		this.entityRegisteredEvent = new Event<Model, EntityRegisteredEventArgs>();
 		this.entityUnregisteredEvent = new Event<Model, EntityUnregisteredEventArgs>();
-		this.propertyAddedEvent = new Event<Model, PropertyAddedEventArgs>();
 	}
 }
 
 export interface ModelOptions {
 
 	/** The name of the type. */
-	[name: string]: {
-
-		/** The name of the property, method, or type attribute */
-		[name: string]: string | ((this: Entity) => any) | Function | PropertyOptions | MethodOptions
-	}
-}
-
-export interface PropertyOptions {
-
-	/** The name or Javascript type of the property */
-	type: string | Function,
-
-	/**
-		*  The optional label for the property.
-		*  The property name will be used as the label when not specified.
-		*/
-	label?: string,
-
-	/** The optional helptext for the property */
-	helptext?: string,
-
-	/** The optional format specifier for the property. */
-	format?: string | Format<any>,
-
-	/** True if the property is static, or type level. */
-	static?: boolean,
-
-	/** An optional function or dependency function object that calculates the value of this property. */
-	get?: (this: Entity) => any | { function: (this: Entity) => any, dependsOn: string },
-
-	/** An optional function to call when this property is updated. */
-	set?: (this: Entity, value: any) => void,
-
-	/** An optional constant default value, or a function or dependency function object that calculates the default value of this property. */
-	default?: (this: Entity) => any | { function: (this: Entity) => any, dependsOn: string } | any,
-
-	/** True if the property is always required, or a dependency function object for conditionally required properties. */
-	required?: boolean | { function: (this: Entity) => boolean, dependsOn: string },
-
-	/** An optional dependency function object that adds an error with the specified message when true. */
-	error?: { function: (this: Entity) => boolean, dependsOn: string, message: string }
-
-}
-
-export interface MethodOptions {
-
-	function: (this: Entity) => any,
-
-	dependsOn?: string,
-
-	onInitNew?: boolean,
-
-	onInitExisting?: boolean
-
+	[name: string]: TypeOptions
 }
 
 export class ModelSettings {
@@ -279,49 +192,12 @@ export class ModelSettings {
 		Object.defineProperty(this, "createOwnProperties", { configurable: false, enumerable: true, value: createOwnProperties, writable: false });
 		Object.defineProperty(this, "useGlobalObject", { configurable: false, enumerable: true, value: useGlobalObject, writable: false });
 	}
-
-}
-
-/**
- * Retrieves the JavaScript constructor function corresponding to the given full type name.
- * @param fullName The full name of the type, including the namespace
- * @param allTypesRoot The model namespace that contains all types
- * @param allowUndefined If true, return undefined if the type is not defined
- */
-export function Model$getJsType<TEntity extends Entity>(fullName: string, allTypesRoot: ModelNamespace, allowUndefined: boolean = false): EntityConstructorForType<TEntity> {
-	var steps = fullName.split(".");
-	if (steps.length === 1 && intrinsicJsTypes.indexOf(fullName) > -1) {
-		return allTypesRoot[fullName] as EntityConstructorForType<TEntity>;
-	} else {
-		let obj: any;
-
-		var ns: ModelNamespace = allTypesRoot;
-		for (var i = 0; ns !== undefined && i < steps.length - 1; i++) {
-			var step = steps[i];
-			ns = ns[step] as ModelNamespace;
-		}
-
-		if (ns !== undefined) {
-			obj = ns[steps[steps.length - 1]];
-		}
-
-		if (obj === undefined) {
-			if (allowUndefined) {
-				return;
-			} else {
-				throw new Error(`The type \"${fullName}\" could not be found.  Failed on step \"${step}\".`);
-			}
-		}
-
-		return obj as EntityConstructorForType<TEntity>;
-	}
 }
 
 export function getPropertyOrPropertyChain(pathOrTokens: string | PathTokens, type: Type): Property | PropertyChain {
 
 	var path: string = null,
 		tokens: PathTokens = null,
-		allTypesRoot: ModelNamespace = type.model._allTypesRoot,
 		cache: any = (type as any)._cache;
 
 	// Allow the path argument to be either a string or PathTokens instance
@@ -348,7 +224,7 @@ export function getPropertyOrPropertyChain(pathOrTokens: string | PathTokens, ty
 	// Determine if a typecast was specified for the path to identify a specific subclass to use as the root type
 	if (tokens.steps[0].property === "this" && tokens.steps[0].cast) {
 		// Try and resolve cast to an actual type in the model
-		type = Model$getJsType(tokens.steps[0].cast, allTypesRoot, false).meta;
+		type = type.model.types[tokens.steps[0].cast];
 		tokens.steps.shift();
 	}
 
@@ -368,10 +244,10 @@ export function getPropertyOrPropertyChain(pathOrTokens: string | PathTokens, ty
 		var globalPropertyName = tokens.steps[tokens.steps.length - 1].property;
 
 		// Retrieve the javascript type by name
-		let jstype = Model$getJsType(globalTypeName, allTypesRoot, true);
-		if (jstype) {
+		let globalType = type.model.types[globalTypeName];
+		if (globalType) {
 			// Return the static property if found
-			var property = jstype.meta.getProperty(globalPropertyName);
+			var property = globalType.getProperty(globalPropertyName);
 			if (property) {
 				return property;
 			}

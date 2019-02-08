@@ -23,7 +23,7 @@ export class ConditionRule extends Rule {
 	 * @param rootType The model type the rule is for
 	 * @param options The options for the rule, of type ConditionRuleOptions
 	 */
-	constructor(rootType: Type, options: ConditionRuleOptions & RuleOptions, skipRegistration: boolean = false) {
+	constructor(rootType: Type, options: ConditionRuleOptions & RuleOptions) {
 
 		// Exit immediately if called with no arguments
 		if (arguments.length === 0) return;
@@ -45,7 +45,7 @@ export class ConditionRule extends Rule {
 		}
 
 		// Call the base rule constructor
-		super(rootType, name, options, true);
+		super(rootType, name, options);
 	
 		// store the condition predicate
 		var assert = options.assert || options.fn;
@@ -66,12 +66,6 @@ export class ConditionRule extends Rule {
 		}
 
 		Object.defineProperty(this, "_properties", { value: options.properties || [], writable: true });
-
-		if (!skipRegistration) {
-			// Register the rule after loading has completed
-			rootType.model.registerRule(this);
-		}
-
 	}
 
 	// subclasses may override this function to return the set of properties to attach conditions to for this rule

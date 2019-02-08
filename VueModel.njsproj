@@ -51,9 +51,6 @@
     <TypeScriptCompile Include="lib\model.js\src\format.ts" />
     <TypeScriptCompile Include="lib\model.js\src\functor.ts" />
     <TypeScriptCompile Include="lib\model.js\src\helpers.ts" />
-    <TypeScriptCompile Include="lib\model.js\src\indexed-array.ts">
-      <SubType>Code</SubType>
-    </TypeScriptCompile>
     <TypeScriptCompile Include="lib\model.js\src\legacy-api.ts" />
     <TypeScriptCompile Include="lib\model.js\src\list-length-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\index.ts" />

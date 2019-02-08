@@ -8,7 +8,7 @@ export class ValidationRule extends ValidatedPropertyRule {
 
 	_isError: string | ((this: Entity) => boolean);
 
-	constructor(rootType: Type, options: any, skipRegistration: boolean = false) {
+	constructor(rootType: Type, options: any) {
 		/// <summary>Creates a rule that performs custom validation for a property.</summary>
 		/// <param name="rootType" type="Type">The model type the rule is for.</param>
 		/// <param name="options" type="Object">
@@ -35,18 +35,12 @@ export class ValidationRule extends ValidatedPropertyRule {
 		options.message = options.message.replace('{property}', prop.get_label().replace(/\"/g, "\\\""));
 
 		// call the base type constructor
-		super(rootType, options, true);
+		super(rootType, options);
 
 		// predicate-based rule
 		if (options.isError || options.fn) {
 			Object.defineProperty(this, "_isError", { value: options.isError || options.fn, writable: true });
 		}
-
-		if (!skipRegistration) {
-			// Register the rule after loading has completed
-			rootType.model.registerRule(this);
-		}
-
 	}
 
 	/**

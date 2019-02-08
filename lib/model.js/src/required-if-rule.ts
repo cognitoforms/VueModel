@@ -10,7 +10,7 @@ export class RequiredIfRule extends ValidatedPropertyRule {
 
 	_isRequired: string | ((this: Entity) => boolean);
 
-	constructor(rootType: Type, options: any, skipRegistration: boolean = false) {
+	constructor(rootType: Type, options: any) {
 		/// <summary>Creates a rule that conditionally validates whether a property has a value.</summary>
 		/// <param name="rootType" type="Type">The model type the rule is for.</param>
 		/// <param name="options" type="Object">
@@ -47,7 +47,7 @@ export class RequiredIfRule extends ValidatedPropertyRule {
 		}
 
 		// call the base type constructor
-		super(rootType, options, true);
+		super(rootType, options);
 
 		// predicate-based rule
 		if (options.isRequired) {
@@ -56,11 +56,6 @@ export class RequiredIfRule extends ValidatedPropertyRule {
 
 		if (options.requiredValue)
 			Object.defineProperty(this, "requiredValue", { value: options.requiredValue });
-
-		if (!skipRegistration) {
-			// Register the rule after loading has completed
-			rootType.model.registerRule(this);
-		}
 	}
 
 	// returns false if the property is valid, true if invalid, or undefined if unknown

@@ -10,7 +10,7 @@ export class RangeRule extends ValidatedPropertyRule {
 
 	_max: string | ((this: Entity) => any);
 
-	constructor(rootType: Type, options: any, skipRegistration: boolean = false) {
+	constructor(rootType: Type, options: any) {
 		/// <summary>Creates a rule that validates a property value is within a specific range.</summary>
 		/// <param name="rootType" type="Type">The model type the rule is for.</param>
 		/// <param name="options" type="Object">
@@ -52,16 +52,11 @@ export class RangeRule extends ValidatedPropertyRule {
 		}
 
 		// call the base type constructor
-		super(rootType, options, true);
+		super(rootType, options);
 
 		// Store the min and max functions
 		Object.defineProperty(this, "_min", { value: options.min, writable: true });
 		Object.defineProperty(this, "_max", { value: options.max, writable: true });
-
-		if (!skipRegistration) {
-			// Register the rule after loading has completed
-			rootType.model.registerRule(this);
-		}
 	}
 
 	// get the min and max range in effect for this rule for the specified instance

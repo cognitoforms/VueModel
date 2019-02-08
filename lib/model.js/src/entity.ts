@@ -1,7 +1,7 @@
 import { Event, EventSubscriber, EventObject } from "./events";
-import { Format, getFormat } from "./format";
-import { Model$getJsType, Model } from "./model";
-import { Type } from "./type";
+import { Format } from "./format";
+import { Model } from "./model";
+import { Type, EntityType } from "./type";
 import { ObjectMeta } from "./object-meta";
 import { Property } from "./property";
 
@@ -82,20 +82,21 @@ export class Entity {
 		return this.meta.type.getProperty(property).value(this);
 	}
 
-	toString(format: string): string {
+	toString(format?: string): string {
+
+		// Get the entity format to use
 		let formatter: Format<Entity> = null;
 		if (format) {
-			// TODO: Use format to convert entity to string
-			formatter = getFormat(this.meta.type.model, this.constructor as EntityConstructorForType<Entity>, format);
+			formatter = this.meta.type.model.getFormat<Entity>(this.constructor as EntityType, format);
 		} else {
-			// TODO: Use format to convert entity to string
-			formatter = this.meta.type.format as Format<Entity>;
+			formatter = this.meta.type.format;
 		}
 
+		// Use the formatter, if available, to create the string representation
 		if (formatter) {
 			return formatter.convert(this);
 		} else {
-			return Entity$toIdString(this);
+			return `${this.meta.type.fullName}|${this.meta.id}`;
 		}
 	}
 
@@ -155,26 +156,4 @@ export class EntityEvents {
 		this.accessedEvent = new Event<Entity, EntityAccessEventArgs>();
 		this.changedEvent = new Event<Entity, EntityChangeEventArgs>();
 	}
-}
-
-// Gets the typed string id suitable for roundtripping via fromIdString
-export function Entity$toIdString(obj: Entity): string {
-	return `${obj.meta.type.fullName}|${obj.meta.id}`;
-}
-
-// Gets or loads the entity with the specified typed string id
-export function Entity$fromIdString(model: Model, idString: string): Entity {
-	// Typed identifiers take the form "type|id".
-	var type = idString.substring(0, idString.indexOf("|"));
-	var id = idString.substring(type.length + 1);
-
-	// Use the left-hand portion of the id string as the object's type.
-	var jstype = Model$getJsType(type, model._allTypesRoot);
-
-	// Retrieve the object with the given id.
-	return jstype.meta.get(id,
-		// Typed identifiers may or may not be the exact type of the instance.
-		// An id string may be constructed with only knowledge of the base type.
-		false
-	);
 }

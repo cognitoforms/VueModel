@@ -47,7 +47,6 @@ export class VueModel {
 		if (options.extendModel) {
 			Object.defineProperty(model, "_ruleQueue", { configurable: true, enumerable: false, value: [], writable: false });
 			options.extendModel(model);
-			model.registerRules();
 		}
 
 	}

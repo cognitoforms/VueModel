@@ -1,33 +1,31 @@
-import { Model, ModelNamespace } from "./model";
+import { Model } from "./model";
 import { Entity, EntityConstructorForType, EntityDestroyEventArgs, EntityInitNewEventArgs, EntityInitExistingEventArgs, EntityConstructor } from "./entity";
-import { Property, Property$_generateStaticProperty, Property$_generatePrototypeProperty, Property$_generateOwnProperty, Property$_generateShortcuts } from "./property";
+import { Property, Property$_generateStaticProperty, Property$_generatePrototypeProperty, Property$_generateOwnProperty, Property$_generateShortcuts, PropertyOptions } from "./property";
 import { navigateAttribute, getTypeName, parseFunctionName, ensureNamespace, getGlobalObject } from "./helpers";
 import { ObjectMeta, ObjectMetaEvents } from "./object-meta";
 import { Event, EventSubscriber } from "./events";
 import { ObservableArray } from "./observable-array";
 import { RuleOptions, Rule } from "./rule";
-import { Format, getFormat } from "./format";
+import { Format } from "./format";
 import { ConditionTargetsChangedEventArgs } from "./condition-target";
 
 export const Type$newIdPrefix = "+c"
 
 export class Type {
 
+	format: Format<Entity>;
+
 	// Public read-only properties: aspects of the object that cannot be
 	// changed without fundamentally changing what it represents
 	readonly model: Model;
 	readonly fullName: string;
-	readonly jstype: EntityConstructorForType<Entity>;
+	readonly jstype: EntityType;
 	readonly baseType: Type;
-
-	// Public settable properties that are simple values with no side-effects or logic
-	origin: string;
-	originForNewProperties: string;
 
 	// Backing fields for properties that are settable and also derived from
 	// other data, calculated in some way, or cannot simply be changed
 	private _lastId: number;
-	private _format: Format<Entity>;
+
 	private _known: ObservableArray<Entity>;
 	private readonly _pool: { [id: string]: Entity };
 	private readonly _legacyPool: { [id: string]: Entity }
@@ -39,17 +37,13 @@ export class Type {
 
 	readonly _events: TypeEvents;
 
-	constructor(model: Model, fullName: string, baseType: Type = null, origin: string = "client") {
+	constructor(model: Model, fullName: string, baseType: Type = null, options?: TypeOptions) {
 
 		// Public read-only properties
 		Object.defineProperty(this, "model", { enumerable: true, value: model });
 		Object.defineProperty(this, "fullName", { enumerable: true, value: fullName });
 		Object.defineProperty(this, "jstype", { enumerable: true, value: Type$_generateConstructor(this, fullName, baseType, model.settings.useGlobalObject ? getGlobalObject() : null) });
 		Object.defineProperty(this, "baseType", { enumerable: true, value: baseType });
-	
-		// Public settable properties
-		this.origin = origin;
-		this.originForNewProperties = this.origin;
 
 		// Backing fields for properties
 		Object.defineProperty(this, "_lastId", { enumerable: false, value: 0, writable: true });
@@ -61,12 +55,9 @@ export class Type {
 
 		Object.defineProperty(this, "_events", { value: new TypeEvents() });
 
-		// Object.defineProperty(this, "rules", { value: [] });
-
-		// TODO: Is self-reference to type needed?
-		// Add self-reference to decrease the likelihood of errors
-		// due to an absence of the necessary type vs. entity.
-		// this.type = this;
+		// Apply type options
+		if (options)
+			this.extend(options);
 	}
 
 	get destroy(): EventSubscriber<Type, EntityDestroyEventArgs> {
@@ -85,33 +76,6 @@ export class Type {
 		return this._events.conditionsChangedEvent.asEventSubscriber();
 	}
 
-	// static get newIdPrefix() {
-	// 	return newIdPrefix.substring(1);
-	// }
-
-	// static set newIdPrefix(value) {
-	// 	if (typeof (value) !== "string") throw new TypeError("Property `Type.newIdPrefix` must be a string, found <" + (typeof value) + ">");
-	// 	if (value.length === 0) throw new Error("Property `Type.newIdPrefix` cannot be empty string");
-	// 	newIdPrefix = "+" + value;
-	// }
-
-	get format(): string | Format<Entity> {
-		if (this._format) {
-			return this._format;
-		}
-		if (this.baseType) {
-			return this.baseType.format;
-		}
-	}
-
-	set format(value: string | Format<Entity>) {
-		if (value && typeof value === "string") {
-			value = getFormat(this.model, this.jstype, value);
-		}
-
-		Object.defineProperty(this, "_format", { configurable: true, enumerable: false, value: value, writable: true });
-	}
-
 	newId() {
 		// Get the next id for this type's heirarchy.
 		for (var lastId, type: Type = this; type; type = type.baseType) {
@@ -126,7 +90,7 @@ export class Type {
 		}
 
 		// Return the new id.
-		return Type$newIdPrefix  + nextId;
+		return Type$newIdPrefix + nextId;
 	}
 
 	register(obj: Entity, id: string, suppressModelEvent: boolean = false): void {
@@ -197,10 +161,6 @@ export class Type {
 			obj.meta.id = newId;
 
 			return obj;
-		} else {
-			// TODO: Warn about attempting to change id of object that couldn't be found
-			// logWarning($format("Attempting to change id: Instance of type \"{0}\" with id = \"{1}\" could not be found.", this.get_fullName(), oldId));
-			// console.warn(`Attempting to change id: Instance of type \"${this.fullName}\" with id = \"${oldId}\" could not be found.`);
 		}
 	}
 
@@ -258,44 +218,6 @@ export class Type {
 		}
 
 		return known;
-	}
-
-	addProperty(name: string, jstype: any, isList: boolean, isStatic: boolean, options: TypePropertyOptions): Property {
-		let format: Format<any> = null;
-		if (options.format) {
-			if (typeof(options.format) === "string") {
-				format = getFormat(this.model, jstype, options.format);
-			} else if (format.constructor === Format) {
-				format = options.format;
-			} else {
-				// TODO: Warn about format option that is neither Format or string
-			}
-		}
-
-		var property = new Property(this, name, jstype, options.label, options.helptext, format, isList, isStatic, options.isPersisted, options.isCalculated, options.defaultValue);
-
-		this._properties[name] = property;
-
-		// TODO: Implement static and instance property storage?
-		// (isStatic ? this._staticProperties : this._instanceProperties)[name] = property;
-
-		Property$_generateShortcuts(property, property.containingType.jstype);
-
-		if (property.isStatic) {
-			Property$_generateStaticProperty(property, this.jstype);
-		} else if (this.model.settings.createOwnProperties === true) {
-			for (var id in this._pool) {
-				if (Object.prototype.hasOwnProperty.call(this._pool, id)) {
-					Property$_generateOwnProperty(property, this._pool[id]);
-				}
-			}
-		} else {
-			Property$_generatePrototypeProperty(property, this.jstype.prototype);
-		}
-
-		this.model._events.propertyAddedEvent.publish(this.model, { property });
-
-		return property;
 	}
 
 	getProperty(name: string): Property {
@@ -367,143 +289,117 @@ export class Type {
 		return this.fullName;
 	}
 
+	/**
+	 * Extends the current type with the specified format, properties and methods
+	 * @param options The options specifying how to extend the type
+	 */
 	extend(options: TypeOptions) {
 
-		//// Set the format
-		//if (options.format)
-		//	this.format = options.format;
+		// Use prepare() to defer property path resolution while the model is being extended
+		this.model.prepare(() => {
 
-		//// Set the origin
-		//if (options.origin)
-		//	this.origin = options.origin;
+			const isMethod = (value: any): value is RuleOptions => value.hasOwnProperty('execute');
 
-		//// Add or extend properties
-		//if (options.properties) {
+			// Set Format
+			if (options.$format) {
+				if (typeof (options.$format) === "string") {
+					let format = options.$format;
+					this.model.ready.then(() => {
+						this.format = this.model.getFormat<Entity>(this.jstype, format);
+					});
+				}
+				else
+					this.format = options.$format;
+				delete options["$format"];
+			}
 
-		//	for (let propName in options.properties) {
+			// Type Members
+			for (let name in options) {
+				let member = options[name];
 
-		//		let propOptions = options.properties[propName];
+				// Ignore Type and Format values, which do not represent type members
+				if (member instanceof Type || member instanceof Format)
+					continue;
 
-		//		// See if the property already exists
-		//		let prop = this.getProperty(propName);
+				// Property Type Name
+				if (typeof (member) === "string")
+					member = { type: member };
 
-		//		// Create the property if it does not already exist
-		//		if (!prop) {
+				// Property Type
+				else if (isValueType(member))
+					member = { type: member };
 
-		//			// Type
-		//			if (typeof (propOptions.type) === "string") {
-		//				if (propOptions.type.substr(propOptions.type.length - 2) === "[]") {
-							
-		//					propOptions.type = propOptions.type.substring(0, propOptions.type.length - 2);
-		//					propOptions.isList = true;
-		//				}
-		//				propOptions.type = this.model.getTypes()
-		//			}
-		//			if (propOptions.type instanceof Function)
-		//			if (propOptions.type.endsWith("[]")) {
-		//				propType = propType.toString().substring(0, propType.length - 2);
-		//				propJson.isList = true;
-		//			}
-		//			propType = getJsType(model, propType);
-		//		}
+				// Method Function
+				else if (typeof (member) === "function")
+					member = { execute: member as (this: Entity) => any };
 
-				
+				// Method
+				if (isMethod(member)) {
 
-		//		// Format
-		//		var format = getFormat(propType, propJson.format);
+					// Add rule/method here
+				}
 
-		//		// Add the property
-		//		var prop = mtype.addProperty({
-		//			name: propName,
-		//			type: propType,
-		//			label: propJson.label,
-		//			helptext: propJson.helptext,
-		//			format: format,
-		//			isList: propJson.isList === true,
-		//			isStatic: propJson.isStatic === true,
-		//			isPersisted: propJson.isPersisted !== false,
-		//			isCalculated: propJson.isCalculated === true,
-		//			index: propJson.index,
-		//			defaultValue: propJson.defaultValue ? mtype.compileExpression(propJson.defaultValue) : undefined
-		//		});
+				// Property
+				else {
 
-		//		// setup static properties for lazy loading
-		//		if (propJson.isStatic && propJson.isList) {
-		//			Property$_init.call(prop, null, ListLazyLoader.register(null, prop));
-		//		}
+					// Get Property
+					let property = this.getProperty(name);
 
-		//		// process property specific rules, which have a specialized json syntax to improve readability and minimize type json size
-		//		if (propJson.rules) {
-		//			for (var rule in propJson.rules) {
-		//				var options = propJson.rules[rule];
+					// Add Property
+					if (!property) {
 
-		//				// default the type to the rule name if not specified
-		//				if (!options.type) {
-		//					options.type = rule;
+						// Type & IsList
+						let isList = false;
+						if (typeof (member.type) === "string") {
 
-		//					// calculate the name of the rule if not specified in the json, assuming it will be unique
-		//					if (!options.name) {
-		//						options.name = mtype.get_fullName() + "." + prop.get_name() + "." + rule.substr(0, 1).toUpperCase() + rule.substr(1);
-		//					}
-		//				}
+							// Type names ending in [] are lists
+							if (member.type.lastIndexOf("[]") === (member.type.length - 2)) {
+								isList = true;
+								member.type = member.type.substr(0, member.type.length - 2);
+							}
 
-		//				// initialize the name of the rule if not specified in the json
-		//				else if (!options.name) {
-		//					options.name = rule;
-		//				}
+							// Convert type names to javascript types
+							member.type = this.model.getJsType(member.type);
+						}
 
-		//				options.property = prop;
-		//				ruleFromJson(mtype, options);
-		//			}
-		//		}
-		//	}
-		//}
+						// Add Property
+						let property = new Property(this, name, member.type, isList, member.static, member);
 
-		//// ensure all properties added from now on are considered client properties
-		//mtype.set_originForNewProperties("client");
+						this._properties[name] = property;
+						
+						Property$_generateShortcuts(property, this.jstype);
 
-		//// define methods
-		//for (var methodName in json.methods) {
-		//	var methodJson = json.methods[methodName];
-		//	mtype.addMethod({ name: methodName, parameters: methodJson.parameters, isStatic: methodJson.isStatic });
-		//}
+						if (property.isStatic) {
+							Property$_generateStaticProperty(property, this.jstype);
+						} else if (!this.model.settings.createOwnProperties) {
+							Property$_generatePrototypeProperty(property, this.jstype.prototype);
+						}
+					}
 
-		//// define condition types
-		//if (json.conditionTypes)
-		//	conditionTypesFromJson(model, mtype, json.conditionTypes);
-
-		//// define rules 
-		//if (json.rules) {
-		//	for (var i = 0; i < json.rules.length; ++i) {
-		//		ruleFromJson(mtype, json.rules[i]);
-		//	}
-		//}
+					else
+						property.extend(member);
+				}
+			}
+		});
 	}
 }
+
+export type ValueType = StringConstructor | NumberConstructor | DateConstructor | BooleanConstructor;
+export type EntityType = EntityConstructorForType<Entity>;
+export type PropertyType = ValueType | EntityType;
 
 export interface TypeConstructor {
 	new(model: Model, fullName: string, baseType?: Type, origin?: string): Type;
 }
 
 export interface TypeOptions {
-	fullName: string;
-	baseType?: Type;
-	origin?: string;
-	format: string | Format<Entity>;
-	properties: TypePropertyOptions[];
-}
 
-export interface TypePropertyOptions {
-	type?: string | Function;
-	isList?: boolean;
-	isStatic?: boolean;
-	origin?: string;
-	label?: string;
-	helptext?: string;
-	format?: string | Format<any>;
-	isPersisted?: boolean;
-	isCalculated?: boolean;
-	defaultValue?: any;
+	$extends?: string;
+
+	$format?: string | Format<Entity>;
+
+	/** The name of the property, method, or type attribute */
+	[name: string]: string | ValueType | Function | Format<Entity> | ((this: Entity) => any) | PropertyOptions | RuleOptions;
 }
 
 export class TypeEvents {
@@ -519,7 +415,11 @@ export class TypeEvents {
 	}
 }
 
-export function isEntityType(type: any): type is EntityConstructorForType<Entity> {
+export function isValueType(type: any): type is ValueType {
+	return type === String || type === Number || type === Date || type === Boolean;
+}
+
+export function isEntityType(type: any): type is EntityType {
 	return type.meta && type.meta instanceof Type;
 }
 
@@ -541,7 +441,7 @@ export function Type$_generateConstructor(type: Type, fullName: string, baseType
 	// Create namespaces as needed
 	let nameTokens: string[] = fullName.split("."),
 		token: string = nameTokens.shift(),
-		namespaceObj: ModelNamespace = type.model._allTypesRoot,
+		namespaceObj: any = type.model,
 		globalObj: any = global;
 
 	while (nameTokens.length > 0) {
@@ -618,7 +518,7 @@ export function Type$_generateConstructor(type: Type, fullName: string, baseType
 		}
 	}
 
-	let ctor = ctorFactory(construct) as ModelNamespace | any;
+	let ctor = ctorFactory(construct) as any;
 
 	// If the namespace already contains a type with this name, prepend a '$' to the name
 	if (!namespaceObj[finalName]) {

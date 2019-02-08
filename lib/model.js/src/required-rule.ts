@@ -8,7 +8,7 @@ export class RequiredRule extends ValidatedPropertyRule {
 
 	requiredValue: any;
 
-	constructor(rootType: Type, options: any, skipRegistration: boolean = false) {
+	constructor(rootType: Type, options: any) {
 		/// <summary>Creates a rule that validates that a property has a value.</summary>
 		/// <param name="rootType" type="Type">The model type the rule is for.</param>
 		/// <param name="options" type="Object">
@@ -29,15 +29,10 @@ export class RequiredRule extends ValidatedPropertyRule {
 		options.message = options.message || Resource.get("required");
 
 		// call the base type constructor
-		super(rootType, options, true);
+		super(rootType, options);
 
 		if (options.requiredValue)
 			Object.defineProperty(this, "requiredValue", { value: options.requiredValue });
-
-		if (!skipRegistration) {
-			// Register the rule after loading has completed
-			rootType.model.registerRule(this);
-		}
 	}
 
 	// define a global function that determines if a value exists

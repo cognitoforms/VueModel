@@ -6,7 +6,7 @@ import { Resource } from "./resource";
 
 export class ListLengthRule extends RangeRule {
 
-	constructor(rootType: Type, options: any, skipRegistration: boolean = false) {
+	constructor(rootType: Type, options: any) {
 		/// <summary>Creates a rule that validates a list property contains a specific range of items.</summary>
 		/// <param name="rootType" type="Type">The model type the rule is for.</param>
 		/// <param name="options" type="Object">
@@ -32,16 +32,11 @@ export class ListLengthRule extends RangeRule {
 		delete options.max;
 
 		// call the base type constructor
-		super(rootType, options, true);
+		super(rootType, options);
 
 		// store the min and max lengths
 		Object.defineProperty(this, "_min", { value: min });
 		Object.defineProperty(this, "_max", { value: max });
-
-		if (!skipRegistration) {
-			// Register the rule after loading has completed
-			rootType.model.registerRule(this);
-		}
 	}
 
 	// returns true if the property is valid, otherwise false

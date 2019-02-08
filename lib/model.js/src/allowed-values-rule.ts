@@ -22,7 +22,7 @@ export class AllowedValuesRule extends ValidatedPropertyRule {
 	 * @param rootType The root type to bind the rule to
 	 * @param options The rule configuration options
 	 */
-	constructor(rootType: Type, options: AllowedValuesRuleOptions & ValidatedPropertyRuleOptions & ConditionRuleOptions & RuleOptions, skipRegistration: boolean = false) {
+	constructor(rootType: Type, options: AllowedValuesRuleOptions & ValidatedPropertyRuleOptions & ConditionRuleOptions & RuleOptions) {
 
 		// ensure the rule name is specified
 		options.name = options.name || "AllowedValues";
@@ -39,7 +39,7 @@ export class AllowedValuesRule extends ValidatedPropertyRule {
 		if (options.source) {
 			// define properties for the rule
 			if (options.source instanceof Property || options.source instanceof PropertyChain) {
-				sourcePath = options.source.getPath();
+				sourcePath = options.source.path;
 				source = options.source;
 				options.onChangeOf = [options.source];
 			}
@@ -63,7 +63,7 @@ export class AllowedValuesRule extends ValidatedPropertyRule {
 		}
 
 		// call the base type constructor
-		super(rootType, options, true);
+		super(rootType, options);
 
 		if (source) {
 			Object.defineProperty(this, "_source", { enumerable: false, value: source });
@@ -80,12 +80,6 @@ export class AllowedValuesRule extends ValidatedPropertyRule {
 		if (options.ignoreValidation) {
 			Object.defineProperty(this, "ignoreValidation", { value: options.ignoreValidation });
 		}
-
-		if (!skipRegistration) {
-			// Register the rule after loading has completed
-			rootType.model.registerRule(this);
-		}
-
 	}
 
 	onRegister() {
