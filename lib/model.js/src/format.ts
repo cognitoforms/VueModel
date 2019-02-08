@@ -1,6 +1,6 @@
 import { Resource } from "./resource";
 import { FormatError } from "./format-error";
-import { Model$getPropertyOrPropertyChain, Model } from "./model";
+import { Model, getPropertyOrPropertyChain } from "./model";
 import { Property } from "./property";
 import { PropertyChain } from "./property-chain";
 import { Type, isEntityType } from "./type";
@@ -232,7 +232,7 @@ export class ModelFormat<T extends Entity> extends Format<T> {
 
 						// If a property path remains, then attempt to find a default format and paths for the format
 						if (propertyPath) {
-							var property = Model$getPropertyOrPropertyChain(propertyPath, this.type, this.type.model._allTypesRoot);
+							var property = getPropertyOrPropertyChain(propertyPath, this.type);
 							if (property) {
 								// Only allow formats for a property path that is not followed by ".meta..."
 								if (allowFormat) {

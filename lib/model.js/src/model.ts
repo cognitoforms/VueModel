@@ -4,7 +4,7 @@ import { EntityConstructor, EntityRegisteredEventArgs, EntityUnregisteredEventAr
 import { Type } from "./type";
 import { Rule } from "./rule";
 import { PropertyAddedEventArgs, Property } from "./property";
-import { PropertyChain$create, PropertyChain } from "./property-chain";
+import { PropertyChain } from "./property-chain";
 import { PathTokens } from "./path-tokens";
 import { Format, getFormat } from "./format";
 
@@ -282,33 +282,6 @@ export class ModelSettings {
 
 }
 
-export function Model$whenTypeAvailable(type: Type, forceLoad: boolean, callback: Function) {
-
-	// Immediately invoke the callback if no type was specified
-	if (!type) {
-		// TODO: Warn about no type provided to `Model$whenTypeAvailable()`?
-		return callback();
-	}
-
-	/*
-	// TODO: Implement check for lazy loading?
-	if (!LazyLoader.isLoaded(type)) {
-
-		// force type loading if requested
-		if (forceLoad) {
-			LazyLoader.load(type, null, false, callback);
-		}
-
-		// otherwise, only continue processing when and if dependent types are loaded
-		else {
-			$extend(type._fullName, callback);
-		}
-	}
-	*/
-
-	return callback();
-}
-
 /**
  * Retrieves the JavaScript constructor function corresponding to the given full type name.
  * @param fullName The full name of the type, including the namespace
@@ -344,18 +317,14 @@ export function Model$getJsType<TEntity extends Entity>(fullName: string, allTyp
 	}
 }
 
-export function Model$getPropertyOrPropertyChain(pathOrTokens: string | PathTokens, thisType: any, allTypesRoot: ModelNamespace, forceLoadTypes: boolean = false, callback: (result: Property | PropertyChain) => void = null, thisPtr: any = null): Property | PropertyChain | void {
+export function getPropertyOrPropertyChain(pathOrTokens: string | PathTokens, type: Type): Property | PropertyChain {
 
-	var type: Type,
-		loadProperty: (containingType: Type, propertyName: string, propertyCallback: ((prop: Property) => void)) => void,
-		singlePropertyName,
-		path: string = null,
-		tokens: PathTokens = null;
-		// forceLoadTypes = arguments.length >= 3 && arguments[2] && arguments[2].constructor === Boolean ? arguments[2] : false,
-		// callback: ((chain: Property | PropertyChain) => void) = arguments[3],
-		// thisPtr = arguments[4],
+	var path: string = null,
+		tokens: PathTokens = null,
+		allTypesRoot: ModelNamespace = type.model._allTypesRoot,
+		cache: any = (type as any)._cache;
 
-	// Allow the path argument to be either a string or PathTokens instance.
+	// Allow the path argument to be either a string or PathTokens instance
 	if (pathOrTokens.constructor === PathTokens) {
 		tokens = pathOrTokens as PathTokens;
 		path = tokens.expression;
@@ -365,97 +334,51 @@ export function Model$getPropertyOrPropertyChain(pathOrTokens: string | PathToke
 		throw new Error("Invalid valud for argument `pathOrTokens`.");
 	}
 
-	// Return cached property chains as soon as possible (in other words,
-	// do as little as possible prior to returning the cached chain).
-	if (thisType && thisType._chains && thisType._chains[path]) {
-		if (callback) {
-			callback.call(thisPtr || this, thisType._chains[path]);
-			return null;
-		} else {
-			return thisType._chains[path];
-		}
+	// Return a cached property chain if possible
+	if (cache && cache[path]) {
+		return cache[path];
 	}
 
-	// The path argument was a string, so use it to create a PathTokens object.
-	// Delay doing this as an optimization for cached property chains.
+	// The path argument was a string, so use it to create a PathTokens object
+	// NOTE: Delay doing this as an optimization for cached property chains
 	if (!tokens) {
 		tokens = new PathTokens(path);
 	}
 
-	// get the instance type, if specified
-	type = thisType instanceof Function ? thisType.meta : thisType;
-
-	// determine if a typecast was specified for the path to identify a specific subclass to use as the root type
+	// Determine if a typecast was specified for the path to identify a specific subclass to use as the root type
 	if (tokens.steps[0].property === "this" && tokens.steps[0].cast) {
-		//Try and resolve cast to an actual type in the model
+		// Try and resolve cast to an actual type in the model
 		type = Model$getJsType(tokens.steps[0].cast, allTypesRoot, false).meta;
 		tokens.steps.shift();
 	}
 
-	// create a function to lazily load a property 
-	loadProperty = function (containingType: Type, propertyName: string, propertyCallback: ((prop: Property) => void)) {
-		Model$whenTypeAvailable(containingType, forceLoadTypes, function () {
-			propertyCallback.call(thisPtr || this, containingType.getProperty(propertyName));
-		});
-	};
-
-	// Optimize for a single property expression, as it is neither static nor a chain.
+	// Optimize for a single property expression, as it is neither static nor a chain
 	if (tokens.steps.length === 1) {
-		singlePropertyName = tokens.steps[0].property;
-		if (callback) {
-			loadProperty(type, singlePropertyName, callback);
-		} else {
-			return type.getProperty(singlePropertyName);
+		return type.getProperty(tokens.steps[0].property);
+	} else {
+		try {
+			// First, see if the path represents an instance path
+			return new PropertyChain(type, tokens);
+		} catch {
+			// Ignore error since for all we know we're dealing with a static path
 		}
-	}
 
-	// otherwise, first see if the path represents a property chain, and if not, a global property
-	else {
-
-		// predetermine the global type name and property name before seeing if the path is an instance path
-		var globalTypeName = tokens.steps
-			.slice(0, tokens.steps.length - 1)
-			.map(function (item) { return item.property; })
-			.join(".");
-
+		// Next, try to resolve as a global type name and a property name
+		var globalTypeName = tokens.steps.slice(0, tokens.steps.length - 1).map(function (item) { return item.property; }).join(".");
 		var globalPropertyName = tokens.steps[tokens.steps.length - 1].property;
 
-		// Copy of the Model.property arguments for async re-entry.
-		var outerArgs = Array.prototype.slice.call(arguments);
-
-		// create a function to see if the path is a global property if instance processing fails
-		var processGlobal = function (instanceParseError: string) {
-
-			// Retrieve the javascript type by name.
-			let jstype = Model$getJsType(globalTypeName, allTypesRoot, true);
-
-			// Handle non-existant or non-loaded type.
-			if (!type) {
-				// // TODO: Implement lazy loading of types?
-				// if (callback) {
-				// 	// Retry when type is loaded
-				// 	$extend(globalTypeName, Model$getPropertyOrPropertyChain.prepare(Model, outerArgs));
-				// 	return null;
-				// } else {
-
-				throw new Error(instanceParseError ? instanceParseError : ("Error getting type \"" + globalTypeName + "\"."));
+		// Retrieve the javascript type by name
+		let jstype = Model$getJsType(globalTypeName, allTypesRoot, true);
+		if (jstype) {
+			// Return the static property if found
+			var property = jstype.meta.getProperty(globalPropertyName);
+			if (property) {
+				return property;
 			}
-
-			// Get the corresponding meta type.
-			type = jstype.meta;
-
-			// return the static property
-			if (callback) {
-				loadProperty(type, globalPropertyName, callback);
-			} else {
-				return type.getProperty(globalPropertyName);
-			}
-		};
-
-		if (callback) {
-			PropertyChain$create.call(null, type, tokens, forceLoadTypes, thisPtr ? callback.bind(thisPtr) : callback, processGlobal);
-		} else {
-			return PropertyChain$create.call(null, type, tokens, forceLoadTypes) || processGlobal(null);
 		}
+
+		// Throw an error if the path couldn't be resolved as instance or static
+		// NOTE: We don't know if this was *supposed* to be an instance or static path
+		throw new Error("Path \"" + path + "\" could not be resolved.");
 	}
 }

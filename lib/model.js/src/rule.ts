@@ -2,7 +2,7 @@ import { Entity, EntityConstructorForType } from "./entity";
 import { Property$addChanged, Property$addAccessed, hasPropertyChangedSubscribers, Property$pendingInit, Property$getRules, Property, PropertyChangeEventArgs, PropertyAccessEventArgs, PropertyRule } from "./property";
 import { PropertyChain, PropertyChainChangeEventArgs, PropertyChainAccessEventArgs } from "./property-chain";
 import { Type } from "./type";
-import { Model$getPropertyOrPropertyChain } from "./model";
+import { getPropertyOrPropertyChain } from "./model";
 import { RuleInvocationType } from "./rule-invocation-type";
 import { EventScope$current, EventScope$perform, EventScope$onExit, EventScope$onAbort } from "./event-scope";
 import { Signal } from "./signal";
@@ -187,7 +187,9 @@ export class Rule {
 		// Indicate that the rule should now be considered registered and cannot be reconfigured
 		Object.defineProperty(this, '_registered', { enumerable: false, value: true, writable: false });
 
-		prepareRuleForRegistration(this, registerRule);
+		prepareRuleForRegistration(this);
+
+		registerRule(this);
 
 	}
 
@@ -313,7 +315,7 @@ function executeRule(rule: Rule, obj: Entity, eventArgument: any): void {
 	});
 };
 
-function prepareRuleForRegistration(rule: Rule, callback: (rule: Rule) => void) {
+function prepareRuleForRegistration(rule: Rule) {
 
 	// resolve return values, which should all be loaded since the root type is now definitely loaded
 	if (rule.returnValues) {
@@ -326,41 +328,24 @@ function prepareRuleForRegistration(rule: Rule, callback: (rule: Rule) => void) 
 
 	// resolve all predicates, because the rule cannot run until the dependent types have all been loaded
 	if (rule.predicates) {
-		var signal: Signal = null;
-
 		// setup loading of each property path that the calculation is based on
 		for (let i = 0; i < rule.predicates.length; i++) {
 			let predicate = rule.predicates[i];
-
 			if (typeof predicate === "string") {
-
 				// Parse string inputs, which may be paths containing nesting {} hierarchial syntax
-
-				// create a signal if this is the first string-based input
-				if (!signal) {
-					signal = new Signal("prepare rule predicates");
-				}
-
-				let predicateIndex = i;
-
-				// normalize the paths to accommodate {} hierarchial syntax
-				PathTokens$normalizePaths([predicate]).forEach(function (path) {
-					Model$getPropertyOrPropertyChain(path, rule.rootType, rule.rootType.model._allTypesRoot, false, signal.pending(function (propertyChain: PropertyChain) {
-						rule.predicates[predicateIndex] = propertyChain;
-					}, this, true), this);
+				PathTokens$normalizePaths([predicate]).forEach(function (path, index) {
+					var prop = getPropertyOrPropertyChain(path, rule.rootType);
+					if (index == 0) {
+						rule.predicates[i] = prop;
+					} else {
+						// If expanding resulted in more than one path, then expand the predicates array accordingly
+						rule.predicates.splice(i++, 0, prop);
+					}
 				}, this);
 			} else if (!(predicate instanceof Property || predicate instanceof PropertyChain)) {
 				// TODO: Remove invalid predicates?
 				rule.predicates.splice(i--, 1);
 			}
-		}
-
-		if (signal) {
-			// Wait until all property information is available to initialize the rule
-			signal.waitForAll(callback, this, true, [rule]);
-		} else {
-			// Otherwise, just immediately proceed with rule registration
-			callback(rule);
 		}
 	}
 
@@ -369,8 +354,9 @@ function prepareRuleForRegistration(rule: Rule, callback: (rule: Rule) => void) 
 function registerRule (rule: Rule) {
 
 	// register for init new
-	if (rule.invocationTypes & RuleInvocationType.InitNew)
+	if (rule.invocationTypes & RuleInvocationType.InitNew) {
 		rule.rootType._events.initNewEvent.subscribe(function (args) { executeRule(rule, args.entity, args) });
+	}
 
 	// register for init existing
 	if (rule.invocationTypes & RuleInvocationType.InitExisting) {

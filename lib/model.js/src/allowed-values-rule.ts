@@ -6,7 +6,7 @@ import { Type } from "./type";
 import { ConditionType } from "./condition-type";
 import { ConditionRuleOptions } from "./condition-rule";
 import { RuleOptions } from "./rule";
-import { Model$getPropertyOrPropertyChain } from "./model";
+import { getPropertyOrPropertyChain } from "./model";
 import { Resource } from "./resource";
 
 export class AllowedValuesRule extends ValidatedPropertyRule {
@@ -92,7 +92,7 @@ export class AllowedValuesRule extends ValidatedPropertyRule {
 
 		// get the allowed values source, if only the path was specified
 		if (!this._source && !this._sourceFn) {
-			this._source = Model$getPropertyOrPropertyChain(this._sourcePath, this.rootType, this.rootType.model._allTypesRoot) as Property | PropertyChain;
+			this._source = getPropertyOrPropertyChain(this._sourcePath, this.rootType);
 		}
 
 		super.onRegister();

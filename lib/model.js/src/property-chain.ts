@@ -1,12 +1,11 @@
 import { Type } from "./type";
-import { Property, PropertyAccessEventArgs, PropertyChangeEventArgs, PropertyConstructor } from "./property";
+import { Property, PropertyAccessEventArgs, PropertyChangeEventArgs } from "./property";
 import { Event, EventSubscriber, ContextualEventRegistration, EventObject } from "./events";
 import { FunctorWith1Arg, Functor$create } from "./functor";
 import { Entity } from "./entity";
 import { Format } from "./format";
 import { getEventSubscriptions } from "./helpers";
-import { Model$getJsType, Model$whenTypeAvailable, ModelNamespace } from "./model";
-import { Signal } from "./signal";
+import { Model$getJsType } from "./model";
 import { PathTokens } from "./path-tokens";
 
 /**
@@ -32,7 +31,59 @@ export class PropertyChain {
 
 	private _path: string;
 
-	constructor(rootType: Type, properties: Property[], filters: ((obj: Entity) => boolean)[]) {
+	constructor(rootType: Type, pathTokens: PathTokens) {
+
+		// Properties and filters will be derived from path tokens
+		var properties: Property[] = [];
+		var filters: ((target: Entity) => boolean)[] = [];
+
+		var type = rootType;
+
+		// Process each step in the path
+		while (pathTokens.steps.length > 0) {
+
+			// Get the next step in the path
+			var step = pathTokens.steps.shift();
+			if (!step) {
+				throw new Error(`Syntax error in property path: ${pathTokens.expression}`);
+			}
+
+			// Get the property for the step 
+			var prop = type.getProperty(step.property);
+			if (!prop) {
+				throw new Error(`Path '${pathTokens.expression}' references unknown property "${step.property}" on type "${type}".`);
+			}
+
+			// Ensure the property is not static because property chains are not valid for static properties
+			if (prop.isStatic) {
+				throw new Error(`Path '${pathTokens.expression}' references static property "${step.property}" on type "${type}".`);
+			}
+
+			// Store the property for the step
+			properties.push(prop);
+
+			// Handle optional type filters
+			if (step.cast) {
+
+				// Determine the filter type
+				type = Model$getJsType(step.cast, rootType.model._allTypesRoot, true).meta as Type;
+				if (!type) {
+					throw new Error(`Path '${pathTokens.expression}' references an invalid type: "${step.cast}".`);
+				}
+
+				var jstype = type.jstype;
+				filters[properties.length] = function (target: Entity) {
+					return target instanceof jstype;
+				};
+			} else {
+				type = prop.propertyType.meta;
+			}
+
+		}
+
+		if (properties.length === 0) {
+			throw new Error("A property chain cannot be zero-length.");
+		}
 
 		// Public read-only properties
 		Object.defineProperty(this, "rootType", { enumerable: true, value: rootType });
@@ -46,6 +97,14 @@ export class PropertyChain {
 		Object.defineProperty(this, "_propertyChainChangeSubscriptions", { value: [] });
 
 		Object.defineProperty(this, "_events", { value: new PropertyChainEvents() });
+
+		// Cache the chain to avoid having to evaluate the same path more than once
+		var cache: { [name: string]: PropertyChain } = (rootType as any)._chains;
+		if (!cache) {
+			(rootType as any)._chains = cache = {};
+		}
+
+		cache[pathTokens.expression] = this;
 	}
 
 	get changed(): EventSubscriber<Entity, PropertyChainChangeEventArgs> {
@@ -201,46 +260,6 @@ export class PropertyChain {
 		return obj;
 	}
 
-	append(prop: Property | PropertyChain): PropertyChain {
-		// TODO: Validate that the property or property chain is valid to append?
-		let newProps = this._properties.slice();
-		let newFilters = this._propertyFilters ? this._propertyFilters.slice() : new Array(this._properties.length);
-		if (prop instanceof Property) {
-			newProps.push(prop as Property & Property);
-			newFilters.push(null);
-		} else if (prop instanceof PropertyChain) {
-			Array.prototype.push.apply(newProps, prop._properties);
-			Array.prototype.push.apply(newFilters, prop._propertyFilters || new Array(prop._properties.length));
-		} else {
-			throw new Error("Method `IPropertyChain.append(prop)` expects an argument of type `IProperty` or `IPropertyChain`.");
-		}
-		return new PropertyChain(this.rootType, newProps, newFilters);
-	}
-
-	prepend(prop: Property | PropertyChain) {
-		// TODO: Validate that the property or property chain is valid to prepend?
-		let newProps: Property[];
-		let newRootType: Type;
-		let newFilters: ((obj: Entity) => boolean)[];
-		if (prop instanceof Property) {
-			newProps = this._properties.slice();
-			newFilters = this._propertyFilters.slice();
-			newRootType = prop.containingType as Type;
-			newProps.splice(0, 0, prop as Property);
-			newFilters.splice(0, 0, null);
-		} else if (prop instanceof PropertyChain) {
-			newProps = this._properties.slice();
-			newFilters = this._propertyFilters.slice();
-			newRootType = prop._properties[0].containingType as Type;
-			let noRemovalSpliceArgs: Array<any> = [0, 0];
-			Array.prototype.splice.apply(newProps, noRemovalSpliceArgs.concat(prop._properties));
-			Array.prototype.splice.apply(newFilters, noRemovalSpliceArgs.concat(prop._propertyFilters || new Array(prop._properties.length)));
-		} else {
-			throw new Error("Method `IPropertyChain.prepend(prop)` expects an argument of type `IProperty` or `IPropertyChain`.");
-		}
-		return new PropertyChain(newRootType, newProps, newFilters);
-	}
-
 	canSetValue(obj: Entity, value: any): boolean {
 		return this.lastProperty.canSetValue(this.getLastTarget(obj), value);
 	}
@@ -374,123 +393,6 @@ export class PropertyChain {
 		return `this<${this.rootType}>.${path}`;
 	}
 
-}
-
-export function PropertyChain$create(rootType: Type, pathTokens: PathTokens /*, forceLoadTypes: boolean, success: Function, fail: Function */): PropertyChain {
-	/// <summary>
-	/// Attempts to synchronously or asynchronously create a property chain for the specified 
-	/// root type and path.  Also handles caching of property chains at the type level.
-	/// </summary>
-
-	var type = rootType;
-	var properties: Property[] = [];
-	var filters: ((target: Entity) => boolean)[] = [];
-	var filterTypes: any[] = [];
-
-	// initialize optional callback arguments
-	var forceLoadTypes = arguments.length >= 3 && arguments[2] && arguments[2].constructor === Boolean ? arguments[2] : false;
-	var success: (chain: PropertyChain) => void = arguments.length >= 4 && arguments[3] && arguments[3] instanceof Function ? arguments[3] : null;
-	var fail: (error: string) => void = arguments.length >= 5 && arguments[4] && arguments[4] instanceof Function ?
-		arguments[4] : function (error: string) { if (success) { throw new Error(error); } };
-
-	// process each step in the path either synchronously or asynchronously depending on arguments
-	var processStep = function PropertyChain$processStep() {
-
-		// get the next step
-		var step = pathTokens.steps.shift();
-		if (!step) {
-			fail(`Syntax error in property path: ${pathTokens.expression}`);
-
-			// return null to indicate that the path is not valid
-			return null;
-		}
-
-		// get the property for the step 
-		var prop = type.getProperty(step.property);
-		if (!prop) {
-			fail(`Path '${pathTokens.expression}' references unknown property "${step.property}" on type "${type}".`);
-
-			// return null if the property does not exist
-			return null;
-		}
-
-		// ensure the property is not static because property chains are not valid for static properties
-		if (prop.isStatic) {
-			fail(`Path '${pathTokens.expression}' references static property "${step.property}" on type "${type}".`);
-
-			// return null to indicate that the path references a static property
-			return null;
-		}
-
-		// store the property for the step
-		properties.push(prop);
-
-		// handle optional type filters
-		if (step.cast) {
-
-			// determine the filter type
-			type = Model$getJsType(step.cast, rootType.model._allTypesRoot, true).meta as Type;
-			if (!type) {
-				fail(`Path '${pathTokens.expression}' references an invalid type: "${step.cast}".`);
-				return null;
-			}
-
-			var jstype = type.jstype;
-			filterTypes[properties.length] = jstype;
-			filters[properties.length] = function (target: Entity) {
-				return target instanceof jstype;
-			};
-		} else {
-			type = prop.propertyType.meta;
-		}
-
-		// process the next step if not at the end of the path
-		if (pathTokens.steps.length > 0) {
-			return Model$whenTypeAvailable(type, forceLoadTypes, processStep);
-		}
-
-		// otherwise, create and return the new property chain
-		else {
-
-			// processing the path is complete, verify that chain is not zero-length
-			if (properties.length === 0) {
-				fail("IPropertyChain cannot be zero-length.");
-				return null;
-			}
-
-			// ensure filter types on the last step are loaded
-			var filterTypeSignal = new Signal("filterType");
-			var filterType = filterTypes[properties.length - 1];
-			if (filterType) {
-				Model$whenTypeAvailable(filterType.meta, forceLoadTypes, filterTypeSignal.pending(null, null, true));
-			}
-			var ret;
-			filterTypeSignal.waitForAll(function () {
-				// create and cache the new property chain
-				var chain = new PropertyChain(rootType, properties, filters);
-
-				/*
-				// TODO: Implement property chain caching?
-				if (!rootType._chains) {
-					rootType._chains = {};
-				}
-				rootType._chains[pathTokens.expression] = chain;
-				*/
-
-				// if asynchronous processing was allowed, invoke the success callback
-				if (success) {
-					success(chain);
-				}
-
-				// return the new property chain
-				ret = chain;
-			}, null, true);
-			return ret;
-		}
-	};
-
-	// begin processing steps in the path
-	return Model$whenTypeAvailable(type, forceLoadTypes, processStep);
 }
 
 export class PropertyChainEvents {
