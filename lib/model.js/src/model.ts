@@ -1,9 +1,9 @@
 import { Event, EventSubscriber } from "./events";
 import { randomText } from "./helpers";
-import { EntityConstructor, EntityRegisteredEventArgs, EntityUnregisteredEventArgs, Entity, EntityConstructorForType } from "./entity";
+import { EntityRegisteredEventArgs, EntityUnregisteredEventArgs } from "./entity";
 import { Type, PropertyType, isEntityType, ValueType, TypeOptions } from "./type";
 import { Rule, RuleOptions } from "./rule";
-import { PropertyAddedEventArgs, Property, PropertyOptions } from "./property";
+import { Property } from "./property";
 import { PropertyChain } from "./property-chain";
 import { PathTokens } from "./path-tokens";
 import { Format, createFormat } from "./format";
@@ -26,18 +26,29 @@ export class Model {
 
 	readonly _fieldNamePrefix: string;
 
-	constructor(createOwnProperties: boolean = undefined, useGlobalObject: boolean = undefined) {
+	readonly $namespace: any;
+
+	constructor(options?: ModelOptions, config?: ModelConfiguration) {
 
 		this.types = {};
 
-		Object.defineProperty(this, "settings", { configurable: false, enumerable: true, value: new ModelSettings(createOwnProperties, useGlobalObject), writable: false });
+		Object.defineProperty(this, "settings", { configurable: false, enumerable: true, value: new ModelSettings(config), writable: false });
 		Object.defineProperty(this, "_fieldNamePrefix", { value: ("_fN" + randomText(3, false, true)) });
 		Object.defineProperty(this, "_events", { value: new ModelEvents() });
 
+		if (config && config.namespace) {
+			Object.defineProperty(this, "$namespace", { configurable: false, enumerable: true, value: config.namespace, writable: false });
+		}
+
 		this._formats = {};
 
-		// Indicate that the model is now ready
-		this.ready = Promise.resolve();
+		if (options) {
+			this.extend(options);
+		} else {
+			// Indicate that the model is now ready
+			this.ready = Promise.resolve();
+		}
+
 	}
 
 	get entityRegistered(): EventSubscriber<Model, EntityRegisteredEventArgs> {
@@ -58,7 +69,7 @@ export class Model {
 		this.prepare(() => {
 
 			// Create New Types
-			for (let typeName in options) {
+			for (let typeName of Object.keys(options)) {
 				let typeOptions = options[typeName];
 				let type = this.types[typeName];
 
@@ -71,7 +82,7 @@ export class Model {
 			}
 
 			// Extend Types
-			for (let typeName in options) {
+			for (let typeName of Object.keys(options)) {
 				this.types[typeName].extend(options[typeName]);
 			}
 		});
@@ -176,7 +187,27 @@ export class ModelEvents {
 export interface ModelOptions {
 
 	/** The name of the type. */
-	[name: string]: TypeOptions
+	[name: string]: TypeOptions;
+
+}
+
+export interface ModelConfiguration {
+
+	/**
+	 * The object to use as the namespace for model types
+	 */
+	namespace?: object;
+
+	/**
+	 * Determines whether properties are created as "own" properties, or placed on the type's prototype
+	 */
+	createOwnProperties?: boolean;
+
+	/**
+	 * Determines whether the global/window object is mutated, for example to hold references to types
+	 */
+	useGlobalObject?: boolean;
+
 }
 
 export class ModelSettings {
@@ -188,9 +219,22 @@ export class ModelSettings {
 	// Don't pollute the window object by default
 	readonly useGlobalObject: boolean = false;
 
-	constructor(createOwnProperties: boolean = false, useGlobalObject: boolean = false) {
+	constructor(config?: ModelConfiguration) {
+
+		let createOwnProperties = false;
+		let useGlobalObject = false;
+
+		if (config && typeof config.createOwnProperties === "boolean") {
+			createOwnProperties = config.createOwnProperties;
+		}
+
+		if (config && typeof config.useGlobalObject === "boolean") {
+			useGlobalObject = config.useGlobalObject;
+		}
+
 		Object.defineProperty(this, "createOwnProperties", { configurable: false, enumerable: true, value: createOwnProperties, writable: false });
 		Object.defineProperty(this, "useGlobalObject", { configurable: false, enumerable: true, value: useGlobalObject, writable: false });
+
 	}
 }
 

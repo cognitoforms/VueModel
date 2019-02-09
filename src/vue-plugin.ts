@@ -3,7 +3,7 @@ import { makeEntitiesVueObservable, getEntityObserver } from "./entity-observer"
 import { preprocessDataToInterceptEntities, restoreComponentEntityData } from "./vue-plugin-entities";
 import { Entity } from "../lib/model.js/src/entity";
 
-export function VueModel$installPlugin(Vue: VueConstructor) {
+export function VueModel$installPlugin(Vue: VueConstructor, options?: any) {
 
     Vue.mixin({
         beforeCreate: function VueModel$Plugin$beforeCreate() {

@@ -5,14 +5,11 @@ import { getEntityObserver } from "./entity-observer";
 
 export class SourceRootAdapter<TEntity extends Entity> implements SourceAdapter<TEntity> {
 
-    // Public read-only properties: aspects of the object that cannot be
-    // changed without fundamentally changing what the object is
     readonly entity: TEntity;
 
     __ob__: CustomObserver<SourceRootAdapter<TEntity>>; 
 
     constructor(entity: TEntity) {
-        // Public read-only properties
         Object.defineProperty(this, "entity", { enumerable: true, value: entity });
 
         getEntityObserver(entity).ensureObservable();

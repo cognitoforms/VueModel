@@ -400,6 +400,7 @@ export interface TypeOptions {
 
 	/** The name of the property, method, or type attribute */
 	[name: string]: string | ValueType | Function | Format<Entity> | ((this: Entity) => any) | PropertyOptions | RuleOptions;
+
 }
 
 export class TypeEvents {
@@ -441,7 +442,7 @@ export function Type$_generateConstructor(type: Type, fullName: string, baseType
 	// Create namespaces as needed
 	let nameTokens: string[] = fullName.split("."),
 		token: string = nameTokens.shift(),
-		namespaceObj: any = type.model,
+		namespaceObj: any = type.model.$namespace || type.model,
 		globalObj: any = global;
 
 	while (nameTokens.length > 0) {

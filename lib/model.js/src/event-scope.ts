@@ -19,12 +19,8 @@ interface EventScopeAbortEventArgs {
 
 export class EventScope {
 
-	// Public read-only properties: aspects of the object that cannot be
-	// changed without fundamentally changing what the property is
 	parent: EventScope;
 
-	// Backing fields for properties that are settable and also derived from
-	// other data, calculated in some way, or cannot simply be changed
 	_isActive: boolean;
 
 	private _exitEventVersion: number;
@@ -37,10 +33,8 @@ export class EventScope {
 		// then it will be the parent of the new event scope
 		var parent = EventScope$current;
 
-		// Public read-only properties
 		Object.defineProperty(this, "parent", { enumerable: true, value: parent });
 
-		// Backing fields for properties
 		Object.defineProperty(this, "_isActive", { enumerable: false, value: true, writable: true });
 
 		Object.defineProperty(this, "_events", { value: new EventScopeEvents() });
