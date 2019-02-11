@@ -106,7 +106,7 @@ export class Property {
 					this.format = this.containingType.model.getFormat(this.propertyType, format);
 				});
 			}
-			else
+			else if (options.format instanceof Format)
 				this.format = options.format;
 		}
 	}
