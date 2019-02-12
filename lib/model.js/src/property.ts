@@ -148,7 +148,7 @@ export class Property {
 
 					let rule = new CalculatedPropertyRule(this.containingType, ruleName, ruleOptions);
 
-					rule.register();
+					this.containingType.model.ready.then(() => rule.register());
 				} else {
 					throw new Error(`Invalid property 'get' option of type '${getTypeName(options.get)}'.`);
 				}

@@ -313,9 +313,6 @@ export class Type {
 				delete options["$format"];
 			}
 
-			var ruleNames: string[] = [];
-			var propertyNames: string[] = [];
-
 			// Type Members
 			for (let name of Object.keys(options)) {
 				let member = options[name];
@@ -341,14 +338,10 @@ export class Type {
 
 					// TODO: Add rule/method here
 
-					ruleNames.push(name);
-
 				}
 
 				// Property
 				else {
-
-					propertyNames.push(name);
 
 					// Get Property
 					let property = this.getProperty(name);
@@ -371,10 +364,10 @@ export class Type {
 						}
 
 						// Add Property
-						let property = new Property(this, name, member.type, isList, member.static);
+						let property = new Property(this, name, member.type, isList, member.static, member);
 
 						this._properties[name] = property;
-						
+
 						Property$_generateShortcuts(property, this.jstype);
 
 						if (property.isStatic) {
@@ -382,18 +375,12 @@ export class Type {
 						} else if (!this.model.settings.createOwnProperties) {
 							Property$_generatePrototypeProperty(property, this.jstype.prototype);
 						}
+					} else {
+
+						property.extend(member);
 					}
 
-					options[name] = member;
-
 				}
-			}
-
-			// Extend Properties
-			for (let propertyName of propertyNames) {
-				let propertyOptions: PropertyOptions = options[propertyName] as PropertyOptions;
-				let property = this.getProperty(propertyName);
-				property.extend(propertyOptions);
 			}
 
 		});
