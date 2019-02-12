@@ -1,11 +1,13 @@
 import { Event, EventObject, EventSubscriber, ContextualEventRegistration } from "./events";
 import { Entity, EntityConstructorForType } from "./entity";
 import { Format } from "./format";
-import { Type, PropertyType, isEntityType } from "./type";
+import { Type, PropertyType, isEntityType, isValueType, ValueType } from "./type";
 import { PropertyChain$_addAccessedHandler, PropertyChain$_removeAccessedHandler, PropertyChain$_addChangedHandler, PropertyChain$_removeChangedHandler, PropertyChain, PropertyChainAccessEventHandler, PropertyChainChangeEventHandler } from "./property-chain";
-import { getTypeName, getDefaultValue, parseFunctionName, toTitleCase, ObjectLookup, merge } from "./helpers";
+import { getTypeName, getDefaultValue, parseFunctionName, toTitleCase, ObjectLookup, merge, getConstructorName, isType } from "./helpers";
 import { ObservableArray, updateArray } from "./observable-array";
-import { RuleRegisteredEventArgs, Rule } from "./rule";
+import { RuleRegisteredEventArgs, Rule, RuleOptions, RuleTypeOptions } from "./rule";
+import { CalculatedPropertyRule, CalculatedPropertyRuleOptions } from "./calculated-property-rule";
+import { PathTokens, PathTokens$normalizePaths } from "./path-tokens";
 
 export class Property {
 
@@ -43,10 +45,6 @@ export class Property {
 		Object.defineProperty(this, "isList", { enumerable: true, value: isList === true });
 		Object.defineProperty(this, "isStatic", { enumerable: true, value: isStatic === true });
 
-		// Apply property options
-		if (options)
-			this.extend(options);
-
 		// Initialize property infrastructure
 		Object.defineProperty(this, "_events", { value: new PropertyEvents() });
 		Object.defineProperty(this, "_propertyAccessSubscriptions", { value: [] });
@@ -54,6 +52,11 @@ export class Property {
 		Object.defineProperty(this, "_rules", { value: [] });
 		Object.defineProperty(this, "getter", { value: Property$_makeGetter(this, Property$_getter) });
 		Object.defineProperty(this, "setter", { value: Property$_makeSetter(this, Property$_setter) });
+
+		// Apply property options
+		if (options)
+			this.extend(options);
+
 	}
 
 	get fieldName(): string {
@@ -89,26 +92,81 @@ export class Property {
 
 	extend(options: PropertyOptions) {
 
-		// Label
-		if (options.label)
-			this.label = options.label;
-		else if (!this.label)
-			this.label = this.name.replace(/(^[a-z]+|[A-Z]{2,}(?=[A-Z][a-z]|$)|[A-Z][a-z]*)/g, " $1").trim();
+		// Use prepare() to defer property path resolution while the model is being extended
+		this.containingType.model.prepare(() => {
 
-		// Helptext
-		this.helptext = options.helptext;
+			// Label
+			if (options.label)
+				this.label = options.label;
+			else if (!this.label)
+				this.label = this.name.replace(/(^[a-z]+|[A-Z]{2,}(?=[A-Z][a-z]|$)|[A-Z][a-z]*)/g, " $1").trim();
 
-		// Format
-		if (options.format) {
-			if (typeof (options.format) === "string") {
-				let format = options.format;
-				this.containingType.model.ready.then(() => {
-					this.format = this.containingType.model.getFormat(this.propertyType, format);
-				});
+			// Helptext
+			this.helptext = options.helptext;
+
+			// Format
+			if (options.format) {
+				if (typeof (options.format) === "string") {
+					let format = options.format;
+					this.containingType.model.ready.then(() => {
+						this.format = this.containingType.model.getFormat(this.propertyType, format);
+					});
+				}
+				else
+					// TODO: convert description/expression/reformat into a Format object
+					this.format = options.format;
 			}
-			else if (options.format instanceof Format)
-				this.format = options.format;
-		}
+
+			// Get - calculated property
+			if (options.get) {
+				if (typeof (options.default) === "function") {
+					throw new Error("Function form of 'get' calculation is not yet implemented.");
+				} else if (isType<PropertyGetFunctionAndDependencies>(options.get, g => getTypeName(g) === "object")) {
+					var ruleName: string = null;
+					var ruleOptions: RuleOptions & RuleTypeOptions & CalculatedPropertyRuleOptions;
+
+					var ruleOnChangeOf = PathTokens$normalizePaths([options.get.dependsOn]).map(t => t.expression);
+
+					ruleOptions = {
+						property: this,
+						calculate: options.get.function,
+						onChangeOf: ruleOnChangeOf,
+					};
+
+					let rule = new CalculatedPropertyRule(this.containingType, ruleName, ruleOptions);
+
+					rule.register();
+				} else {
+					throw new Error(`Invalid property 'get' option of type '${getTypeName(options.get)}'.`);
+				}
+			}
+
+			// Default value or function
+			if (options.default) {
+				if (typeof (options.default) === "function") {
+					this._defaultValue = options.default;
+				} else if (getTypeName(options.default) === "object") {
+					// TODO: Create a default value rule...
+					throw new Error("Default value rule not yet implemented.");
+				} else { // Constant
+					let defaultOptionTypeName = getTypeName(options.default);
+
+					if (isEntityType(this.propertyType)) {
+						throw new Error(`Cannot set a constant default value for a property of type '${this.propertyType.meta.fullName}'.`);
+					}
+
+					var propertyTypeName = getConstructorName(this.propertyType).toLowerCase();
+
+					if (defaultOptionTypeName !== propertyTypeName) {
+						throw new Error(`Cannot set a default value of type '${defaultOptionTypeName}' for a property of type '${propertyTypeName}'.`);
+					}
+
+					this._defaultValue = options.default;
+				}
+			}
+
+		});
+
 	}
 
 	equals(prop: Property | PropertyChain): boolean {
@@ -244,19 +302,26 @@ export interface PropertyOptions {
 	format?: string | Format<PropertyType>,
 
 	/** An optional function or dependency function object that calculates the value of this property. */
-	get?: (this: Entity) => any | { function: (this: Entity) => any, dependsOn: string },
+	get?: PropertyGetFunctionOnly | PropertyGetFunctionAndDependencies,
 
 	/** An optional function to call when this property is updated. */
 	set?: (this: Entity, value: any) => void,
 
 	/** An optional constant default value, or a function or dependency function object that calculates the default value of this property. */
-	default?: (this: Entity) => any | { function: (this: Entity) => any, dependsOn: string } | any,
+	default?: (() => any) | { function: (this: Entity) => any, dependsOn: string } | String | Number | Date | Boolean,
 
 	/** True if the property is always required, or a dependency function object for conditionally required properties. */
 	required?: boolean | { function: (this: Entity) => boolean, dependsOn: string },
 
 	/** An optional dependency function object that adds an error with the specified message when true. */
 	error?: { function: (this: Entity) => boolean, dependsOn: string, message: string }
+}
+
+export type PropertyGetFunctionOnly = () => any;
+
+export interface PropertyGetFunctionAndDependencies {
+	function: (this: Entity) => any;
+	dependsOn: string;
 }
 
 export interface PropertyConstructor {

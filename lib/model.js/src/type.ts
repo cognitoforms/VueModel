@@ -313,8 +313,11 @@ export class Type {
 				delete options["$format"];
 			}
 
+			var ruleNames: string[] = [];
+			var propertyNames: string[] = [];
+
 			// Type Members
-			for (let name in options) {
+			for (let name of Object.keys(options)) {
 				let member = options[name];
 
 				// Ignore Type and Format values, which do not represent type members
@@ -336,11 +339,16 @@ export class Type {
 				// Method
 				if (isMethod(member)) {
 
-					// Add rule/method here
+					// TODO: Add rule/method here
+
+					ruleNames.push(name);
+
 				}
 
 				// Property
 				else {
+
+					propertyNames.push(name);
 
 					// Get Property
 					let property = this.getProperty(name);
@@ -363,7 +371,7 @@ export class Type {
 						}
 
 						// Add Property
-						let property = new Property(this, name, member.type, isList, member.static, member);
+						let property = new Property(this, name, member.type, isList, member.static);
 
 						this._properties[name] = property;
 						
@@ -376,10 +384,18 @@ export class Type {
 						}
 					}
 
-					else
-						property.extend(member);
+					options[name] = member;
+
 				}
 			}
+
+			// Extend Properties
+			for (let propertyName of propertyNames) {
+				let propertyOptions: PropertyOptions = options[propertyName] as PropertyOptions;
+				let property = this.getProperty(propertyName);
+				property.extend(propertyOptions);
+			}
+
 		});
 	}
 }

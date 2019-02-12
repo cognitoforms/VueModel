@@ -128,6 +128,22 @@ export function getTypeName(obj: any) {
     return Object.prototype.toString.call(obj).match(typeNameExpr)[1].toLowerCase();
 }
 
+export function getConstructorName(ctor: Function): string {
+	// Handle value types explicitly
+	if (ctor === String) return "String";
+	if (ctor === Number) return "Number";
+	if (ctor === Date) return "Date";
+	if (ctor === Boolean) return "Boolean";
+
+	// Try to use function name
+	if (typeof ctor === "function" && ctor.name) {
+		return ctor.name;
+	}
+
+	// Fall back to the low-level 'toString' on the prototype
+	return getTypeName(ctor.prototype);
+}
+
 export function isNumber(obj: any) {
 	return getTypeName(obj) === "number" && !isNaN(obj);
 }
@@ -137,6 +153,15 @@ export function getDefaultValue(isList: boolean, jstype: any): any {
     if (jstype === Boolean) return false;
     if (jstype === Number) return 0;
     return null;
+}
+
+export function isType<T>(obj: any, test: ((o: any) => boolean) = null): obj is T {
+	if (test) {
+		return test(obj);
+	} else {
+		// Do nothing, assume object is of the type
+		return true;
+	}
 }
 
 export function randomInt(min: number = 0, max: number = 9) {
