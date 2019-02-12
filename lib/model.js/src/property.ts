@@ -112,20 +112,33 @@ export class Property {
 						this.format = this.containingType.model.getFormat(this.propertyType, format);
 					});
 				}
-				else
+				else if (options.format instanceof Format)
 					// TODO: convert description/expression/reformat into a Format object
 					this.format = options.format;
 			}
 
 			// Get - calculated property
 			if (options.get) {
-				if (typeof (options.default) === "function") {
-					throw new Error("Function form of 'get' calculation is not yet implemented.");
-				} else if (isType<PropertyGetFunctionAndDependencies>(options.get, g => getTypeName(g) === "object")) {
+				if (typeof (options.get) === "function") {
+					let originalGet = options.get;
+					let getFunction = function (this: Entity) { return originalGet() };
+					let getDependsOn: string = "";
+					options.get = { function: getFunction, dependsOn: getDependsOn };
+				}
+
+				if (isType<PropertyGetFunctionAndDependencies>(options.get, g => getTypeName(g) === "object")) {
 					var ruleName: string = null;
 					var ruleOptions: RuleOptions & RuleTypeOptions & CalculatedPropertyRuleOptions;
 
-					var ruleOnChangeOf = PathTokens$normalizePaths([options.get.dependsOn]).map(t => t.expression);
+					if (typeof (options.get.function) !== "function") {
+						throw new Error(`Invalid property 'get' function of type '${getTypeName(options.get.function)}'.`);
+					}
+
+					if (typeof (options.get.dependsOn) !== "string") {
+						throw new Error(`Invalid property 'get' dependsOn of type '${getTypeName(options.get.dependsOn)}'.`);
+					}
+
+					var ruleOnChangeOf = options.get.dependsOn ? PathTokens$normalizePaths([options.get.dependsOn]).map(t => t.expression) : [];
 
 					ruleOptions = {
 						property: this,
