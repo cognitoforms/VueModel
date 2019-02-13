@@ -1,6 +1,6 @@
 import { ConditionRule, ConditionRuleOptions } from "./condition-rule";
 import { registerPropertyRule, RuleOptions } from "./rule";
-import { PropertyRule, Property } from "./property";
+import { PropertyRule, Property, PropertyRuleOptions } from "./property";
 import { Entity } from "./entity";
 import { Type } from "./type";
 
@@ -93,13 +93,10 @@ export class ValidatedPropertyRule extends ConditionRule implements PropertyRule
 
 }
 
-export interface ValidatedPropertyRuleOptions {
-
-	// the property being validated (either a Property instance or string property name)
-	property: Property;
+export interface ValidatedPropertyRuleOptions extends PropertyRuleOptions {
 
 	// function (obj, prop, val) { return true; } (a predicate that returns true when the property is valid)
-	isValid: string | ((this: Entity, prop: Property, val: any) => boolean);
+	isValid?: string | ((this: Entity, prop: Property, val: any) => boolean);
 
 }
 

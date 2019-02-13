@@ -1,13 +1,15 @@
 import { Event, EventObject, EventSubscriber, ContextualEventRegistration } from "./events";
 import { Entity, EntityConstructorForType } from "./entity";
 import { Format } from "./format";
-import { Type, PropertyType, isEntityType, isValueType, ValueType, Value } from "./type";
+import { Type, PropertyType, isEntityType, Value } from "./type";
 import { PropertyChain$_addAccessedHandler, PropertyChain$_removeAccessedHandler, PropertyChain$_addChangedHandler, PropertyChain$_removeChangedHandler, PropertyChain, PropertyChainAccessEventHandler, PropertyChainChangeEventHandler } from "./property-chain";
-import { getTypeName, getDefaultValue, parseFunctionName, toTitleCase, ObjectLookup, merge, getConstructorName, isType } from "./helpers";
+import { getTypeName, getDefaultValue, parseFunctionName, ObjectLookup, merge, getConstructorName, isType } from "./helpers";
 import { ObservableArray, updateArray } from "./observable-array";
 import { RuleRegisteredEventArgs, Rule, RuleOptions, RuleTypeOptions } from "./rule";
 import { CalculatedPropertyRule, CalculatedPropertyRuleOptions } from "./calculated-property-rule";
-import { PathTokens, PathTokens$normalizePaths } from "./path-tokens";
+import { PathTokens$normalizePaths } from "./path-tokens";
+import { StringFormatRule, StringFormatRuleOptions } from "./string-format-rule";
+import { ConditionRuleOptions } from "./condition-rule";
 
 export class Property {
 
@@ -112,9 +114,29 @@ export class Property {
 						this.format = this.containingType.model.getFormat(this.propertyType, format);
 					});
 				}
-				else if (options.format instanceof Format)
+				else if (options.format instanceof Format) {
 					// TODO: convert description/expression/reformat into a Format object
 					this.format = options.format;
+				} else if (isType<PropertyFormatOptions>(options.format, (f: any) => getTypeName(f) === "object"  && f.expression)) {
+
+					let ruleOptions: RuleOptions & ConditionRuleOptions & PropertyRuleOptions & StringFormatRuleOptions;
+
+					ruleOptions = {
+						property: this,
+						description: options.format.description,
+						expression: options.format.expression,
+						reformat: options.format.reformat,
+					};
+
+					let rule = new StringFormatRule(this.containingType, ruleOptions);
+
+					this.containingType.model.ready.then(() => {
+						rule.register();
+					});
+
+				} else {
+					throw new Error(`Invalid property 'format' option of type '${getTypeName(options.format)}'.`);
+				}
 			}
 
 			// Get - calculated property
@@ -336,7 +358,7 @@ export interface PropertyOptions {
 	helptext?: string,
 
 	/** The optional format specifier for the property. */
-	format?: string | Format<PropertyType>,
+	format?: string | Format<PropertyType> | PropertyFormatOptions,
 
 	/** An optional function or dependency function object that calculates the value of this property. */
 	get?: PropertyValueFunctionOnly | PropertyValueFunctionAndDependencies,
@@ -352,6 +374,19 @@ export interface PropertyOptions {
 
 	/** An optional dependency function object that adds an error with the specified message when true. */
 	error?: { function: (this: Entity) => boolean, dependsOn: string, message: string }
+}
+
+export interface PropertyFormatOptions {
+
+	/** The human readable description of the format, such as MM/DD/YYY */
+	description: string;
+
+	/** A regular expression that the property value must match */
+	expression: RegExp;
+
+	/** An optional regular expression reformat string that will be used to correct the value if it matches */
+	reformat: string;
+
 }
 
 export type PropertyValueFunctionOnly = () => any;
@@ -409,6 +444,13 @@ export interface PropertyRule extends Rule {
 
 	/** The property that the rule targets */
 	readonly property: Property;
+
+}
+
+export interface PropertyRuleOptions {
+
+	// the property being validated (either a Property instance or string property name)
+	property: Property;
 
 }
 
