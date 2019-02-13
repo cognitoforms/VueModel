@@ -5,7 +5,6 @@ import { Type } from "./type";
 import { getPropertyOrPropertyChain } from "./model";
 import { RuleInvocationType } from "./rule-invocation-type";
 import { EventScope$current, EventScope$perform, EventScope$onExit, EventScope$onAbort } from "./event-scope";
-import { Signal } from "./signal";
 import { ObjectMeta } from "./object-meta";
 import { PathTokens$normalizePaths } from "./path-tokens";
 import { getEventSubscriptions } from "./helpers";
