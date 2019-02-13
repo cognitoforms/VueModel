@@ -266,7 +266,7 @@ export class PropertyChain {
 	}
 
 	// Determines if this property chain connects two objects.
-	testConnection(fromRoot: Entity, toObj: any, viaProperty: Property): boolean {
+	testConnection(fromRoot: Entity, toObj: Entity, viaProperty: Property): boolean {
 		var connected = false;
 
 		// perform simple comparison if no property is defined
@@ -292,20 +292,6 @@ export class PropertyChain {
 			}
 		}
 	}
-
-	// TODO: is this needed?
-	// starts listening for the get event of the last property in the chain on any known instances. Use obj argument to
-	// optionally filter the events to a specific object
-	// addGet(handler, obj): IEventHandler<IPropertyChain, PropertyAccessEventArgs> {
-	// 	var chain = this;
-
-	// 	this.lastProperty().addGet(function PropertyChain$_raiseGet(sender, property, value, isInited) {
-	// 		handler(sender, chain, value, isInited);
-	// 	}, obj);
-
-	// 	// Return the property to support method chaining
-	// 	return this;
-	// }
 
 	get propertyType(): any {
 		return this.lastProperty.propertyType;
@@ -410,8 +396,8 @@ export interface PropertyChainAccessEventHandler {
 }
 
 export interface PropertyChainAccessEventArgs extends PropertyAccessEventArgs {
+	chain: PropertyChain;
 	originalEntity: Entity;
-	originalProperty: Property;
 }
 
 export interface PropertyChainChangeEventHandler {
@@ -419,8 +405,8 @@ export interface PropertyChainChangeEventHandler {
 }
 
 export interface PropertyChainChangeEventArgs extends PropertyChangeEventArgs {
+	chain: PropertyChain;
 	originalEntity: Entity;
-	originalProperty: Property;
 }
 
 export interface PropertyChainConstructor {
@@ -457,20 +443,14 @@ function onPropertyChainStepAccessed(chain: PropertyChain, priorProp: Property, 
 	// scan all known objects of this type and raise event for any instance connected
 	// to the one that sent the event.
 	chain.rootType.known().forEach(function (known: Entity) {
-		if (chain.testConnection(known, args.property, priorProp)) {
-			// Copy the original arguments so that we don't affect other code
-			var newArgs: PropertyAccessEventArgs | any = {
+		if (chain.testConnection(known, args.entity, priorProp)) {
+			chain._events.accessedEvent.publish(known, {
+				entity: known,
+				chain: chain,
+				originalEntity: args.entity,
 				property: args.property,
 				value: args.value,
-			};
-
-			// Reset property to be the chain, but store the original property as "triggeredBy"
-			newArgs.originalEntity = args.entity;
-			newArgs.originalProperty = newArgs.property;
-			newArgs.property = chain;
-
-			// Call the handler, passing through the arguments
-			chain._events.accessedEvent.publish(known, newArgs as PropertyChainAccessEventArgs);
+			});
 		}
 	});
 }
@@ -511,11 +491,7 @@ export function PropertyChain$_addAccessedHandler(chain: PropertyChain, handler:
 		context = obj;
 	}
 
-	// TODO: Implement partial access tolerance if implementing lazy loading...
-
 	propertyAccessFilters.add((entity) => chain.isInited(entity, true));
-
-	updatePropertyAccessSubscriptions(chain, chain._properties, chain._propertyAccessSubscriptions);
 
 	filteredHandler = function (args) {
 		let filterResults = propertyAccessFilters(args.entity);
@@ -527,6 +503,8 @@ export function PropertyChain$_addAccessedHandler(chain: PropertyChain, handler:
 	chain._events.accessedEvent.subscribe(filteredHandler);
 
 	chain._propertyChainAccessSubscriptions.push({ registeredHandler: filteredHandler, handler, context });
+
+	updatePropertyAccessSubscriptions(chain, chain._properties, chain._propertyAccessSubscriptions);
 
 }
 
@@ -542,21 +520,15 @@ function onPropertyChainStepChanged(chain: PropertyChain, priorProp: Property, e
 	// scan all known objects of this type and raise event for any instance connected
 	// to the one that sent the event.
 	chain.rootType.known().forEach(function (known: Entity) {
-		if (chain.testConnection(known, args.property, priorProp)) {
-			// Copy the original arguments so that we don't affect other code
-			var newArgs: PropertyChangeEventArgs | any = {
+		if (chain.testConnection(known, args.entity, priorProp)) {
+			chain._events.changedEvent.publish(known, {
+				entity: known,
+				chain: chain,
 				property: args.property,
+				originalEntity: args.entity,
 				oldValue: args.oldValue,
 				newValue: args.newValue,
-			};
-
-			// Reset property to be the chain, but store the original property as "triggeredBy"
-			newArgs.originalEntity = args.entity;
-			newArgs.originalProperty = args.property;
-			newArgs.property = chain;
-
-			// Call the handler, passing through the arguments
-			chain._events.changedEvent.publish(known, newArgs as PropertyChainChangeEventArgs);
+			});
 		}
 	});
 }
@@ -599,42 +571,7 @@ export function PropertyChain$_addChangedHandler(chain: PropertyChain, handler: 
 		context = obj;
 	}
 
-	/*
-	// TODO: Implement partial access tolerance if implementing lazy loading...
-	// Ensure that the chain is inited from the root if toleratePartial is false
-	if (toleratePartial) {
-		propertyEventFilters.add(function (sender, args) {
-			var allCanBeAccessed = true;
-			chain.forEach(sender, function (target, targetIndex, targetArray, property, propertyIndex, properties) {
-				if (!property.isInited(target)) {
-					var propertyGetWouldCauseError = false;
-					if (LazyLoader.isRegistered(target)) {
-						propertyGetWouldCauseError = true;
-					} else if (property.isList) {
-						var list = target[property._fieldName];
-						if (list && LazyLoader.isRegistered(list)) {
-							propertyGetWouldCauseError = true;
-						}
-					}
-
-					if (propertyGetWouldCauseError) {
-						allCanBeAccessed = false;
-
-						// Exit immediately
-						return false;
-					}
-				}
-			});
-			return allCanBeAccessed;
-		});
-	} else {
-		...
-	}
-	*/
-
 	propertyChangeFilters.add((entity) => chain.isInited(entity, true));
-
-	updatePropertyChangeSubscriptions(chain, chain._properties, chain._propertyChangeSubscriptions);
 
 	filteredHandler = function (args) {
 		let filterResults = propertyChangeFilters(args.entity);
@@ -646,6 +583,8 @@ export function PropertyChain$_addChangedHandler(chain: PropertyChain, handler: 
 	chain._events.changedEvent.subscribe(filteredHandler);
 
 	chain._propertyChainChangeSubscriptions.push({ registeredHandler: filteredHandler, handler, context });
+
+	updatePropertyChangeSubscriptions(chain, chain._properties, chain._propertyChangeSubscriptions);
 
 }
 

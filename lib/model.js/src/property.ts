@@ -1,7 +1,7 @@
 import { Event, EventObject, EventSubscriber, ContextualEventRegistration } from "./events";
 import { Entity, EntityConstructorForType } from "./entity";
 import { Format } from "./format";
-import { Type, PropertyType, isEntityType, isValueType, ValueType } from "./type";
+import { Type, PropertyType, isEntityType, isValueType, ValueType, Value } from "./type";
 import { PropertyChain$_addAccessedHandler, PropertyChain$_removeAccessedHandler, PropertyChain$_addChangedHandler, PropertyChain$_removeChangedHandler, PropertyChain, PropertyChainAccessEventHandler, PropertyChainChangeEventHandler } from "./property-chain";
 import { getTypeName, getDefaultValue, parseFunctionName, toTitleCase, ObjectLookup, merge, getConstructorName, isType } from "./helpers";
 import { ObservableArray, updateArray } from "./observable-array";
@@ -126,9 +126,9 @@ export class Property {
 					options.get = { function: getFunction, dependsOn: getDependsOn };
 				}
 
-				if (isType<PropertyGetFunctionAndDependencies>(options.get, g => getTypeName(g) === "object")) {
-					var ruleName: string = null;
-					var ruleOptions: RuleOptions & RuleTypeOptions & CalculatedPropertyRuleOptions;
+				if (isType<PropertyValueFunctionAndDependencies>(options.get, (g: any) => getTypeName(g) === "object")) {
+					let ruleName: string = null;
+					let ruleOptions: RuleOptions & RuleTypeOptions & CalculatedPropertyRuleOptions;
 
 					if (typeof (options.get.function) !== "function") {
 						throw new Error(`Invalid property 'get' function of type '${getTypeName(options.get.function)}'.`);
@@ -138,7 +138,7 @@ export class Property {
 						throw new Error(`Invalid property 'get' dependsOn of type '${getTypeName(options.get.dependsOn)}'.`);
 					}
 
-					var ruleOnChangeOf = options.get.dependsOn ? PathTokens$normalizePaths([options.get.dependsOn]).map(t => t.expression) : [];
+					let ruleOnChangeOf = options.get.dependsOn ? PathTokens$normalizePaths([options.get.dependsOn]).map(t => t.expression) : [];
 
 					ruleOptions = {
 						property: this,
@@ -148,7 +148,9 @@ export class Property {
 
 					let rule = new CalculatedPropertyRule(this.containingType, ruleName, ruleOptions);
 
-					this.containingType.model.ready.then(() => rule.register());
+					this.containingType.model.ready.then(() => {
+						rule.register();
+					});
 				} else {
 					throw new Error(`Invalid property 'get' option of type '${getTypeName(options.get)}'.`);
 				}
@@ -158,9 +160,31 @@ export class Property {
 			if (options.default) {
 				if (typeof (options.default) === "function") {
 					this._defaultValue = options.default;
-				} else if (getTypeName(options.default) === "object") {
-					// TODO: Create a default value rule...
-					throw new Error("Default value rule not yet implemented.");
+				} else if (isType<PropertyValueFunctionAndDependencies>(options.default, (d: any) => getTypeName(d) === "object")) {
+					let ruleName: string = null;
+					let ruleOptions: RuleOptions & RuleTypeOptions & CalculatedPropertyRuleOptions;
+
+					if (typeof (options.default.function) !== "function") {
+						throw new Error(`Invalid property 'default' function of type '${getTypeName(options.default.function)}'.`);
+					}
+
+					if (typeof (options.default.dependsOn) !== "string") {
+						throw new Error(`Invalid property 'default' dependsOn of type '${getTypeName(options.default.dependsOn)}'.`);
+					}
+
+					let ruleOnChangeOf = options.default.dependsOn ? PathTokens$normalizePaths([options.default.dependsOn]).map(t => t.expression) : [];
+
+					ruleOptions = {
+						property: this,
+						calculate: options.default.function,
+						onChangeOf: ruleOnChangeOf,
+					};	
+
+					let rule = new CalculatedPropertyRule(this.containingType, ruleName, ruleOptions);
+
+					this.containingType.model.ready.then(() => {
+						rule.register();
+					});
 				} else { // Constant
 					let defaultOptionTypeName = getTypeName(options.default);
 
@@ -168,7 +192,7 @@ export class Property {
 						throw new Error(`Cannot set a constant default value for a property of type '${this.propertyType.meta.fullName}'.`);
 					}
 
-					var propertyTypeName = getConstructorName(this.propertyType).toLowerCase();
+					let propertyTypeName = getConstructorName(this.propertyType).toLowerCase();
 
 					if (defaultOptionTypeName !== propertyTypeName) {
 						throw new Error(`Cannot set a default value of type '${defaultOptionTypeName}' for a property of type '${propertyTypeName}'.`);
@@ -315,13 +339,13 @@ export interface PropertyOptions {
 	format?: string | Format<PropertyType>,
 
 	/** An optional function or dependency function object that calculates the value of this property. */
-	get?: PropertyGetFunctionOnly | PropertyGetFunctionAndDependencies,
+	get?: PropertyValueFunctionOnly | PropertyValueFunctionAndDependencies,
 
 	/** An optional function to call when this property is updated. */
 	set?: (this: Entity, value: any) => void,
 
 	/** An optional constant default value, or a function or dependency function object that calculates the default value of this property. */
-	default?: (() => any) | { function: (this: Entity) => any, dependsOn: string } | String | Number | Date | Boolean,
+	default?: PropertyValueFunctionOnly | PropertyValueFunctionAndDependencies | Value,
 
 	/** True if the property is always required, or a dependency function object for conditionally required properties. */
 	required?: boolean | { function: (this: Entity) => boolean, dependsOn: string },
@@ -330,9 +354,9 @@ export interface PropertyOptions {
 	error?: { function: (this: Entity) => boolean, dependsOn: string, message: string }
 }
 
-export type PropertyGetFunctionOnly = () => any;
+export type PropertyValueFunctionOnly = () => any;
 
-export interface PropertyGetFunctionAndDependencies {
+export interface PropertyValueFunctionAndDependencies {
 	function: (this: Entity) => any;
 	dependsOn: string;
 }

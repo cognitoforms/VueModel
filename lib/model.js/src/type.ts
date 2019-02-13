@@ -387,6 +387,7 @@ export class Type {
 	}
 }
 
+export type Value = String | Number | Date | Boolean;
 export type ValueType = StringConstructor | NumberConstructor | DateConstructor | BooleanConstructor;
 export type EntityType = EntityConstructorForType<Entity>;
 export type PropertyType = ValueType | EntityType;
