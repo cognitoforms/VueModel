@@ -86,6 +86,7 @@
     <TypeScriptCompile Include="src\source-path-adapter.ts" />
     <TypeScriptCompile Include="src\source-provider.ts" />
     <TypeScriptCompile Include="src\source-root-adapter.ts" />
+    <TypeScriptCompile Include="src\source-root-mixin.ts" />
     <TypeScriptCompile Include="src\vue-helpers.ts" />
     <TypeScriptCompile Include="src\vue-internals.ts" />
     <TypeScriptCompile Include="src\vue-model.ts" />

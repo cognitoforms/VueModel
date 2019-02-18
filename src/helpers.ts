@@ -13,5 +13,5 @@ export function hasOwnProperty(obj: any, prop: string) {
 }
 
 export function debug(message: string) {
-    // console.log("%c[DEBUG] " + message, "background-color: #efefef; color: #999;");
+     //console.log("%c[DEBUG] " + message, "background-color: #efefef; color: #999;");
 }

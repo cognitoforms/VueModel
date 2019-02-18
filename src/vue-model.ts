@@ -4,6 +4,7 @@ import { ensureVueInternalTypes } from "./vue-internals";
 import { VueModel$installPlugin } from "./vue-plugin";
 import { SourceProviderMixin } from "./source-provider";
 import { SourceConsumerMixin } from "./source-consumer";
+import SourceRootMixin from "./source-root-mixin";
 import { SourceRootAdapter } from "./source-root-adapter";
 
 export class VueModel extends Model {
@@ -23,6 +24,7 @@ export class VueModel extends Model {
 	static mixins = {
 		SourceProvider: SourceProviderMixin,
 		SourceConsumer: SourceConsumerMixin,
+		SourceRoot: SourceRootMixin
 	};
 
 	/**
