@@ -24,7 +24,6 @@ export class Property {
 	// Public settable properties that are simple values with no side-effects or logic
 	label: string;
 	helptext: string;
-	isPersisted: boolean;
 	isCalculated: boolean;
 	format: Format<any>;
 
@@ -173,6 +172,8 @@ export class Property {
 					this.containingType.model.ready.then(() => {
 						rule.register();
 					});
+
+					this.isCalculated = true;
 				} else {
 					throw new Error(`Invalid property 'get' option of type '${getTypeName(options.get)}'.`);
 				}

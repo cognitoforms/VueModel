@@ -7,6 +7,7 @@ import { Property } from "./property";
 import { PropertyChain } from "./property-chain";
 import { PathTokens } from "./path-tokens";
 import { Format, createFormat } from "./format";
+import { EntitySerializer, PropertyConverter } from "./entity-serializer";
 
 const valueTypes: { [name: string]: ValueType } = { string: String, number: Number, date: Date, boolean: Boolean };
 
@@ -58,6 +59,8 @@ export class Model {
 	get entityUnregistered(): EventSubscriber<Model, EntityUnregisteredEventArgs> {
 		return this._events.entityUnregisteredEvent.asEventSubscriber();
 	}
+
+	readonly serializer = new EntitySerializer();
 
 	/**
 	 * Extends the model with the specified type information.
@@ -169,7 +172,6 @@ export class Model {
 		}
 	}
 }
-
 
 export interface ModelConstructor {
 	new(createOwnProperties?: boolean): Model;

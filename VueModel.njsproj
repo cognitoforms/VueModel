@@ -44,6 +44,7 @@
     <TypeScriptCompile Include="lib\model.js\src\condition-type-set.ts" />
     <TypeScriptCompile Include="lib\model.js\src\condition-type.ts" />
     <TypeScriptCompile Include="lib\model.js\src\condition.ts" />
+    <TypeScriptCompile Include="lib\model.js\src\entity-serializer.ts" />
     <TypeScriptCompile Include="lib\model.js\src\entity.ts" />
     <TypeScriptCompile Include="lib\model.js\src\event-scope.ts" />
     <TypeScriptCompile Include="lib\model.js\src\events.ts" />

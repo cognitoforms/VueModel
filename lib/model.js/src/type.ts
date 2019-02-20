@@ -12,7 +12,6 @@ import { ConditionTargetsChangedEventArgs } from "./condition-target";
 export const Type$newIdPrefix = "+c"
 
 export class Type {
-
 	format: Format<Entity>;
 
 	// Public read-only properties: aspects of the object that cannot be

@@ -6,10 +6,9 @@ import { ObjectMeta } from "./object-meta";
 import { Property } from "./property";
 
 export class Entity {
-
 	readonly meta: ObjectMeta;
 
-	readonly _events: EntityEvents;	
+	readonly _events: EntityEvents;
 
 	constructor() {
 		Object.defineProperty(this, "_events", { value: new EntityEvents() });
@@ -26,7 +25,6 @@ export class Entity {
 	init(properties: { [name: string]: any }): void;
 	init(property: string, value: any): void;
 	init(property: any, value?: any): void {
-
 		let properties: { [name: string]: any };
 
 		// Convert property/value pair to a property dictionary
@@ -54,7 +52,6 @@ export class Entity {
 	set(properties: { [name: string]: any }): void;
 	set(property: string, value: any): void;
 	set(property: any, value?: any): void {
-
 		let properties: { [name: string]: any };
 
 		// Convert property/value pair to a property dictionary
@@ -83,7 +80,6 @@ export class Entity {
 	}
 
 	toString(format?: string): string {
-
 		// Get the entity format to use
 		let formatter: Format<Entity> = null;
 		if (format) {
@@ -100,6 +96,9 @@ export class Entity {
 		}
 	}
 
+	serialize(): any {
+		return this.meta.type.model.serializer.serialize(this);
+	}
 }
 
 export interface EntityConstructor {
@@ -132,7 +131,7 @@ export interface EntityDestroyEventArgs {
 }
 
 export interface EntityAccessEventHandler {
-    (this: Property, args: EventObject & EntityAccessEventArgs): void;
+	(this: Property, args: EventObject & EntityAccessEventArgs): void;
 }
 
 export interface EntityAccessEventArgs {
@@ -141,7 +140,7 @@ export interface EntityAccessEventArgs {
 }
 
 export interface EntityChangeEventHandler {
-    (this: Property, args: EventObject & EntityChangeEventArgs): void;
+	(this: Property, args: EventObject & EntityChangeEventArgs): void;
 }
 
 export interface EntityChangeEventArgs {
