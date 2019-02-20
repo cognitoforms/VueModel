@@ -30,6 +30,7 @@ export default VueModel;
 // Export any additional *types* to be referenced externally
 export type Model = Model;
 export type ModelOptions = ModelOptions;
+export { Entity };
 export type Property = Property;
 export type PropertyConverter = PropertyConverter;
 export type PropertySerializationResult = PropertySerializationResult;
