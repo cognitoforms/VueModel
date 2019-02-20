@@ -15,9 +15,7 @@ export class Model {
 
 	readonly types: { [name: string]: Type };
 
-	ready: Promise<void>;
-
-	private _ready: () => void;
+	private _ready: (() => void)[];
 
 	readonly settings: ModelSettings;
 
@@ -45,11 +43,7 @@ export class Model {
 
 		if (options) {
 			this.extend(options);
-		} else {
-			// Indicate that the model is now ready
-			this.ready = Promise.resolve();
 		}
-
 	}
 
 	get entityRegistered(): EventSubscriber<Model, EntityRegisteredEventArgs> {
@@ -101,31 +95,24 @@ export class Model {
 		// Create a model initialization scope
 		if (!this._ready) {
 
-			// Create a promise to track that the model is being extended
-			let _reject: (reason: any) => void;
-			this.ready = new Promise((resolve, reject) => {
-				this._ready = resolve;
-				_reject = reject;
-			});
+			// Create an array to track model initialization callbacks
+			this._ready = []; 
 
 			// Extend the model
-			try {
-				extend();
-			}
-			catch (e) {
-				_reject(e);
-
-				return;
-			}
-
+			extend();
+			
 			// Complete pending model initialization steps
-			this._ready();
+			this._ready.forEach(init => init());
 			this._ready = null;
 		}
 
 		// Leverage the current model initialization scope
 		else
 			extend();
+	}
+
+	ready(init: () => void) {
+		this._ready.push(init);
 	}
 
 	/**
