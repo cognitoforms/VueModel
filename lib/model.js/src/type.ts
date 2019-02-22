@@ -313,7 +313,9 @@ export class Type {
 			}
 
 			// Type Members
-			for (let [name, member] of Object.entries(options)) {
+			for (let name of Object.keys(options)) {
+				let member = options[name];
+
 				// Ignore Type and Format values, which do not represent type members
 				if (member instanceof Type || member instanceof Format)
 					continue;
