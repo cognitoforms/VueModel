@@ -1,4 +1,4 @@
-import { Rule, Rule$ensureConditionType, RuleOptions } from "./rule";
+import { Rule, Rule$ensureConditionType, RuleOptions, RuleInvocationOptions } from "./rule";
 import { hasOwnProperty } from "./helpers";
 import { Property } from "./property";
 import { ConditionType } from "./condition-type";
@@ -23,29 +23,27 @@ export class ConditionRule extends Rule {
 	 * @param rootType The model type the rule is for
 	 * @param options The options for the rule, of type ConditionRuleOptions
 	 */
-	constructor(rootType: Type, options: ConditionRuleOptions & RuleOptions) {
-
-		// Exit immediately if called with no arguments
-		if (arguments.length === 0) return;
+	constructor(rootType: Type, options: ConditionRuleOptions) {
+		let _options = options as ConditionRuleOptions & RuleInvocationOptions;
 
 		// automatically run the condition rule during initialization of new instances
 		if (!options.hasOwnProperty("onInitNew")) {
-			options.onInitNew = true;
+			_options.onInitNew = true;
 		}
 
 		// coerce string to condition type
-		var conditionType = options.conditionType;
+		let conditionType = options.conditionType;
 		if (typeof conditionType === "string") {
 			conditionType = ConditionType.get(conditionType);
 		}
 
 		// automatically run the condition rule during initialization of existing instances if the condition type was defined on the client
-		if (!options.hasOwnProperty("onInitExisting") && conditionType && conditionType.origin !== "server") {
-			options.onInitExisting = true;
+		if (conditionType && conditionType.origin !== "server") {
+			_options.onInitExisting = true;
 		}
 
 		// Call the base rule constructor
-		super(rootType, name, options);
+		super(rootType, name, _options);
 	
 		// store the condition predicate
 		var assert = options.assert || options.fn;
@@ -134,7 +132,7 @@ export class ConditionRule extends Rule {
 
 export type ConditionTypeCategory = "Error" | "Warning";
 
-export interface ConditionRuleOptions {
+export interface ConditionRuleOptions extends RuleOptions {
 
 	// a predicate that returns true when the condition should be asserted
 	assert?: (this: Entity) => boolean;

@@ -74,7 +74,7 @@ export class StringFormatRule extends ValidatedPropertyRule {
 
 }
 
-export interface StringFormatRuleOptions {
+export interface StringFormatRuleOptions extends PropertyRuleOptions {
 
 	/** The human readable description of the format, such as MM/DD/YYY */
 	description: string;

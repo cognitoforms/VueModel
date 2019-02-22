@@ -5,13 +5,13 @@ import { Type, PropertyType, isEntityType, Value } from "./type";
 import { PropertyChain$_addAccessedHandler, PropertyChain$_removeAccessedHandler, PropertyChain$_addChangedHandler, PropertyChain$_removeChangedHandler, PropertyChain, PropertyChainAccessEventHandler, PropertyChainChangeEventHandler } from "./property-chain";
 import { getTypeName, getDefaultValue, parseFunctionName, ObjectLookup, merge, getConstructorName, isType } from "./helpers";
 import { ObservableArray, updateArray } from "./observable-array";
-import { RuleRegisteredEventArgs, Rule, RuleOptions, RuleTypeOptions } from "./rule";
+import { RuleRegisteredEventArgs, Rule, RuleOptions } from "./rule";
 import { CalculatedPropertyRule, CalculatedPropertyRuleOptions } from "./calculated-property-rule";
 import { PathTokens$normalizePaths } from "./path-tokens";
 import { StringFormatRule, StringFormatRuleOptions } from "./string-format-rule";
 import { ConditionRuleOptions } from "./condition-rule";
 import { AllowedValuesRuleOptions } from "./allowed-values-rule";
-import { ValidatedPropertyRuleOptions, ValidatedPropertyRule } from "./validated-property-rule";
+import { ValidatedPropertyRuleOptions } from "./validated-property-rule";
 import { AllowedValuesRule } from "./allowed-values-rule";
 
 export class Property {
@@ -94,11 +94,20 @@ export class Property {
 		}
 	}
 
-	extend(options: PropertyOptions) {
+	private static encloseFunction(f: Function) {
+		return function (this: Entity) { return f(); };
+	}
+
+	private static isPropOptions(obj: any): obj is PropertyValueFunctionAndDependencies {
+		return isType<PropertyValueFunctionAndDependencies>(obj, d => getTypeName(d) === "object");
+	}
+
+	extend(options: PropertyOptions, targetType?: Type) {
+		if (!targetType)
+			targetType = this.containingType;
 
 		// Use prepare() to defer property path resolution while the model is being extended
-		this.containingType.model.prepare(() => {
-
+		targetType.model.prepare(() => {
 			// Label
 			if (options.label)
 				this.label = options.label;
@@ -112,8 +121,8 @@ export class Property {
 			if (options.format) {
 				if (typeof (options.format) === "string") {
 					let format = options.format;
-					this.containingType.model.ready(() => {
-						this.format = this.containingType.model.getFormat(this.propertyType, format);
+					targetType.model.ready(() => {
+						this.format = targetType.model.getFormat(this.propertyType, format);
 					});
 				}
 				else if (options.format instanceof Format) {
@@ -130,9 +139,9 @@ export class Property {
 						reformat: options.format.reformat,
 					};
 
-					let rule = new StringFormatRule(this.containingType, ruleOptions);
+					let rule = new StringFormatRule(targetType, ruleOptions);
 
-					this.containingType.model.ready(() => {
+					targetType.model.ready(() => {
 						rule.register();
 					});
 
@@ -144,15 +153,12 @@ export class Property {
 			// Get - calculated property
 			if (options.get) {
 				if (typeof (options.get) === "function") {
-					let originalGet = options.get;
-					let getFunction = function (this: Entity) { return originalGet() };
-					let getDependsOn: string = "";
-					options.get = { function: getFunction, dependsOn: getDependsOn };
+					options.get = { function: Property.encloseFunction(options.get), dependsOn: "" };
 				}
 
-				if (isType<PropertyValueFunctionAndDependencies>(options.get, (g: any) => getTypeName(g) === "object")) {
+				if (Property.isPropOptions(options.get)) {
 					let ruleName: string = null;
-					let ruleOptions: RuleOptions & RuleTypeOptions & CalculatedPropertyRuleOptions;
+					let ruleOptions: CalculatedPropertyRuleOptions;
 
 					if (typeof (options.get.function) !== "function") {
 						throw new Error(`Invalid property 'get' function of type '${getTypeName(options.get.function)}'.`);
@@ -167,16 +173,14 @@ export class Property {
 					ruleOptions = {
 						property: this,
 						calculate: options.get.function,
-						onChangeOf: ruleOnChangeOf,
+						onChangeOf: ruleOnChangeOf
 					};
 
-					let rule = new CalculatedPropertyRule(this.containingType, ruleName, ruleOptions);
+					let rule = new CalculatedPropertyRule(targetType, ruleName, ruleOptions);
 
-					this.containingType.model.ready(() => {
+					targetType.model.ready(() => {
 						rule.register();
 					});
-
-					this.isCalculated = true;
 				} else {
 					throw new Error(`Invalid property 'get' option of type '${getTypeName(options.get)}'.`);
 				}
@@ -184,16 +188,35 @@ export class Property {
 
 			// Default value or function
 			if (options.default) {
-
-				// Function
 				if (typeof (options.default) === "function") {
-					this._defaultValue = options.default;
+					if (this.containingType === targetType)
+						this._defaultValue = options.default;
+					else
+						options.default = { function: Property.encloseFunction(options.default), dependsOn: "" };
+				} else if (!Property.isPropOptions(options.default)) {
+					// Constant
+					let defaultOptionTypeName = getTypeName(options.default);
+
+					if (isEntityType(this.propertyType)) {
+						throw new Error(`Cannot set a constant default value for a property of type '${this.propertyType.meta.fullName}'.`);
+					}
+
+					let propertyTypeName = getConstructorName(this.propertyType).toLowerCase();
+
+					if (defaultOptionTypeName !== propertyTypeName) {
+						throw new Error(`Cannot set a default value of type '${defaultOptionTypeName}' for a property of type '${propertyTypeName}'.`);
+					}
+
+					// If extending baseType property specifically for a child type, use a rule 
+					if (this.containingType === targetType)
+						this._defaultValue = options.default;
+					else
+						options.default = { function: function () { return options.default }, dependsOn: "" };
 				}
 
-				// Function with dependencies
-				else if (isType<PropertyValueFunctionAndDependencies>(options.default, (d: any) => getTypeName(d) === "object")) {
+				if (Property.isPropOptions(options.default)) {
 					let ruleName: string = null;
-					let ruleOptions: RuleOptions & RuleTypeOptions & CalculatedPropertyRuleOptions;
+					let ruleOptions: CalculatedPropertyRuleOptions;
 
 					if (typeof (options.default.function) !== "function") {
 						throw new Error(`Invalid property 'default' function of type '${getTypeName(options.default.function)}'.`);
@@ -209,30 +232,14 @@ export class Property {
 						property: this,
 						calculate: options.default.function,
 						onChangeOf: ruleOnChangeOf,
+						isDefaultValue: true
 					};
 
-					let rule = new CalculatedPropertyRule(this.containingType, ruleName, ruleOptions);
+					let rule = new CalculatedPropertyRule(targetType, ruleName, ruleOptions);
 
-					this.containingType.model.ready(() => {
+					targetType.model.ready(() => {
 						rule.register();
 					});
-				}
-
-				// Constant
-				else { 
-					let defaultOptionTypeName = getTypeName(options.default);
-
-					if (isEntityType(this.propertyType)) {
-						throw new Error(`Cannot set a constant default value for a property of type '${this.propertyType.meta.fullName}'.`);
-					}
-
-					let propertyTypeName = getConstructorName(this.propertyType).toLowerCase();
-
-					if (defaultOptionTypeName !== propertyTypeName) {
-						throw new Error(`Cannot set a default value of type '${defaultOptionTypeName}' for a property of type '${propertyTypeName}'.`);
-					}
-
-					this._defaultValue = options.default;
 				}
 			}
 
@@ -244,9 +251,9 @@ export class Property {
 					options.get = { function: allowedValuesFunction, dependsOn: "" };
 				}
 
-				if (isType<PropertyValueFunctionAndDependencies>(options.allowedValues, (g: any) => getTypeName(g) === "object")) {
+				if (Property.isPropOptions(options.allowedValues)) {
 					let ruleName: string = null;
-					let ruleOptions: AllowedValuesRuleOptions & ValidatedPropertyRuleOptions & ConditionRuleOptions & RuleOptions;
+					let ruleOptions: AllowedValuesRuleOptions;
 
 					if (typeof (options.allowedValues.function) !== "function") {
 						throw new Error(`Invalid property 'allowedValues' function of type '${getTypeName(options.allowedValues.function)}'.`);
@@ -261,51 +268,17 @@ export class Property {
 					ruleOptions = {
 						property: this,
 						source: options.allowedValues.function,
-						onChangeOf: ruleOnChangeOf,
+						onChangeOf: ruleOnChangeOf
 					};
 
-					let rule = new AllowedValuesRule(this.containingType, ruleOptions);
+					let rule = new AllowedValuesRule(targetType, ruleOptions);
 
-					this.containingType.model.ready(() => {
+					targetType.model.ready(() => {
 						rule.register();
 					});
 				} else {
 					throw new Error(`Invalid property 'get' option of type '${getTypeName(options.get)}'.`);
 				}
-			}
-
-			// Error
-			if (options.error) {
-
-				let ruleName: string = null;
-				let ruleOptions: RuleOptions & RuleTypeOptions & ValidatedPropertyRuleOptions;
-				let ruleFunction: (this: Entity) => boolean = options.error.function;
-
-
-				if (typeof (ruleFunction) !== "function") {
-					throw new Error(`Invalid property 'get' function of type '${getTypeName(options.error.function)}'.`);
-				}
-
-				if (options.error.dependsOn && typeof (options.error.dependsOn) !== "string") {
-					throw new Error(`Invalid property 'get' dependsOn of type '${getTypeName(options.error.dependsOn)}'.`);
-				}
-
-				let ruleOnChangeOf = options.error.dependsOn ? PathTokens$normalizePaths([options.error.dependsOn]).map(t => t.expression) : [];
-
-				ruleOptions = {
-					property: this,
-					isValid: function () {
-						return !ruleFunction.call(this);
-					},
-					onChangeOf: ruleOnChangeOf,
-					message: options.error.message
-				};
-
-				let rule = new ValidatedPropertyRule(this.containingType, ruleOptions);
-
-				this.containingType.model.ready(() => {
-					rule.register();
-				});
 			}
 
 		});
@@ -534,7 +507,7 @@ export interface PropertyRule extends Rule {
 
 }
 
-export interface PropertyRuleOptions {
+export interface PropertyRuleOptions extends ConditionRuleOptions {
 
 	// the property being validated (either a Property instance or string property name)
 	property: Property;

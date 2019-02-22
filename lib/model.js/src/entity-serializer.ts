@@ -29,7 +29,7 @@ export interface PropertyConverter {
 
 export class EntitySerializer {
 	private _propertyConverters: PropertyConverter[] = [];
-	private _propertyInjectors = new Map<Type, PropertyInjector[]>();
+	private _propertyInjectors = new Map<Type | string, PropertyInjector[]>();
 
 	/**
 	 * Property converters should be registered in order of increasing specificity.
@@ -39,17 +39,36 @@ export class EntitySerializer {
 		this._propertyConverters.unshift(converter);
 	}
 
-	registerPropertyInjector(type: Type, injector: PropertyInjector) {
+	/**
+	 * Property injections will occur when serializing entities of the specified type, or entities which
+	 * inherit from the specified type. Injected properties will appear before model properties in the serialized
+	 * output.
+	 * @param type Either a Type or the fullName of a Type
+	 * @param injector 
+	 */
+	registerPropertyInjector(type: Type | string, injector: PropertyInjector) {
 		let injectors = this._propertyInjectors.get(type) || [];
 		injectors.push(injector);
 		this._propertyInjectors.set(type, injectors);
 	}
 
+	/**
+	 * Returns the property injectors registered for a specific type, including name-based registrations.
+	 * @param type 
+	 */
+	private getInjectorsOrDefault(type: Type) {
+		return (this._propertyInjectors.get(type) || []).concat(this._propertyInjectors.get(type.fullName) || []);
+	}
+
+	/**
+	 * Returns property injectors registered for a type and its base types.
+	 * @param type 
+	 */
 	private getPropertyInjectors(type: Type): PropertyInjector[] {
+
 		let injectors = [];
 		do {
-			if (this._propertyInjectors.has(type))
-				injectors.push(...this._propertyInjectors.get(type));
+			injectors.push(...this.getInjectorsOrDefault(type));
 			type = type.baseType;
 		} while (type);
 		return injectors;
@@ -62,20 +81,24 @@ export class EntitySerializer {
 	serialize(entity: Entity, serializeNull: boolean = false): Object {
 		let result: Object = {};
 		const type = entity.meta.type;
-		type.properties
-			.filter(p => !p.isCalculated && !p.isStatic)
-			.map(prop => {
-				let value = prop.value(entity);
-				let converter = this._propertyConverters.find(c => c.shouldConvert(prop));
-				if (converter)
-					return converter.convert(prop, value);
-				return EntitySerializer.defaultPropertyConverter(prop, value);
-			})
-			.concat(this.getPropertyInjectors(type).flatMap(i => i.inject(entity)))
+		this.getPropertyInjectors(type).flatMap(i => i.inject(entity))
+			.concat(type.properties
+				.filter(p => !p.isCalculated && !p.isStatic)
+				.map(prop => {
+					let value = prop.value(entity);
+					let converter = this._propertyConverters.find(c => c.shouldConvert(prop));
+					if (converter)
+						return converter.convert(prop, value);
+					return EntitySerializer.defaultPropertyConverter(prop, value);
+				}))
 			.forEach(pair => {
-				// Once a key has been serialized, it cannot be overwritten
-				if (pair && !result.hasOwnProperty(pair.key) && (serializeNull || pair.value !== null))
-					result[pair.key] = pair.value;
+				if (pair) {
+					if (result.hasOwnProperty(pair.key))
+						throw new Error(`Property '${pair.key}' was encountered twice during serialization. Make sure injected properties do not collide with model properties.`);
+
+					if (serializeNull || pair.value !== null)
+						result[pair.key] = pair.value;
+				}
 			});
 		return result;
 	}

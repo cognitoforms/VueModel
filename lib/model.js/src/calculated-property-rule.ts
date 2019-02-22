@@ -1,13 +1,13 @@
-import { Rule, registerPropertyRule, RuleOptions, RuleTypeOptions } from "./rule";
+import { Rule, registerPropertyRule, RuleOptions, RuleInvocationOptions } from "./rule";
 import { Type } from "./type";
-import { Property } from "./property";
+import { Property, PropertyRule, PropertyRuleOptions } from "./property";
 import { Entity } from "./entity";
 import { ObservableArray, updateArray } from "./observable-array";
+import { RuleInvocationType } from "./rule-invocation-type";
 
 let calculationErrorDefault: any;
 
 export class CalculatedPropertyRule extends Rule {
-
 	// Public read-only properties: aspects of the object that cannot be
 	// changed without fundamentally changing what the object is
 	readonly property: Property;
@@ -19,24 +19,27 @@ export class CalculatedPropertyRule extends Rule {
 	// other data, calculated in some way, or cannot simply be changed
 	private _calculateFn: string | ((this: Entity) => any);
 
-	constructor(rootType: Type, name: string, options: RuleOptions & RuleTypeOptions & CalculatedPropertyRuleOptions) {
-
+	constructor(rootType: Type, name: string, options: CalculatedPropertyRuleOptions) {
 		let property: Property;
 		let defaultIfError: any = calculationErrorDefault;
 		let calculateFn: string | ((this: Entity) => any);
-
+		
 		if (!name) {
 			name = options.name;
 		}
 
 		if (options) {
-			let thisOptions = extractCalculatedPropertyRuleOptions(options);
+			if (options.property) {
+				property = typeof options.property === "string" ? rootType.getProperty(options.property) as Property : options.property as Property;
 
-			if (thisOptions.property) {
-				property = typeof thisOptions.property === "string" ? rootType.getProperty(thisOptions.property) as Property : thisOptions.property as Property;
-
-				// indicate that the rule is responsible for returning the value of the calculated property
-				options.returns = [property];
+				if (!options.isDefaultValue) {
+					// indicate that the rule is responsible for returning the value of the calculated property
+					options.returns = [property];
+				}
+				else {
+					// Ensure the default value rule runs on init of a new instance
+					(options as RuleInvocationOptions).onInitNew = true;
+				}
 			}
 
 			if (!name) {
@@ -44,8 +47,8 @@ export class CalculatedPropertyRule extends Rule {
 				name = options.name = (rootType.fullName + "." + (typeof property === "string" ? property : property.name) + ".Calculated");	
 			}
 
-			defaultIfError = thisOptions.defaultIfError;
-			calculateFn = thisOptions.calculate;
+			defaultIfError = options.defaultIfError;
+			calculateFn = options.calculate;
 		}
 
 		// Call the base rule constructor 
@@ -62,7 +65,6 @@ export class CalculatedPropertyRule extends Rule {
 	}
 
 	execute(obj: Entity) {
-
 		let calculateFn: (this: Entity) => any;
 
 		// Convert string functions into compiled functions on first execution
@@ -130,32 +132,28 @@ export class CalculatedPropertyRule extends Rule {
 		return "calculation of " + this.property.name;
 	}
 
-	// perform addition initialization of the rule when it is registered
+	// perform additional initialization of the rule when it is registered
 	onRegister() {
-
 		// register the rule with the target property
 		registerPropertyRule(this);
 
-		(this.property as any).isCalculated = true;
-
+		if (this.invocationTypes & RuleInvocationType.PropertyGet)
+			this.property.isCalculated = true;
 	}
-
 }
 
-export interface CalculatedPropertyRuleOptions {
-
-	/** The property being calculated (either a Property instance or string property name) */
-	property?: string | Property;
-
+export interface CalculatedPropertyRuleOptions extends PropertyRuleOptions {
 	/** A function that returns the value to assign to the property, or undefined if the value cannot be calculated */
 	calculate?: string | ((this: Entity) => any);
 
 	/** A function that returns the value to assign to the property, or undefined if the value cannot be calculated */
-	fn?: string | ((this: Entity) => any);
+	fn?: (this: Entity) => any;
 
 	/** The value to return if an error occurs, or undefined to cause an exception to be thrown */
 	defaultIfError?: any;
 
+	/** Specifies whether or not the rule is to calculate a property's default value */
+	isDefaultValue?: boolean;
 }
 
 export interface CalculatedPropertyRuleConstructor {
@@ -166,47 +164,4 @@ export interface CalculatedPropertyRuleConstructor {
 	 * @param options The options of the rule of type 'CalculatedPropertyRuleOptions'
 	 */
 	new(rootType: Type, name: string, options: CalculatedPropertyRuleOptions): Rule;
-}
-
-function extractCalculatedPropertyRuleOptions(obj: any): CalculatedPropertyRuleOptions {
-
-	if (!obj) {
-		return;
-	}
-
-	let options: CalculatedPropertyRuleOptions = {};
-
-	let keys = Object.keys(obj);
-
-	let extractedKeys = keys.filter(key => {
-		let value = obj[key];
-		if (key === 'property') {
-			if (value instanceof Property) {
-				options.property = value as Property;
-				return true;
-			}
-		} else if (key === 'calculate' || key === 'fn') {
-			if (value instanceof Function) {
-				options.calculate = value as (this: Entity) => any;
-				return true;
-			} else if (typeof value === "string") {
-				options.calculate = value as string;
-				return true;
-			}
-		} else if (key === 'defaultIfError') {
-			options.defaultIfError = value;
-			return true;
-		} else {
-			// TODO: Warn about unsupported rule options?
-			return;
-		}
-
-		// TODO: Warn about invalid rule option value?
-		return;
-	}).forEach(key => {
-		delete obj[key];
-	});
-
-	return options;
-
 }

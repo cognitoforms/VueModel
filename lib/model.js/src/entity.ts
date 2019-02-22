@@ -10,8 +10,10 @@ export class Entity {
 
 	readonly _events: EntityEvents;
 
-	constructor() {
+	constructor(properties?: { [name: string]: any }) {
 		Object.defineProperty(this, "_events", { value: new EntityEvents() });
+		if (properties)
+			this.init(properties);
 	}
 
 	get accessed(): EventSubscriber<Entity, EntityAccessEventArgs> {
@@ -44,7 +46,7 @@ export class Entity {
 					throw new Error("Could not find property \"" + name + "\" on type \"" + this.meta.type.fullName + "\".");
 
 				// Set the property
-				prop.value(this, value);
+				prop.value(this, properties[name]);
 			}
 		}
 	}
@@ -70,7 +72,7 @@ export class Entity {
 				if (!prop)
 					throw new Error("Could not find property \"" + name + "\" on type \"" + this.meta.type.fullName + "\".");
 
-				prop.value(this, value);
+				prop.value(this, properties[name]);
 			}
 		}
 	}
@@ -96,7 +98,11 @@ export class Entity {
 		}
 	}
 
-	serialize(): any {
+	/**
+	 * Produces a JSON-valid object representation of the entity.
+	 * @param entity
+	 */
+	serialize(): Object {
 		return this.meta.type.model.serializer.serialize(this);
 	}
 }

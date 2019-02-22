@@ -42,7 +42,7 @@ export class Rule {
 	 * @param rootType The model type the rule is for.
 	 * @param options The options for the rule.
 	 */
-	constructor(rootType: Type, name: string, options: RuleOptions) {
+	constructor(rootType: Type, name: string, options: RuleOptions & RuleInvocationOptions) {
 
 		// Track the root type
 		this.rootType = rootType;
@@ -51,20 +51,20 @@ export class Rule {
 
 		// Configure the rule based on the specified options
 		if (options) {
-			let thisOptions = extractRuleOptions(options);
+			options = extractRuleOptions(options);
 
-			if (thisOptions.onInit)
+			if (options.onInit)
 				this.onInit();
-			if (thisOptions.onInitNew)
+			if (options.onInitNew)
 				this.onInitNew();
-			if (thisOptions.onInitExisting)
+			if (options.onInitExisting)
 				this.onInitExisting();
-			if (thisOptions.onChangeOf)
-				this.onChangeOf(thisOptions.onChangeOf);
-			if (thisOptions.returns)
-				this.returns(thisOptions.returns);
-			if (thisOptions.execute instanceof Function)
-				this._execute = thisOptions.execute;
+			if (options.onChangeOf)
+				this.onChangeOf(options.onChangeOf);
+			if (options.returns)
+				this.returns(options.returns);
+			if (options.execute instanceof Function)
+				this._execute = options.execute;
 		}
 	}
 
@@ -312,6 +312,16 @@ export interface RuleOptions {
 	/** The source property for the allowed values (either a Property or PropertyChain instance or a string property path). */
 	execute?: (this: Entity) => void;
 
+	/** Array of property paths (strings, Property or PropertyChain instances) that trigger rule execution when changed. */
+	onChangeOf?: (string | Property | PropertyChain)[];
+
+	/** Array of properties (strings or Property instances) that the rule is responsible for calculating */
+	returns?: (string | Property)[];
+
+	rootType?: EntityConstructorForType<Entity>;
+}
+
+export interface RuleInvocationOptions {
 	/** Indicates that the rule should run when an instance of the root type is initialized. */
 	onInit?: boolean;
 
@@ -320,19 +330,6 @@ export interface RuleOptions {
 
 	/** Indicates that the rule should run when an existing instance of the root type is initialized. */
 	onInitExisting?: boolean;
-
-	/** Array of property paths (strings, Property or PropertyChain instances) that trigger rule execution when changed. */
-	onChangeOf?: (string | Property | PropertyChain)[];
-
-	/** Array of properties (strings or Property instances) that the rule is responsible for calculating */
-	returns?: (string | Property)[];
-
-}
-
-export interface RuleTypeOptions {
-
-	rootType?: EntityConstructorForType<Entity>;
-
 }
 
 export interface RuleRegisteredEventArgs {
@@ -414,13 +411,13 @@ export function registerPropertyRule(rule: PropertyRule) {
 
 }
 
-function extractRuleOptions(obj: any): RuleOptions {
+function extractRuleOptions(obj: any): RuleOptions & RuleInvocationOptions {
 
 	if (!obj) {
 		return;
 	}
 
-	let options: RuleOptions = {};
+	let options: RuleOptions & RuleInvocationOptions = {};
 
 	let keys = Object.keys(obj);
 

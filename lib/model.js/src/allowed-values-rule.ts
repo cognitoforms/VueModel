@@ -22,7 +22,7 @@ export class AllowedValuesRule extends ValidatedPropertyRule {
 	 * @param rootType The root type to bind the rule to
 	 * @param options The rule configuration options
 	 */
-	constructor(rootType: Type, options: AllowedValuesRuleOptions & ValidatedPropertyRuleOptions & ConditionRuleOptions & RuleOptions) {
+	constructor(rootType: Type, options: AllowedValuesRuleOptions) {
 
 		// ensure the rule name is specified
 		options.name = options.name || "AllowedValues";
@@ -55,11 +55,6 @@ export class AllowedValuesRule extends ValidatedPropertyRule {
 		// Default condition category to Error if a condition category was not specified
 		if (!options.conditionType) {
 			options.category = "Error";
-		}
-
-		// never run allowed values rules during initialization of existing instances
-		if (!options.hasOwnProperty("onInitExisting") && options.conditionType instanceof ConditionType && (options.conditionType as ConditionType).origin === "server") {
-			options.onInitExisting = false;
 		}
 
 		// call the base type constructor
@@ -192,14 +187,9 @@ export class AllowedValuesRule extends ValidatedPropertyRule {
 
 }
 
-export interface AllowedValuesRuleOptions {
-
-	/** The property being validated (either a Property instance or string property name). */
-	property?: string | Property;
-
+export interface AllowedValuesRuleOptions extends ValidatedPropertyRuleOptions {
 	/** The source property for the allowed values (either a Property or PropertyChain instance or a string property path). */
 	source?: string | Property | PropertyChain | ((this: Entity) => any[]);
 
 	ignoreValidation?: boolean;
-
 }

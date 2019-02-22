@@ -4,7 +4,7 @@ import { mixin } from "./helpers";
 import { ConditionType } from "./condition-type";
 import { CalculatedPropertyRule, CalculatedPropertyRuleOptions } from "./calculated-property-rule";
 import { ValidatedPropertyRule, ValidatedPropertyRuleOptions } from "./validated-property-rule";
-import { RuleOptions, RuleTypeOptions } from "./rule";
+import { RuleOptions } from "./rule";
 import { ConditionRuleOptions } from "./condition-rule";
 import { RequiredRule } from "./required-rule";
 import { RequiredIfRule } from "./required-if-rule";
@@ -27,13 +27,13 @@ function preparePropertyRuleOptions(property: Property, options: any, error: str
 
 declare module "./property" {
 	interface Property {
-		calculated: (options: RuleOptions & RuleTypeOptions & CalculatedPropertyRuleOptions) => Property;
-		conditionIf: (options: RuleOptions & ConditionRuleOptions & RuleTypeOptions & ValidatedPropertyRuleOptions, error: string | ConditionType) => Property;
+		calculated: (options: CalculatedPropertyRuleOptions) => Property;
+		conditionIf: (options: ValidatedPropertyRuleOptions, error: string | ConditionType) => Property;
 	}
 }
 
 mixin(Property, {
-    calculated: function Property$calculated(this: Property, options: RuleOptions & RuleTypeOptions & CalculatedPropertyRuleOptions): Property {
+    calculated: function Property$calculated(this: Property, options: CalculatedPropertyRuleOptions): Property {
         options.property = this;
 		var definedType = options.rootType ? options.rootType.meta : this.containingType;
 		delete options.rootType;
@@ -41,7 +41,7 @@ mixin(Property, {
 		new CalculatedPropertyRule(definedType as Type, options.name, options);
 		return this; 
     },
-    conditionIf: function Property$conditionIf(this: Property, options: RuleOptions & ConditionRuleOptions & RuleTypeOptions & ValidatedPropertyRuleOptions, error: string | ConditionType) {
+    conditionIf: function Property$conditionIf(this: Property, options: ValidatedPropertyRuleOptions, error: string | ConditionType) {
         var definedType = options.rootType ? options.rootType.meta : this.containingType;
         delete options.rootType;
 

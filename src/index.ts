@@ -3,7 +3,7 @@ import { SourceRootAdapter, SourceRootAdapterConstructor } from "./source-root-a
 import { SourcePathAdapter, SourcePathAdapterConstructor } from "./source-path-adapter";
 import { SourceIndexAdapter, SourceIndexAdapterConstructor } from "./source-index-adapter";
 import { Model, ModelOptions } from "../lib/model.js/src/model"
-import { PropertyConverter, PropertySerializationResult } from "../lib/model.js/src/entity-serializer"
+import { PropertyConverter, PropertyInjector, PropertySerializationResult } from "../lib/model.js/src/entity-serializer"
 import { Entity } from "../lib/model.js/src/entity"
 import { Property } from "../lib/model.js/src/property"
 
@@ -19,11 +19,9 @@ export interface VueModelNamespace {
 }
 
 export interface VueModelMixins {
-    SourceProvider: any;
-    SourceConsumer: any;
+	SourceProvider: any;
+	SourceConsumer: any;
 }
-
-import "../lib/model.js/src/legacy-api";
 
 export default VueModel;
 
@@ -33,6 +31,7 @@ export type ModelOptions = ModelOptions;
 export { Entity };
 export type Property = Property;
 export type PropertyConverter = PropertyConverter;
+export type PropertyInjector = PropertyInjector;
 export type PropertySerializationResult = PropertySerializationResult;
 export type SourceRootAdapter<TEntity extends Entity> = SourceRootAdapter<TEntity>;
 export type SourcePathAdapter<TEntity extends Entity, TValue> = SourcePathAdapter<TEntity, TValue>;
