@@ -1,4 +1,4 @@
-import { ValidatedPropertyRule } from "./validated-property-rule";
+import { ValidatedPropertyRule, ValidatedPropertyRuleOptions } from "./validated-property-rule";
 import { ConditionRuleOptions } from "./condition-rule";
 import { Property, PropertyRuleOptions } from "./property";
 import { Entity } from "./entity";
@@ -17,7 +17,7 @@ export class StringFormatRule extends ValidatedPropertyRule {
 	 * @param rootType The model type the rule is for.
 	 * @param options The options for the rules.
 	 */
-	constructor(rootType: Type, options: RuleOptions & ConditionRuleOptions & PropertyRuleOptions & StringFormatRuleOptions) {
+	constructor(rootType: Type, options: StringFormatRuleOptions) {
 
 		// exit immediately if called with no arguments
 		if (arguments.length == 0) return;
@@ -74,7 +74,7 @@ export class StringFormatRule extends ValidatedPropertyRule {
 
 }
 
-export interface StringFormatRuleOptions extends PropertyRuleOptions {
+export interface StringFormatRuleOptions extends ValidatedPropertyRuleOptions {
 
 	/** The human readable description of the format, such as MM/DD/YYY */
 	description: string;

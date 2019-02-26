@@ -77,6 +77,7 @@ export interface ValidatedPropertyRuleOptions extends PropertyRuleOptions {
 	// function (obj, prop, val) { return true; } (a predicate that returns true when the property is valid)
 	isValid?: string | ((this: Entity, prop: Property, val: any) => boolean);
 
+	message?: string
 }
 
 export interface ValidatedPropertyRuleConstructor {

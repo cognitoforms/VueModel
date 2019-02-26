@@ -11,7 +11,7 @@ import { PathTokens$normalizePaths } from "./path-tokens";
 import { StringFormatRule, StringFormatRuleOptions } from "./string-format-rule";
 import { ConditionRuleOptions } from "./condition-rule";
 import { AllowedValuesRuleOptions } from "./allowed-values-rule";
-import { ValidatedPropertyRuleOptions } from "./validated-property-rule";
+import { ValidatedPropertyRuleOptions, ValidatedPropertyRule } from "./validated-property-rule";
 import { AllowedValuesRule } from "./allowed-values-rule";
 
 export class Property {
@@ -188,9 +188,11 @@ export class Property {
 
 			// Default value or function
 			if (options.default) {
+
+				// Function
 				if (typeof (options.default) === "function") {
 					if (this.containingType === targetType)
-						this._defaultValue = options.default;
+					this._defaultValue = options.default;
 					else
 						options.default = { function: Property.encloseFunction(options.default), dependsOn: "" };
 				} else if (!Property.isPropOptions(options.default)) {
@@ -233,15 +235,15 @@ export class Property {
 						calculate: options.default.function,
 						onChangeOf: ruleOnChangeOf,
 						isDefaultValue: true
-					};
+					};	
 
 					let rule = new CalculatedPropertyRule(targetType, ruleName, ruleOptions);
 
 					targetType.model.ready(() => {
 						rule.register();
 					});
-				}
-			}
+					}
+					}
 
 			// Allowed Values
 			if (options.allowedValues) {
@@ -279,6 +281,40 @@ export class Property {
 				} else {
 					throw new Error(`Invalid property 'get' option of type '${getTypeName(options.get)}'.`);
 				}
+			}
+
+			// Error
+			if (options.error) {
+
+				let ruleName: string = null;
+				let ruleOptions: ValidatedPropertyRuleOptions;
+				let ruleFunction: (this: Entity) => boolean = options.error.function;
+
+
+				if (typeof (ruleFunction) !== "function") {
+					throw new Error(`Invalid property 'get' function of type '${getTypeName(options.error.function)}'.`);
+				}
+
+				if (options.error.dependsOn && typeof (options.error.dependsOn) !== "string") {
+					throw new Error(`Invalid property 'get' dependsOn of type '${getTypeName(options.error.dependsOn)}'.`);
+				}
+
+				let ruleOnChangeOf = options.error.dependsOn ? PathTokens$normalizePaths([options.error.dependsOn]).map(t => t.expression) : [];
+
+				ruleOptions = {
+					property: this,
+					isValid: function () {
+						return !ruleFunction.call(this);
+					},
+					onChangeOf: ruleOnChangeOf,
+					message: options.error.message
+				};
+
+				let rule = new ValidatedPropertyRule(this.containingType, ruleOptions);
+
+				this.containingType.model.ready(() => {
+					rule.register();
+		});
 			}
 
 		});
@@ -469,7 +505,7 @@ export interface PropertyAddedEventArgs {
 }
 
 export interface PropertyAccessEventHandler {
-	(this: Entity, args: EventObject & PropertyAccessEventArgs): void;
+    (this: Entity, args: EventObject & PropertyAccessEventArgs): void;
 }
 
 export interface PropertyAccessEventArgs {
@@ -479,7 +515,7 @@ export interface PropertyAccessEventArgs {
 }
 
 export interface PropertyChangeEventHandler {
-	(this: Entity, args: EventObject & PropertyChangeEventArgs): void;
+    (this: Entity, args: EventObject & PropertyChangeEventArgs): void;
 }
 
 export interface PropertyChangeEventArgs {
@@ -644,7 +680,7 @@ export function Property$_generateOwnPropertyWithClosure(property: Property, obj
 						property._events.changedEvent.publish(obj, { entity: obj, property, newValue: val, oldValue: old });
 					}
 				}
-			}
+			}	
 		}
 	});
 
@@ -714,7 +750,7 @@ function Property$_subArrayEvents(obj: Entity, property: Property, array: Observ
 function Property$_getInitialValue(property: Property) {
 	var val = property.defaultValue;
 
-	if (Array.isArray(val)) {
+    if (Array.isArray(val)) {
 		val = ObservableArray.ensureObservable(val as Array<any>);
 
 		// Override the default toString on arrays so that we get a comma-delimited list
@@ -728,50 +764,50 @@ function Property$_getInitialValue(property: Property) {
 function Property$_ensureInited(property: Property, obj: Entity) {
 	var target = (property.isStatic ? property.containingType.jstype : obj);
 
-	// Determine if the property has been initialized with a value
-	// and initialize the property if necessary
-	if (!obj.hasOwnProperty(property.fieldName)) {
+    // Determine if the property has been initialized with a value
+    // and initialize the property if necessary
+    if (!obj.hasOwnProperty(property.fieldName)) {
 
-		// // Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.  
-		// if (!property.isCalculated) {
-		Property$pendingInit(target, property, false);
+        // // Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.  
+        // if (!property.isCalculated) {
+			Property$pendingInit(target, property, false);
 
-		let val = Property$_getInitialValue(property);
+			let val = Property$_getInitialValue(property);
 
-		Object.defineProperty(target, property.fieldName, { value: val, writable: true });
+			Object.defineProperty(target, property.fieldName, { value: val, writable: true });
 
-		if (Array.isArray(val)) {
-			Property$_subArrayEvents(obj, property, val as ObservableArray<any>);
-		}
+			if (Array.isArray(val)) {
+				Property$_subArrayEvents(obj, property, val as ObservableArray<any>);
+			}
 
-		// TODO: Implement observable?
-		obj._events.changedEvent.publish(obj, { entity: obj, property });
+			// TODO: Implement observable?
+			obj._events.changedEvent.publish(obj, { entity: obj, property });
 
-		// Mark the property as pending initialization
-		Property$pendingInit(target, property, true);
-		// }
-	}
+			// Mark the property as pending initialization
+			Property$pendingInit(target, property, true);
+        // }
+    }
 }
 
 function Property$_getter(property: Property, obj: Entity) {
 
-	// Ensure that the property has an initial (possibly default) value
+    // Ensure that the property has an initial (possibly default) value
 	Property$_ensureInited(property, obj);
 
 	// Raise access events
 	property._events.accessedEvent.publish(obj, { entity: obj, property, value: (obj as any)[property.fieldName] });
 	obj._events.accessedEvent.publish(obj, { entity: obj, property });
 
-	// Return the property value
-	return (obj as any)[property.fieldName];
+    // Return the property value
+    return (obj as any)[property.fieldName];
 }
 
 function Property$_setter(property: Property, obj: Entity, val: any, additionalArgs: any = null, skipTypeCheck: boolean = false) {
 
-	// Ensure that the property has an initial (possibly default) value
+    // Ensure that the property has an initial (possibly default) value
 	Property$_ensureInited(property, obj);
 
-	var old = (obj as any)[property.fieldName];
+    var old = (obj as any)[property.fieldName];
 
 	if (Property$_shouldSetValue(property, obj, old, val, skipTypeCheck)) {
 		Property$_setValue(property, obj, old, val, additionalArgs);
@@ -781,35 +817,35 @@ function Property$_setter(property: Property, obj: Entity, val: any, additionalA
 
 function Property$_shouldSetValue(property: Property, obj: Entity, old: any, val: any, skipTypeCheck: boolean = false) {
 
-	if (!property.canSetValue(obj, val)) {
-		throw new Error("Cannot set " + property.name + "=" + (val === undefined ? "<undefined>" : val) + " for instance " + obj.meta.type.fullName + "|" + obj.meta.id + ": a value of type " + (isEntityType(property.propertyType) ? property.propertyType.meta.fullName : parseFunctionName(property.propertyType)) + " was expected.");
-	}
+    if (!property.canSetValue(obj, val)) {
+        throw new Error("Cannot set " + property.name + "=" + (val === undefined ? "<undefined>" : val) + " for instance " + obj.meta.type.fullName + "|" + obj.meta.id + ": a value of type " + (isEntityType(property.propertyType) ? property.propertyType.meta.fullName : parseFunctionName(property.propertyType)) + " was expected.");
+    }
 
-	// Update lists as batch remove/add operations
-	if (property.isList) {
-		throw new Error("Property set on lists is not permitted.");
-	} else {
+    // Update lists as batch remove/add operations
+    if (property.isList) {
+        throw new Error("Property set on lists is not permitted.");
+    } else {
 
-		// compare values so that this check is accurate for primitives
-		var oldValue = (old === undefined || old === null) ? old : old.valueOf();
-		var newValue = (val === undefined || val === null) ? val : val.valueOf();
+        // compare values so that this check is accurate for primitives
+        var oldValue = (old === undefined || old === null) ? old : old.valueOf();
+        var newValue = (val === undefined || val === null) ? val : val.valueOf();
 
-		// Do nothing if the new value is the same as the old value. Account for NaN numbers, which are
-		// not equivalent (even to themselves). Although isNaN returns true for non-Number values, we won't
-		// get this far for Number properties unless the value is actually of type Number (a number or NaN).
-		return (oldValue !== newValue && !(property.propertyType === Number && isNaN(oldValue) && isNaN(newValue)));
+        // Do nothing if the new value is the same as the old value. Account for NaN numbers, which are
+        // not equivalent (even to themselves). Although isNaN returns true for non-Number values, we won't
+        // get this far for Number properties unless the value is actually of type Number (a number or NaN).
+        return (oldValue !== newValue && !(property.propertyType === Number && isNaN(oldValue) && isNaN(newValue)));
 	}
 
 }
 
 function Property$_setValue(property: Property, obj: Entity, currentValue: any, newValue: any, additionalArgs: any = null) {
-	// Update lists as batch remove/add operations
-	if (property.isList) {
+    // Update lists as batch remove/add operations
+    if (property.isList) {
 		let currentArray = currentValue as ObservableArray<any>;
 		currentArray.batchUpdate((array) => {
 			updateArray(array, newValue);
 		});
-	} else {
+    } else {
 		let oldValue = currentValue;
 
 		// Set or create the backing field value
@@ -827,13 +863,13 @@ function Property$_setValue(property: Property, obj: Entity, currentValue: any, 
 			property._events.changedEvent.publish(obj, additionalArgs ? merge(eventArgs, additionalArgs) : eventArgs);
 			obj._events.changedEvent.publish(obj, { entity: obj, property });
 		}
-	}
+    }
 }
 
 function Property$_makeGetter(property: Property, getter: PropertyGetMethod) {
-	return function (additionalArgs: any = null) {
-		// ensure the property is initialized
-		var result = getter(property, this, additionalArgs);
+    return function (additionalArgs: any = null) {
+        // ensure the property is initialized
+        var result = getter(property, this, additionalArgs);
 
         /*
         // TODO: Implement lazy loading pattern?
@@ -849,21 +885,21 @@ function Property$_makeGetter(property: Property, getter: PropertyGetMethod) {
         }
         */
 
-		return result;
-	};
+        return result;
+    };
 }
 
 function Property$_makeSetter(prop: Property, setter: PropertySetMethod, skipTypeCheck: boolean = false) {
-	// TODO: Is setter "__notifies" needed?
-	// setter.__notifies = true;
+    // TODO: Is setter "__notifies" needed?
+    // setter.__notifies = true;
 
-	return function (val: any, additionalArgs: any = null) {
-		setter(prop, this, val, additionalArgs, skipTypeCheck);
-	};
+    return function (val: any, additionalArgs: any = null) {
+        setter(prop, this, val, additionalArgs, skipTypeCheck);
+    };
 }
 
 function Property$_addAccessedHandler(prop: Property, handler: (this: Entity, args: EventObject & PropertyAccessEventArgs) => void, obj: Entity = null): void {
-
+	
 	let context: Entity = null;
 
 	let filteredHandler: (this: Entity, args: EventObject & PropertyAccessEventArgs) => void = null;

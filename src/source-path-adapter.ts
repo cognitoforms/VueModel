@@ -166,9 +166,6 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> implements Source
 			// Retrieve the value of allowed values property
 			let allowedValuesFromRule = allowedValuesRule.values(targetObj, this.allowedValuesMayBeNull);
 
-			// TODO: Support lazy loading type/property metadata?
-			// if (allowedValues === undefined && allowedValuesSource && (allowedValuesSource instanceof Property || allowedValuesSource instanceof PropertyChain)) { ...
-
 			if (allowedValuesFromRule) {
 				// Create an observable copy of the allowed values that we can keep up to date in our own time
 				allowedValues = ObservableArray.create(allowedValuesFromRule.slice());
@@ -185,12 +182,6 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> implements Source
 				if (!allowedValuesRule.ignoreValidation) {
 					SourcePathAdapter$_clearInvalidOptions.call(this, allowedValues);
 				}
-
-				// TODO: Support lazy loading lists?
-				// if (LazyLoader.isRegistered(allowedValues)) { ...
-
-				// TODO: Support allowed values transformation?
-				// transformedAllowedValues = $transform(observableAllowedValues, true);
 
 				this._allowedValues = allowedValues;
 			} else {
