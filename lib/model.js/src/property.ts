@@ -94,9 +94,8 @@ export class Property {
 		}
 	}
 
-	private encloseFunction(f: Function) {
-		const model = this.containingType.model;
-		return function (this: Entity) { return f(model.$namespace || model); };
+	private static encloseFunction(f: Function) {
+		return function (this: Entity) { return f(); };
 	}
 
 	private static isPropOptions(obj: any): obj is PropertyValueFunctionAndDependencies {
@@ -154,7 +153,7 @@ export class Property {
 			// Get - calculated property
 			if (options.get) {
 				if (typeof (options.get) === "function") {
-					options.get = { function: this.encloseFunction(options.get), dependsOn: "" };
+					options.get = { function: Property.encloseFunction(options.get), dependsOn: "" };
 				}
 
 				if (Property.isPropOptions(options.get)) {

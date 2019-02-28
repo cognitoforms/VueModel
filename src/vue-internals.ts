@@ -1,6 +1,15 @@
 import { VueConstructor } from "vue";
 
+export interface Watcher {
+	
+}
+
+export interface WatcherConstructor {
+	new(component: any, callback: Function): Watcher;
+}
+
 export interface Dep {
+	addSub(watcher: Watcher): void;
     depend(): void;
     notify(): void;
 }
@@ -33,7 +42,8 @@ export interface VueInternals {
 let VueInternals: VueInternals = {
     Vue: null,
     Observer: null,
-    Dep: null,
+	Dep: null,
+	Watcher: null
 };
 
 // NOTE: Based on Webpack generated code
@@ -92,11 +102,13 @@ export function ensureVueInternalTypes(Vue: VueConstructor): VueInternals {
  
     let observer = data.__ob__ as Observer;
     let observerCtor = data.__ob__.constructor as ObserverConstructor;
-    let depCtor = observer.dep.constructor as DepConstructor;
+	let depCtor = observer.dep.constructor as DepConstructor;
+	let watcherCtor = observer.watcher.constructor as WatcherConstructor;
 
     VueInternals.Vue = Vue;
     VueInternals.Observer = observerCtor;
-    VueInternals.Dep = depCtor;
+	VueInternals.Dep = depCtor;
+	VueInternals.Watcher = watcherCtor;
 
     return VueInternals;
 

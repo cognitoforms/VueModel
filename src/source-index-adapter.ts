@@ -9,7 +9,9 @@ export class SourceIndexAdapter<TEntity extends Entity, TValue> implements Sourc
 
     // Public read-only properties: aspects of the object that cannot be
     // changed without fundamentally changing what the object is
-    readonly source: SourcePathAdapter<TEntity, TValue[]>;
+	readonly source: SourcePathAdapter<TEntity, TValue[]>;
+
+	readonly: Boolean;
 
     __ob__: CustomObserver<SourceIndexAdapter<TEntity, TValue>>;
 

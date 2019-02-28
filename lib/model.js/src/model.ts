@@ -66,7 +66,8 @@ export class Model {
 		this.prepare(() => {
 
 			// Create New Types
-			for (let [typeName, typeOptions] of Object.entries(options)) {
+			for (let typeName of Object.keys(options)) {
+				let typeOptions = options[typeName];
 				let type = this.types[typeName];
 
 				if (!type) {
@@ -78,8 +79,8 @@ export class Model {
 			}
 
 			// Extend Types
-			for (let [typeName, typeOptions] of Object.entries(options)) {
-				this.types[typeName].extend(typeOptions);
+			for (let typeName of Object.keys(options)) {
+				this.types[typeName].extend(options[typeName]);
 			}
 		});
 	}
