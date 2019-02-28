@@ -10,7 +10,6 @@ import { CustomObserver } from "./custom-observer";
 import { observeEntity, getEntityObserver } from "./entity-observer";
 import { PropertyChain, PropertyChainChangeEventArgs, PropertyChainChangeEventHandler } from "../lib/model.js/src/property-chain";
 import { ObservableArray, updateArray, ArrayChangedEventArgs, ArrayChangeType } from "../lib/model.js/src/observable-array";
-import { Watcher } from "./vue-internals";
 
 export class SourcePathAdapter<TEntity extends Entity, TValue> implements SourcePropertyAdapter<TValue>, SourceAdapter<TValue> {
 
@@ -19,12 +18,10 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> implements Source
 	readonly source: SourceAdapter<TEntity>;
 	readonly path: string;
 
-	// TODO: Support format options 
+	// TODO: Support format options
 	// private _format: string;
 
 	allowedValuesMayBeNull: boolean;
-
-	readonly: Boolean;
 
 	__ob__: CustomObserver<SourcePathAdapter<TEntity, TValue>>;
 
@@ -43,8 +40,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> implements Source
 		Object.defineProperty(this, "source", { enumerable: true, value: source });
 		Object.defineProperty(this, "path", { enumerable: true, value: path });
 
-		let observer = getEntityObserver(source.value);
-		observer.ensureObservable();
+		getEntityObserver(source.value).ensureObservable();
 
 		Object.defineProperty(this, "__ob__", { configurable: false, enumerable: false, value: new CustomObserver(this), writable: false });
 	}

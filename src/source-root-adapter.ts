@@ -7,9 +7,7 @@ export class SourceRootAdapter<TEntity extends Entity> implements SourceAdapter<
 
     readonly entity: TEntity;
 
-	__ob__: CustomObserver<SourceRootAdapter<TEntity>>;
-
-	readonly: Boolean;
+    __ob__: CustomObserver<SourceRootAdapter<TEntity>>; 
 
     constructor(entity: TEntity) {
         Object.defineProperty(this, "entity", { enumerable: true, value: entity });
@@ -17,7 +15,7 @@ export class SourceRootAdapter<TEntity extends Entity> implements SourceAdapter<
         getEntityObserver(entity).ensureObservable();
 
         Object.defineProperty(this, "__ob__", { configurable: false, enumerable: false, value: new CustomObserver(this), writable: false });
-	}
+    }
 
     get value(): TEntity {
         let value = this.entity;

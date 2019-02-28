@@ -6,7 +6,6 @@ import { SourceOptionAdapter } from "./source-option-adapter";
 import { Entity } from "../lib/model.js/src/entity";
 
 export interface SourceAdapter<TValue> {
-	readonly: Boolean;
     value: TValue;
     displayValue: string;
 }
