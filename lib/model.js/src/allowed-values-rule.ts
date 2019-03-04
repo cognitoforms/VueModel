@@ -136,7 +136,7 @@ export class AllowedValuesRule extends ValidatedPropertyRule {
 	// 	}
 	// }
 
-	values(obj: Entity, exitEarly: boolean = false) {
+	values(obj: Entity) {
 		if (!this._source && !this._sourceFn) {
 			// TODO: Log warning?
 			// logWarning("AllowedValues rule on type \"" + this.prop.get_containingType().get_fullName() + "\" has not been initialized.");
@@ -162,7 +162,7 @@ export class AllowedValuesRule extends ValidatedPropertyRule {
 				// Get the value of the last target for the source property (chain).
 				var target = obj;
 				if (this._source instanceof PropertyChain) {
-					this._source.getLastTarget(obj, exitEarly);
+					this._source.getLastTarget(obj);
 				}
 
 				// Use the last target to distinguish between the absence of data and

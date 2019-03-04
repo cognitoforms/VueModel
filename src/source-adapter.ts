@@ -6,14 +6,15 @@ import { SourceOptionAdapter } from "./source-option-adapter";
 import { Entity } from "../lib/model.js/src/entity";
 
 export interface SourceAdapter<TValue> {
+	readonly: boolean;
     value: TValue;
     displayValue: string;
 }
 
 export interface SourcePropertyAdapter<TValue> extends SourceAdapter<TValue> {
     readonly label: string;
-    readonly helptext: string;
-    readonly property: Property;
+	readonly helptext: string;
+	readonly property: Property;
     readonly options: SourceOptionAdapter<TValue>[];
 }
 

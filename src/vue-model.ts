@@ -1,10 +1,10 @@
 import Vue from "vue";
+import { Mixins } from 'vue-property-decorator';
 import { Model, ModelOptions, ModelConfiguration } from "../lib/model.js/src/model";
 import { ensureVueInternalTypes } from "./vue-internals";
 import { VueModel$installPlugin } from "./vue-plugin";
-import { SourceProviderMixin } from "./source-provider";
-import { SourceConsumerMixin } from "./source-consumer";
-import SourceRootMixin from "./source-root-mixin";
+import { SourcePathMixin } from "./source-path-mixin";
+import { SourceRootMixin } from "./source-root-mixin";
 import { SourceRootAdapter } from "./source-root-adapter";
 
 export class VueModel extends Model {
@@ -22,9 +22,9 @@ export class VueModel extends Model {
 	 * Provide access to Vue mixins for source provider/consumer
 	 */
 	static mixins = {
-		SourceProvider: SourceProviderMixin,
-		SourceConsumer: SourceConsumerMixin,
+		SourcePath: SourcePathMixin,
 		SourceRoot: SourceRootMixin
+		//SourceRoot: function (source: string) { return new SourceRootMixin({ propsData: { source: source } }); }
 	};
 
 	/**

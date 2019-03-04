@@ -242,18 +242,14 @@ export class PropertyChain {
 		return this._properties.slice();
 	}
 
-	getLastTarget(obj: Entity, exitEarly: boolean = false): Entity {
+	getLastTarget(obj: Entity): Entity {
+
 		for (var p = 0; p < this._properties.length - 1; p++) {
 			var prop = this._properties[p];
 
 			// exit early on null or undefined
-			if (obj === undefined || obj === null) {
-				if (exitEarly) {
-					return obj;
-				} else {
-					throw new Error("Property chain is not complete.");
-				}
-			}
+			if (!obj === undefined || obj === null)
+				return obj;
 
 			obj = prop.value(obj);
 		}

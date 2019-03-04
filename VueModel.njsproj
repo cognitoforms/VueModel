@@ -81,11 +81,10 @@
     <TypeScriptCompile Include="src\helpers.ts" />
     <TypeScriptCompile Include="src\index.ts" />
     <TypeScriptCompile Include="src\source-binding.ts" />
-    <TypeScriptCompile Include="src\source-consumer.ts" />
+    <TypeScriptCompile Include="src\source-path-mixin.ts" />
     <TypeScriptCompile Include="src\source-index-adapter.ts" />
     <TypeScriptCompile Include="src\source-option-adapter.ts" />
     <TypeScriptCompile Include="src\source-path-adapter.ts" />
-    <TypeScriptCompile Include="src\source-provider.ts" />
     <TypeScriptCompile Include="src\source-root-adapter.ts" />
     <TypeScriptCompile Include="src\source-root-mixin.ts" />
     <TypeScriptCompile Include="src\vue-helpers.ts" />
@@ -95,6 +94,7 @@
     <TypeScriptCompile Include="src\vue-plugin.ts" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="dist\" />
     <Folder Include="lib\" />
     <Folder Include="lib\model.js\" />
     <Folder Include="lib\model.js\src\" />

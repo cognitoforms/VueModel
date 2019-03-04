@@ -9,7 +9,9 @@ export class SourceIndexAdapter<TEntity extends Entity, TValue> implements Sourc
 
     // Public read-only properties: aspects of the object that cannot be
     // changed without fundamentally changing what the object is
-    readonly source: SourcePathAdapter<TEntity, TValue[]>;
+	readonly source: SourcePathAdapter<TEntity, TValue[]>;
+
+	readonly: boolean;
 
     __ob__: CustomObserver<SourceIndexAdapter<TEntity, TValue>>;
 
@@ -96,12 +98,12 @@ export class SourceIndexAdapter<TEntity extends Entity, TValue> implements Sourc
         if (value !== previousValue) {
             list[this.index] = value;
 
-            var eventArgs: PropertyChangeEventArgs = { entity: this.source.source.value, property: this.source.property as Property, newValue: list, oldValue: undefined as any };
+            var eventArgs: PropertyChangeEventArgs = { entity: this.source.parent.value, property: this.source.property as Property, newValue: list, oldValue: undefined as any };
 
             (eventArgs as any)['changes'] = [{ type: ArrayChangeType.replace, startIndex: this.index, endIndex: this.index }];
             (eventArgs as any)['collectionChanged'] = true;
 
-            this.source.property._events.changedEvent.publish(this.source.source.value, eventArgs);
+            this.source.property._events.changedEvent.publish(this.source.parent.value, eventArgs);
 
             this.__ob__.onPropertyChange('value', value);
         }

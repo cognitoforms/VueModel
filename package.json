@@ -13,15 +13,17 @@
   "devDependencies": {
     "dts-generator": "^2.1.0",
     "rollup": "^0.66.6",
-    "rollup-plugin-commonjs": "^9.2.0",
+    "rollup-plugin-commonjs": "^9.2.1",
     "rollup-plugin-node-resolve": "^3.4.0",
     "rollup-plugin-typescript": "^1.0.0",
     "rollup-plugin-uglify": "^6.0.2",
     "rollup-watch": "^4.3.1",
     "tslib": "^1.9.3",
-    "typescript": "^3.3.1"
+    "typescript": "^3.3.3333"
   },
   "dependencies": {
-    "vue": "^2.6.3"
+    "vue": "^2.6.8",
+    "vue-class-component": "^7.0.1",
+    "vue-property-decorator": "^7.3.0"
   }
 }

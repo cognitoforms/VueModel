@@ -80,12 +80,6 @@ export function getImplicitSource(vm: Vue, detect: boolean = false): Entity | So
         return null;
     }
 
-	if (vm$private.getSourceRoot instanceof Function) {
-		vm$private._source = vm$private.getSourceRoot();
-		debug("getSourceRoot returned <" + vm$private._source + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
-		return vm$private._source;
-	}
-
     if (vm$private._source) {
         let source = vm$private._source;
         if (typeof source === "string") {

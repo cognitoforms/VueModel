@@ -94,6 +94,10 @@ export class Property {
 		}
 	}
 
+	private static encloseFunction(f: Function) {
+		return function (this: Entity) { return f(); };
+	}
+
 	private static isPropOptions(obj: any): obj is PropertyValueFunctionAndDependencies {
 		return isType<PropertyValueFunctionAndDependencies>(obj, d => getTypeName(d) === "object");
 	}
@@ -149,7 +153,7 @@ export class Property {
 			// Get - calculated property
 			if (options.get) {
 				if (typeof (options.get) === "function") {
-					options.get = { function: options.get, dependsOn: "" };
+					options.get = { function: Property.encloseFunction(options.get), dependsOn: "" };
 				}
 
 				if (Property.isPropOptions(options.get)) {
@@ -190,7 +194,7 @@ export class Property {
 					if (this.containingType === targetType)
 					this._defaultValue = options.default;
 					else
-						options.default = { function: options.default, dependsOn: "" };
+						options.default = { function: Property.encloseFunction(options.default), dependsOn: "" };
 				} else if (!Property.isPropOptions(options.default)) {
 					// Constant
 					let defaultOptionTypeName = getTypeName(options.default);
@@ -238,8 +242,8 @@ export class Property {
 					targetType.model.ready(() => {
 						rule.register();
 					});
-				}
-			}
+					}
+					}
 
 			// Allowed Values
 			if (options.allowedValues) {

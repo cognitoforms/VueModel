@@ -1,6 +1,6 @@
 import { VueModel } from "./vue-model";
-import { SourceRootAdapter, SourceRootAdapterConstructor } from "./source-root-adapter";
-import { SourcePathAdapter, SourcePathAdapterConstructor } from "./source-path-adapter";
+import { SourceRootAdapter } from "./source-root-adapter";
+import { SourcePathAdapter } from "./source-path-adapter";
 import { SourceIndexAdapter, SourceIndexAdapterConstructor } from "./source-index-adapter";
 import { Model, ModelOptions } from "../lib/model.js/src/model"
 import { PropertyConverter, PropertyInjector, PropertySerializationResult } from "../lib/model.js/src/entity-serializer"
@@ -11,8 +11,6 @@ import { Property } from "../lib/model.js/src/property"
 // var shouldObserve = true;
 
 export interface VueModelNamespace {
-	SourceRootAdapter: SourceRootAdapterConstructor,
-	SourcePathAdapter: SourcePathAdapterConstructor,
 	SourceIndexAdapter: SourceIndexAdapterConstructor,
 	Model: Model,
 	mixins: VueModelMixins,
