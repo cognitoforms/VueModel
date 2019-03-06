@@ -1,26 +1,30 @@
 import { Model } from "../lib/model.js/src/model";
 import { Entity, EntityRegisteredEventArgs, EntityAccessEventArgs, EntityChangeEventArgs } from "../lib/model.js/src/entity";
-import { Type } from "../lib/model.js/src/type";
-import { Dep } from "./vue-internals";
+import { Dep, Observer, DeferredClass } from "./vue-internals";
 import { hasOwnProperty, getProp } from "./helpers";
-import { CustomObserver } from "./custom-observer";
+import { CustomObserver, CustomObserverConstructor, CustomObserverProto } from "./custom-observer";
 
-/**
- * A subclass of Vue's internal `Observer` class for entities, which uses model
- * metadata to manage property access/change rather than property walking and rewriting
- */
-export class EntityObserver extends CustomObserver<Entity> {
+export interface EntityObserver extends CustomObserver<Entity>, EntityObserverPrototype {
+}
 
-    value: Entity;
+export interface EntityObserverConstructor extends CustomObserverConstructor {
+    new(value: Entity): EntityObserver;
+    _extend(): void;
+}
 
-    constructor(entity: Entity) {
-        super(entity);
-    }
+export interface EntityObserverPrototype {
+    walk(this: Observer): void;
+    ensureObservable(this: EntityObserver): void;
+    _onAccess(this: EntityObserver, args: EntityAccessEventArgs): void;
+    _onChange(this: EntityObserver, args: EntityChangeEventArgs): void;
+}
+
+const EntityObserverProto: EntityObserverPrototype = {
 
     walk(): void {
         // Overwrite the `walk()` method to prevent Vue's default property walking behavior
         // TODO: Should we allow this to happen?
-    }
+    },
 
     ensureObservable(): void {
         if ((this as any)._observable === true) {
@@ -31,7 +35,7 @@ export class EntityObserver extends CustomObserver<Entity> {
         this.value.changed.subscribe(this._onChange.bind(this));
     
         (this as any)._observable = true;
-    }
+    },
 
     _onAccess(args: EntityAccessEventArgs): void {
 
@@ -41,7 +45,7 @@ export class EntityObserver extends CustomObserver<Entity> {
         // Notify interested observers of the property access in order to track dependencies
         this.onPropertyAccess(args.property.name, value);
 
-    }
+    },
 
     _onChange(args: EntityChangeEventArgs): void {
     
@@ -52,8 +56,48 @@ export class EntityObserver extends CustomObserver<Entity> {
         this.onPropertyChange(args.property.name, newValue);
 
     }
-    
-}
+   
+};
+
+/**
+ * A subclass of Vue's internal `Observer` class for entities, which uses model
+ * metadata to manage property access/change rather than property walking and rewriting
+ */
+export const EntityObserver = /** @class */ (function EntityObserver(_super: CustomObserverConstructor & DeferredClass, protos: any[]): EntityObserverConstructor & DeferredClass {
+
+    let _extended: boolean;
+
+    function _extendDeferred() {
+        if (!_extended) {
+            _super.extend();
+            var proto = new _super({});
+            (EntityObserver as any).prototype = proto;
+            (EntityObserver as any).prototype.constructor = _super;
+            protos.forEach(function(p) {
+                Object.keys(p).forEach(function(k) {
+                    (proto as any)[k] = (p as any)[k];
+                });
+            });
+            delete proto.propertyDeps;
+            _extended = true;
+        }
+    }
+
+    function EntityObserver(value: Entity) {
+        _extendDeferred();
+        var _this = this;
+        _this = _super.call(this, value) || this;
+
+        return _this;
+    }
+
+    (EntityObserver as any).extend = function() {
+        _extendDeferred();
+    };
+
+    return EntityObserver as any;
+
+}(CustomObserver, [CustomObserverProto, EntityObserverProto]));
 
 /**
  * Based on Vue's internals `dependArray()` function

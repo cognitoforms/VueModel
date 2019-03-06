@@ -6,6 +6,8 @@ import { VueModel$installPlugin } from "./vue-plugin";
 import { SourcePathMixin } from "./source-path-mixin";
 import { SourceRootMixin } from "./source-root-mixin";
 import { SourceRootAdapter } from "./source-root-adapter";
+import { makeEntitiesVueObservable, EntityObserver } from "./entity-observer";
+import { CustomObserver } from "./custom-observer";
 
 export class VueModel extends Model {
 
@@ -15,6 +17,8 @@ export class VueModel extends Model {
 	 */
 	static install(vue: typeof Vue, options?: any) {
 		ensureVueInternalTypes(vue);
+		CustomObserver.extend();
+		EntityObserver.extend();
 		return VueModel$installPlugin(vue, options);
 	}
 
@@ -38,6 +42,9 @@ export class VueModel extends Model {
 	 */
 	constructor(options?: ModelOptions, config?: ModelConfiguration) {
 		super(options, config);
+
+		// Make sure that entities are observable by Vue
+		makeEntitiesVueObservable(this);
 	}
 
 }

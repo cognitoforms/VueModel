@@ -36,7 +36,7 @@ let VueInternals: VueInternals = {
 	Dep: null
 };
 
-// NOTE: Based on Webpack generated code
+// NOTE: Based on TypeScript generated code
 let __extendsDeferred = (function() {
 
     let called = false;
@@ -58,19 +58,84 @@ let __extendsDeferred = (function() {
         if (!called) {
             __extends(d, b);
             called = true;
+            return true;
         }
+
+        return false;
     };
 
 }());
 
 const ObserverConstructor = (function() {
-    return function Observer(value: any) {
-        __extendsDeferred(Observer, VueInternals.Observer);
+    var ctor = function ObserverProxy(value: any) {
+        if (!VueInternals.Observer) {
+            throw new Error("Vue's 'Observer' constructor has not yet been obtained.");
+        }
+
+        __extendsDeferred(ctor, VueInternals.Observer);
         return VueInternals.Observer.call(this, value) || this;
-    }
+    };
+
+    (ctor as any).extend = (function() {
+        if (!VueInternals.Observer) {
+            throw new Error("Vue's 'Observer' constructor has not yet been obtained.");
+        }
+
+        __extendsDeferred(ctor, VueInternals.Observer);
+    }).bind(ctor);
+
+    return ctor;
 }());
 
-export const Observer: ObserverConstructor = ObserverConstructor as any;
+export interface DeferredClass {
+    extend(): boolean;
+}
+
+export const Observer: ObserverConstructor & DeferredClass = ObserverConstructor as any;
+
+export function getObserverProxy(): ObserverConstructor & DeferredClass {
+
+    var ObserverProxy = /** @class */ (function (_deps: any, _superName: string) {
+        function ObserverProxy(value: any) {
+            var _super = _deps[_superName];
+            if (!_super) {
+                throw new Error("Base class '" + _superName + "' constructor has not yet been obtained.");
+            }
+            if (__extendsDeferred(ObserverProxy, _super)) {
+                var proto: any = new _super({});
+                ObserverProxy.prototype = proto;
+                ObserverProxy.prototype.constructor = _super;
+                delete proto.value;
+                delete proto.dep;
+                delete proto.vmCount;
+            }
+            var _this = this;
+            _this = _super.call(this, value) || this;
+            return _this;
+        };
+        (ObserverProxy as any).extend = function() {
+            var _super = _deps[_superName];
+            if (!_super) {
+                throw new Error("Base class '" + _superName + "' constructor has not yet been obtained.");
+            }
+            if (__extendsDeferred(ObserverProxy, _super)) {
+                var proto: any = new _super({});
+                ObserverProxy.prototype = proto;
+                ObserverProxy.prototype.constructor = _super;
+                delete proto.value;
+                delete proto.dep;
+                delete proto.vmCount;
+                return true;
+            }
+
+            return false;
+        };
+        return ObserverProxy;
+    }(VueInternals, 'Observer'));
+
+    return ObserverProxy as any;
+
+}
 
 export function ensureVueInternalTypes(Vue: VueConstructor): VueInternals {
 

@@ -1,29 +1,33 @@
-import VueInternals from "./vue-internals";
-import { Observer, Dep } from "./vue-internals";
+import VueInternals, { Observer, ObserverConstructor, Dep, getObserverProxy, DeferredClass } from "./vue-internals";
 import { hasOwnProperty } from "./helpers";
 import { observeEntity, dependChildArray } from "./entity-observer";
 import { Entity } from "../lib/model.js/src/entity";
 
-/**
- * A subclass of Vue's internal Observer class that is responsible
- * for managing its own access/change events for properties rather than
- * walking the object's own properties
- */
-export class CustomObserver<TValue> extends Observer {
+var ObserverProxy = getObserverProxy();
 
+export interface CustomObserverPrototype<TValue> {
+    walk(this: Observer): void;
+    getPropertyDep(this: CustomObserver<TValue>, propertyName: string, create?: boolean): Dep;
+    onPropertyAccess(this: CustomObserver<TValue>, propertyName: string, value: any): void;
+    onPropertyChange(this: CustomObserver<TValue>, propertyName: string, newValue: any): void;
+}
+
+export interface CustomObserver<TValue> extends Observer, CustomObserverPrototype<TValue> {
     value: TValue;
-
     propertyDeps: { [name: string]: Dep };
+}
 
-    constructor(value: TValue) {
-        super(value);
-        Object.defineProperty(this, 'propertyDeps', { configurable: false, enumerable: true, value: {}, writable: false });
-    }
+export interface CustomObserverConstructor extends ObserverConstructor {
+    new(value: any): CustomObserver<any>;
+    _extend(): void;
+}
+
+export const CustomObserverProto: CustomObserverPrototype<any> = {
 
     walk(): void {
         // Overwrite the `walk()` method to prevent Vue's default property walking behavior
         // TODO: Should we allow this to happen?
-    }
+    },
 
     /**
      * Gets (or creates) a `Dep` object for a property of the given name
@@ -52,7 +56,7 @@ export class CustomObserver<TValue> extends Observer {
         }
 
         return propertyDep;
-    }
+    },
 
     /**
      * Emulate's Vue's getter logic in `defineReactive()`
@@ -79,7 +83,7 @@ export class CustomObserver<TValue> extends Observer {
                 dependChildArray(value);
             }
         }
-    }
+    },
 
     /**
      * Emulate's Vue's setter logic in `defineReactive()`
@@ -100,4 +104,44 @@ export class CustomObserver<TValue> extends Observer {
         propertyDep.notify(); 
     }
 
-}
+};
+
+/**
+ * A subclass of Vue's internal Observer class that is responsible
+ * for managing its own access/change events for properties rather than
+ * walking the object's own properties
+ */
+export const CustomObserver = /** @class */ (function CustomObserver<TValue>(_super: ObserverConstructor & DeferredClass, protos: any[]): CustomObserverConstructor & DeferredClass {
+
+    let _extended: boolean;
+
+    function _extendDeferred() {
+        if (!_extended) {
+            _super.extend();
+            var proto = new _super({});
+            (CustomObserver as any).prototype = proto;
+            (CustomObserver as any).prototype.constructor = _super;
+            protos.forEach(function(p) {
+                Object.keys(p).forEach(function(k) {
+                    (proto as any)[k] = (p as any)[k];
+                });
+            });
+            _extended = true;
+        }
+    }
+
+    function CustomObserver(value: TValue) {
+        _extendDeferred();
+        var _this = this;
+        _this = _super.call(this, value) || this;
+        Object.defineProperty(_this, 'propertyDeps', { configurable: true, enumerable: true, value: {}, writable: false });
+        return _this;
+    }
+
+    (CustomObserver as any).extend = function() {
+        _extendDeferred();
+    };
+
+    return CustomObserver as any;
+
+})(ObserverProxy, [CustomObserverProto]);
