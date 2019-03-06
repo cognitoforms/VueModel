@@ -97,7 +97,7 @@ export class EntitySerializer {
 						throw new Error(`Property '${pair.key}' was encountered twice during serialization. Make sure injected properties do not collide with model properties.`);
 
 					if (serializeNull || pair.value !== null)
-						result[pair.key] = pair.value;
+						(result as any)[pair.key] = pair.value;
 				}
 			});
 		return result;
