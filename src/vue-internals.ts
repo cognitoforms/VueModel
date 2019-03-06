@@ -147,16 +147,22 @@ export function ensureVueInternalTypes(Vue: VueConstructor): VueInternals {
         return VueInternals;
     }
 
-	let component = new Vue({
-		data() {
-			return { };
-		},
-    });
+    let observableData: any;
 
-    let data = component.$data;
- 
-    let observer = data.__ob__ as Observer;
-    let observerCtor = data.__ob__.constructor as ObserverConstructor;
+    if (Vue.observable) {
+        observableData = Vue.observable({});
+    } else {
+        let component = new Vue({
+            data() {
+                return { };
+            },
+        });
+
+        observableData = component.$data;
+    }
+
+    let observer = (observableData as any).__ob__ as Observer;
+    let observerCtor = (observer as any).constructor as ObserverConstructor;
 	let depCtor = observer.dep.constructor as DepConstructor;
 
     VueInternals.Vue = Vue;
