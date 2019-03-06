@@ -10,6 +10,7 @@ import { EventHandler } from "../lib/model.js/src/events";
 import { observeEntity, getEntityObserver } from "./entity-observer";
 import { PropertyChain, PropertyChainChangeEventArgs, PropertyChainChangeEventHandler } from "../lib/model.js/src/property-chain";
 import { ObservableArray, updateArray, ArrayChangedEventArgs, ArrayChangeType } from "../lib/model.js/src/observable-array";
+import { getPropertyOrPropertyChain } from '../lib/model.js/src/model';
 
 export type SourcePathOverrides = {
 	label?: string,
@@ -19,14 +20,6 @@ export type SourcePathOverrides = {
 
 @Component
 export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue implements SourcePropertyAdapter<TValue>, SourceAdapter<TValue> {
-
-	private _allowedValuesRule: AllowedValuesRule;
-	private _allowedValues: ObservableArray<TValue>;
-	private _allowedValuesSource: Property | PropertyChain;
-	private _allowedValuesExistHandler: PropertyChangeEventHandler | PropertyChainChangeEventHandler;
-	private _allowedValuesChangedHandler: PropertyChangeEventHandler | PropertyChainChangeEventHandler;
-	private _allowedValuesCollectionChangedHandler: EventHandler<ObservableArray<TValue>, ArrayChangedEventArgs<TValue>>;
-	private _options: SourceOptionAdapter<TValue>[];
 
 	@Prop(String)
 	source: string;
@@ -43,13 +36,16 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 			}
 		}
 
-		throw "Parent source not found!";
+		throw new Error("Parent source not found!");
 	}
 
-	get property(): Property {
+	get property(): Property | PropertyChain {
+		let property = getPropertyOrPropertyChain(this.source, this.parent.value.meta.type);
+
+		// Make sure Property and PropertyChain aren't made observable by Vue
 		const Observer = Object.getPrototypeOf((this as any)._data.__ob__).constructor;
-		let property = this.parent.value.meta.type.getProperty(this.source);
 		(property as any).__ob__ = new Observer({});
+
 		return property;
 	}
 
@@ -102,7 +98,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 	get displayValue(): string {
 		let value = this.ensureObservable(this.property.value(this.parent.value));
-		return SourcePathAdapter$_formatDisplayValue.call(this, value);
+		return formatDisplayValue(this, value);
 	}
 
 	set displayValue(text: string) {
@@ -110,128 +106,96 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	}
 
 	get allowedValuesRule(): AllowedValuesRule {
-		let allowedValuesRule: AllowedValuesRule;
-		if (hasOwnProperty(this, "_allowedValuesRule")) {
-			allowedValuesRule = this._allowedValuesRule;
+		let property: Property;
+		if (this.property instanceof PropertyChain) {
+			property = this.property.lastProperty;
 		} else {
-			let property = this.property;
-			allowedValuesRule = property._rules.filter(r => r instanceof AllowedValuesRule)[0] as AllowedValuesRule;
-			Object.defineProperty(this, '_allowedValuesRule', { enumerable: false, value: allowedValuesRule, writable: true });
+			property = this.property;
 		}
-		return allowedValuesRule;
+		return property._rules.filter(r => r instanceof AllowedValuesRule)[0] as AllowedValuesRule;
 	}
 
 	get allowedValuesSource(): Property | PropertyChain {
-		let allowedValuesSource: Property | PropertyChain;
-		if (hasOwnProperty(this, "_allowedValuesSource")) {
-			allowedValuesSource = this._allowedValuesSource;
-		} else {
-			let allowedValuesRule = this.allowedValuesRule;
-			if (allowedValuesRule) {
-				allowedValuesSource = (allowedValuesRule as any)._source as Property | PropertyChain;
-				if (allowedValuesSource) {
-					Object.defineProperty(this, '_allowedValuesSource', { enumerable: false, value: allowedValuesSource, writable: true });
-				}
-			}
+		let allowedValuesRule = this.allowedValuesRule;
+		if (allowedValuesRule) {
+			return (allowedValuesRule as any)._source as Property | PropertyChain;
 		}
-		return allowedValuesSource;
 	}
 
-	get allowedValues(): ObservableArray<TValue> {
-		let allowedValues: ObservableArray<TValue>;
-		if (hasOwnProperty(this, "_allowedValues")) {
-			allowedValues = this._allowedValues;
-		} else {
+	get allowedValues(): TValue[] {
 
-			var allowedValuesRule = this.allowedValuesRule;
-			
-			if (!allowedValuesRule) {
-				this._allowedValues = null;
-				return;
-			}
-
-			// Cache the last target
-			// TODO: Support property chains...
-			// var targetObj = property.getLastTarget(this.source.value);
-			var targetObj = this.parent.value;
-
-			// Retrieve the value of allowed values property
-			let allowedValuesFromRule = allowedValuesRule.values(targetObj);
-			/*
-			if (allowedValuesFromRule) {
-				// Create an observable copy of the allowed values that we can keep up to date in our own time
-				allowedValues = ObservableArray.create(allowedValuesFromRule.slice());
-
-				if (!this._allowedValuesChangedHandler && this.allowedValuesSource) {
-					// Respond to changes to allowed values
-					let allowedValuesSource = this.allowedValuesSource;
-					let allowedValuesChangedHandler = SourcePathAdapter$_allowedValuesChanged.bind(this);
-					Object.defineProperty(this, '_allowedValuesChangedHandler', { enumerable: false, value: allowedValuesChangedHandler, writable: true });
-					Property$addChanged(allowedValuesSource, allowedValuesChangedHandler, targetObj, true);
-				}
-
-				// Clear our values that are no longer valid
-				if (!allowedValuesRule.ignoreValidation) {
-					SourcePathAdapter$_clearInvalidOptions.call(this, allowedValues);
-				}
-
-				this._allowedValues = allowedValues;
-			} else {
-				// Subscribe to property/chain change for the entity in order to populate the options when available
-				let allowedValuesSource = this.allowedValuesSource;
-				if (allowedValuesSource && !this._allowedValuesExistHandler) {
-					let allowedValuesExistHandler = SourcePathAdapter$_checkAllowedValuesExist.bind(this);
-					Object.defineProperty(this, '_allowedValuesExistHandler', { enumerable: false, value: allowedValuesExistHandler, writable: true });
-					Property$addChanged(allowedValuesSource, allowedValuesExistHandler, targetObj);
-				}
-
-				// Clear out values since the property doesn't currently have any allowed values
-				if (!allowedValuesRule.ignoreValidation) {
-					SourcePathAdapter$_clearInvalidOptions.call(this);
-				}
-
-				this._allowedValues = null;
-				return;
-			}
-			*/
-		}
+		var allowedValuesRule = this.allowedValuesRule;
 		
-		return allowedValues;
+		if (!allowedValuesRule) {
+			// If there is no rule, return an empty list
+			return;
+		}
+
+		let targetObj: Entity;
+		if (this.property instanceof PropertyChain) {
+			targetObj = this.property.getLastTarget(this.parent.value);
+		} else {
+			targetObj = this.parent.value;
+		}
+
+		// Retrieve the value of allowed values property
+		let allowedValuesFromRule = allowedValuesRule.values(targetObj);
+		if (allowedValuesFromRule) {
+			// Clear our values that are no longer valid
+			if (!allowedValuesRule.ignoreValidation) {
+				this.clearInvalidOptions(allowedValuesFromRule);
+			}
+		} else if (!allowedValuesRule.ignoreValidation) {
+			// Clear out values since the property doesn't currently have any allowed values
+			this.clearInvalidOptions(null);
+		}
+
+		return allowedValuesFromRule;
+	
 	}
 
 	get options(): SourceOptionAdapter<TValue>[] {
-		let options: SourceOptionAdapter<TValue>[];
-		if (hasOwnProperty(this, "_options")) {
-			options = this._options;
-		} else {
-			let allowedValues = this.allowedValues;
 
-			if (this._allowedValuesCollectionChangedHandler) {
-				allowedValues.changed.unsubscribe(this._allowedValuesCollectionChangedHandler);
-				delete this._allowedValuesCollectionChangedHandler;
-			}
-			/*
-			if (allowedValues) {
-				// Respond to changes to allowed values
-				let allowedValuesCollectionChangedHandler = SourcePathAdapter$_allowedValuesCollectionChanged.bind(this);
-				Object.defineProperty(this, '_allowedValuesCollectionChangedHandler', { enumerable: false, value: allowedValuesCollectionChangedHandler, writable: true });
-				allowedValues.changed.subscribe(allowedValuesCollectionChangedHandler);
-			} else if (this.property.propertyType === Boolean) {
-				// Provide true and false as special allowed values for booleans
-				allowedValues = ObservableArray.create(([true, false] as any) as TValue[]);
-			}
-			*/
-			if (allowedValues) {
-				// Map the allowed values to option adapters
-				options = allowedValues.map(v => new SourceOptionAdapter(this, v));
-			} else {
-				options = null;
-			}
+		let allowedValues = this.allowedValues;
 
-			this._options = options;
+		if (!allowedValues && this.property.propertyType === Boolean) {
+			// Provide true and false as special allowed values for booleans
+			allowedValues = ([true, false] as any) as TValue[];
 		}
-		
-		return options;
+
+		if (!allowedValues) {
+			return [];
+		}
+
+		// Map the allowed values to option adapters
+		return allowedValues.map(v => new SourceOptionAdapter<any>({ parent: this, propsData: { value: v } }));
+
+	}
+
+	clearInvalidOptions(allowedValues: any[]): void {
+		let property = this.property;
+		let value = this.value;
+		if (allowedValues) {
+			// Remove option values that are no longer valid
+			if (value instanceof Array) {
+				let array = (value as any) as ObservableArray<any>;
+				array.batchUpdate(function (array) {
+					// From the `purge()` function in ExoWeb...
+					for (var i = 0; i < array.length; i++) {
+						let item = array[i];
+						if (allowedValues.indexOf(item) < 0) {
+							array.splice(i--, 1);
+						}
+					}
+				});
+			} else if (value !== null && allowedValues.indexOf(value) < 0) {
+				property.value(this.parent.value, null);
+			}
+		} else if (value instanceof Array) {
+			value.splice(0, value.length);
+		} else if (value !== null) {
+			property.value(this.parent.value, null);
+		}
 	}
 
 	ensureObservable(value: TValue) {
@@ -256,11 +220,11 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 }
 
-export function SourcePathAdapter$_formatDisplayValue<TEntity extends Entity, TValue>(this: SourcePathAdapter<TEntity, TValue>, value: any): string {
+export function formatDisplayValue<TValue>(adapter: SourcePropertyAdapter<TValue>, value: any): string {
 
 	let displayValue: string | Array<string>;
 
-	let property = this.property;
+	let property = adapter.property;
 
 	if (value === null || value === undefined) {
 		displayValue = "";
@@ -291,146 +255,3 @@ export function SourcePathAdapter$_formatDisplayValue<TEntity extends Entity, TV
 	return displayValue;
 
 }
-
-/*
-// Notify subscribers that options are available
-function SourcePathAdapter$_signalOptionsReady<TEntity extends Entity, TValue>(this: SourcePathAdapter<TEntity, TValue>) {
-	// if (this._disposed) {
-	// 	return;
-	// }
-
-	// Delete backing fields so that options can be recalculated (and loaded)
-	delete this._options;
-
-	// Get the `Dep` object for the options property
-	var optionsPropertyDep = this.__ob__.getPropertyDep('options');
-	if (optionsPropertyDep) {
-		// Notify of change in order to cause subscribers to fetch the new value
-		optionsPropertyDep.notify();
-	}
-}
-
-function SourcePathAdapter$_clearInvalidOptions<TEntity extends Entity, TValue>(this: SourcePathAdapter<TEntity, TValue>, allowedValues: any[]): void {
-	let property = this.property;
-	let value = this.value;
-	if (allowedValues) {
-		// Remove option values that are no longer valid
-		if (value instanceof Array) {
-			let array = (value as any) as ObservableArray<any>;
-			array.batchUpdate(function (array) {
-				// From the `purge()` function in ExoWeb...
-				for (var i = 0; i < array.length; i++) {
-					let item = array[i];
-					if (allowedValues.indexOf(item) < 0) {
-						array.splice(i--, 1);
-					}
-				}
-			});
-		} else if (value !== null && allowedValues.indexOf(value) < 0) {
-			property.value(this.parent.value, null);
-		}
-	} else if (value instanceof Array) {
-		let array = (value as any) as ObservableArray<any>;
-		array.splice(0, array.length);
-	} else if (value !== null) {
-		property.value(this.parent.value, null);
-	}
-}
-
-function SourcePathAdapter$_checkAllowedValuesExist<TEntity extends Entity, TValue>(this: SourcePathAdapter<TEntity, TValue>, args: PropertyChangeEventArgs | PropertyChainChangeEventArgs): void {
-	// TODO: Support property chains
-	// var lastProperty = this._propertyChain.lastProperty();
-	let property = this.property;
-
-	var allowedValuesRule = this.allowedValuesRule;
-
-	// TODO: Support property chains...
-	// var targetObj = property.getLastTarget(this.source.value);
-	var targetObj = this.parent.value;
-
-	var allowedValues = allowedValuesRule.values(targetObj);
-
-	if (allowedValues instanceof Array) {
-		let allowedValuesSource = this.allowedValuesSource;
-		if (allowedValuesSource) {
-			Property$removeChanged(allowedValuesSource, this._allowedValuesExistHandler);
-			delete this._allowedValuesExistHandler;
-		}
-		SourcePathAdapter$_signalOptionsReady.call(this);
-	}
-}
-
-function SourcePathAdapter$_allowedValuesChanged<TEntity extends Entity, TValue>(this: SourcePathAdapter<TEntity, TValue>, args: PropertyChangeEventArgs | PropertyChainChangeEventArgs): void {
-
-	// TODO: Support property chains
-	// var lastProperty = this._propertyChain.lastProperty();
-	let property = this.property;
-
-	// TODO: Support property chains...
-	// var targetObj = property.getLastTarget(this.source.value);
-	var targetObj = this.parent.value;
-
-	var allowedValuesRule = this.allowedValuesRule;
-	var allowedValuesFromRule = allowedValuesRule.values(targetObj);
-
-	let allowedValues = this._allowedValues;
-
-	allowedValues.batchUpdate(array => {
-		updateArray(array, allowedValuesFromRule);
-	});
-
-	// Clear out invalid selections
-	if (!allowedValuesRule.ignoreValidation) {
-		SourcePathAdapter$_clearInvalidOptions.call(this, allowedValues);
-	}
-
-	// TODO: Lazy load allowed values?
-	// ensureAllowedValuesLoaded(newItems, refreshOptionsFromAllowedValues.prependArguments(optionsSourceArray), this);
-
-	// Get the `Dep` object for the options property
-	var allowedValuesPropertyDep = this.__ob__.getPropertyDep('allowedValues');
-	if (allowedValuesPropertyDep) {
-		// Notify of change in order to cause subscribers to fetch the new value
-		allowedValuesPropertyDep.notify();
-	}
-
-}
-
-function SourcePathAdapter$_allowedValuesCollectionChanged<TEntity extends Entity, TValue>(this: SourcePathAdapter<TEntity, TValue>, args: ArrayChangedEventArgs<TValue>): void {
-	let allowedValues = this._allowedValues;
-	let options = this._options;
-	if (options) {
-		// Attempt to project changes to allowed values onto the options list
-		let canUpdateOptions = true;
-		args.changes.forEach(c => {
-			if (canUpdateOptions) {
-				if (c.type === ArrayChangeType.add) {
-					let newOptions = c.items.map(i => new SourceOptionAdapter(this, i));
-					options.splice(c.startIndex, 0, ...newOptions);
-				} else if (c.type === ArrayChangeType.remove) {
-					options.splice(c.startIndex, c.items.length);
-				} else {
-					canUpdateOptions = false;
-				}
-			}
-		});
-
-		// Fall back to rebuilding the list if needed
-		if (!canUpdateOptions) {
-			delete this._options;
-			if (this._allowedValuesCollectionChangedHandler) {
-				allowedValues.changed.unsubscribe(this._allowedValuesCollectionChangedHandler);
-				delete this._allowedValuesCollectionChangedHandler;
-			}
-		}
-
-		// Get the `Dep` object for the options property
-		var optionsPropertyDep = this.__ob__.getPropertyDep('options');
-		if (optionsPropertyDep) {
-			// Notify of change in order to cause subscribers to fetch the new value
-			optionsPropertyDep.notify();
-		}
-	}
-}
-
-*/

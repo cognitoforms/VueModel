@@ -1,45 +1,36 @@
-import { SourcePropertyAdapter } from "./source-adapter";
-import { CustomObserver } from "./custom-observer";
-import { SourcePathAdapter$_formatDisplayValue } from "./source-path-adapter";
+import Vue from 'vue';
+import { Component, Prop } from 'vue-property-decorator'
+import { SourcePropertyAdapter, isSourcePropertyAdapter } from "./source-adapter";
+import { formatDisplayValue } from "./source-path-adapter";
 
-export class SourceOptionAdapter<TValue> {
+@Component
+export class SourceOptionAdapter<TValue> extends Vue {
 
-    // Public read-only properties: aspects of the object that cannot be
-    // changed without fundamentally changing what the object is
-    readonly source: SourcePropertyAdapter<TValue>;
+    @Prop()
+    value: TValue;
 
-    readonly _value: TValue;
+	get parent(): SourcePropertyAdapter<TValue> {
 
-    __ob__: CustomObserver<SourceOptionAdapter<TValue>>;
+		for (let parentVm: Vue = this.$parent.$parent, parentLevel = 1; parentVm != null; parentVm = parentVm.$parent, parentLevel += 1) {
+			if (isSourcePropertyAdapter((parentVm as any).$source)) {
+				return (parentVm as any).$source as SourcePropertyAdapter<TValue>;
+			}
+		}
 
-    constructor(source: SourcePropertyAdapter<TValue>, value: TValue) {
-        // Public read-only properties
-        Object.defineProperty(this, "source", { enumerable: true, value: source });
-        Object.defineProperty(this, "_value", { enumerable: true, value: value });
-
-        Object.defineProperty(this, "__ob__", { configurable: false, enumerable: false, value: new CustomObserver(this), writable: false });
+		throw new Error("Parent source not found!");
     }
 
     get label(): string {
         // TODO: Make observable if label is dynamic
-        return this.source.label;
-    }
-
-    get value(): TValue {
-        let value = this._value;
-        this.__ob__.onPropertyAccess('value', value);
-        return value;
+        return this.parent.label;
     }
     
     get displayValue(): string {
-        let value = this._value;
-        let displayValue: string = SourcePathAdapter$_formatDisplayValue.call(this.source, value);
-        this.__ob__.onPropertyAccess('displayValue', displayValue);
-        return displayValue;
+        return formatDisplayValue(this.parent, this.value);
     }
 
     toString(): string {
-        return "Option for Source['" + this.source.property.name + "']";
+        return "Option for Source['" + this.parent.property.path + "']";
     }
 
 }

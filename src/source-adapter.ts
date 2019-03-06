@@ -4,6 +4,7 @@ import { SourcePathAdapter } from "./source-path-adapter";
 import { SourceIndexAdapter } from "./source-index-adapter";
 import { SourceOptionAdapter } from "./source-option-adapter";
 import { Entity } from "../lib/model.js/src/entity";
+import { PropertyChain } from "../lib/model.js/src/property-chain";
 
 export interface SourceAdapter<TValue> {
 	readonly: boolean;
@@ -14,7 +15,7 @@ export interface SourceAdapter<TValue> {
 export interface SourcePropertyAdapter<TValue> extends SourceAdapter<TValue> {
     readonly label: string;
 	readonly helptext: string;
-	readonly property: Property;
+	readonly property: Property | PropertyChain;
     readonly options: SourceOptionAdapter<TValue>[];
 }
 
