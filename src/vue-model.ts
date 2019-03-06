@@ -1,5 +1,4 @@
 import Vue from "vue";
-import { Mixins } from 'vue-property-decorator';
 import { Model, ModelOptions, ModelConfiguration } from "../lib/model.js/src/model";
 import { ensureVueInternalTypes } from "./vue-internals";
 import { VueModel$installPlugin } from "./vue-plugin";
@@ -12,14 +11,14 @@ import { CustomObserver } from "./custom-observer";
 export class VueModel extends Model {
 
 	/**
-	 * Implement the Vue plugin interface:
-	 * https://vuejs.org/v2/guide/plugins.html#Writing-a-Plugin
+	 * Creates a new model with the specified type information.
+	 * @param options The set of model types to add.
 	 */
-	static install(vue: typeof Vue, options?: any) {
-		ensureVueInternalTypes(vue);
-		CustomObserver.extend();
-		EntityObserver.extend();
-		return VueModel$installPlugin(vue, options);
+	constructor(options?: ModelOptions, config?: ModelConfiguration) {
+		super(options, config);
+
+		// Make sure that entities are observable by Vue
+		makeEntitiesVueObservable(this);
 	}
 
 	/**
@@ -37,14 +36,14 @@ export class VueModel extends Model {
 	static SourceRoot = SourceRootAdapter;
 
 	/**
-	 * Creates a new model with the specified type information.
-	 * @param options The set of model types to add.
+	 * Implement the Vue plugin interface:
+	 * https://vuejs.org/v2/guide/plugins.html#Writing-a-Plugin
 	 */
-	constructor(options?: ModelOptions, config?: ModelConfiguration) {
-		super(options, config);
-
-		// Make sure that entities are observable by Vue
-		makeEntitiesVueObservable(this);
+	static install(vue: typeof Vue, options?: any) {
+		ensureVueInternalTypes(vue);
+		CustomObserver.extend();
+		EntityObserver.extend();
+		return VueModel$installPlugin(vue, options);
 	}
 
 }
