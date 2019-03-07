@@ -393,17 +393,42 @@ export class Property {
 			return valObjectType === this.propertyType ||
 
 				// entity array type check
-				(valObjectType === Array && this.isList && val.every(function (child: any) {
-					if (child.constructor && child.constructor.meta) {
-						for (var childType = child.constructor.meta; childType; childType = childType.baseType) {
-							if (childType._jstype === this._jstype) {
-								return true;
+				(valObjectType === Array && this.isList && (!this.propertyType || val.every(function (this: Property, child: any) {
+					if (isEntityType(this.propertyType)) {
+						if (child.constructor && child.constructor.meta) {
+							for (let childType: Type = child.constructor.meta; childType; childType = childType.baseType) {
+								if (childType.jstype === this.propertyType) {
+									return true;
+								}
 							}
 						}
 
 						return false;
+					} else {
+						var itemObjectType = child.constructor;
+
+						//"Normalize" data type in case it came from another frame as well as ensure that the types are the same
+						switch (getTypeName(child)) {
+							case "string":
+								itemObjectType = String;
+								break;
+							case "number":
+								itemObjectType = Number;
+								break;
+							case "boolean":
+								itemObjectType = Boolean;
+								break;
+							case "date":
+								itemObjectType = Date;
+								break;
+							case "array":
+								itemObjectType = Array;
+								break;
+						}
+
+						return itemObjectType === this.propertyType;
 					}
-				}, this));
+				}, this)));
 		}
 	}
 
