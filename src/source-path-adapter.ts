@@ -156,6 +156,10 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 	get options(): SourceOptionAdapter<TValue>[] {
 
+		// Destroy existing option components
+		var optionsToDestroy = this.$children.filter(function(c) { return c instanceof SourceOptionAdapter; });
+		optionsToDestroy.forEach(o => o.$destroy());
+
 		let allowedValues = this.allowedValues;
 
 		if (!allowedValues && this.property.propertyType === Boolean) {
