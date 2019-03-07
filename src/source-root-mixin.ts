@@ -3,7 +3,7 @@ import { Component, Prop, Watch } from 'vue-property-decorator'
 import { SourceAdapter } from './source-adapter';
 import { Entity } from '../lib/model.js/src/entity';
 import { SourceRootAdapter } from './source-root-adapter';
-import { observeEntity } from './entity-observer';
+import { observeEntity } from './vue-model-observability';
 
 @Component
 export class SourceRootMixin extends Vue {

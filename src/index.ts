@@ -1,25 +1,11 @@
 import { VueModel } from "./vue-model";
 import { SourceRootAdapter } from "./source-root-adapter";
 import { SourcePathAdapter } from "./source-path-adapter";
-import { SourceIndexAdapter, SourceIndexAdapterConstructor } from "./source-index-adapter";
+import { SourceIndexAdapter } from "./source-index-adapter";
 import { Model, ModelOptions } from "../lib/model.js/src/model"
 import { PropertyConverter, PropertyInjector, PropertySerializationResult } from "../lib/model.js/src/entity-serializer"
 import { Entity } from "../lib/model.js/src/entity"
 import { Property } from "../lib/model.js/src/property"
-
-// TODO: Do we need to take `toggleObserving()` into account?
-// var shouldObserve = true;
-
-export interface VueModelNamespace {
-	SourceIndexAdapter: SourceIndexAdapterConstructor,
-	Model: Model,
-	mixins: VueModelMixins,
-}
-
-export interface VueModelMixins {
-	SourceProvider: any;
-	SourceConsumer: any;
-}
 
 export default VueModel;
 

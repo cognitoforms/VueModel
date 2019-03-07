@@ -100,7 +100,7 @@ export class ObservableArray<ItemType> {
 	 * Returns a value indicating whether the given array is observable
 	 * @param array The array to check for observability
 	 */
-	public static isObservableArray<ItemType>(array: Array<ItemType> | ObservableArray<ItemType>): boolean {
+	public static isObservableArray<ItemType>(array: Array<ItemType> | ObservableArray<ItemType>): array is ObservableArray<ItemType> {
 		return hasOwnProperty(array, "__aob__") && (array as any).__aob__.constructor === ArrayObserver;
 	}
 
@@ -112,7 +112,7 @@ export class ObservableArray<ItemType> {
 		
 		// Check to see if the array is already an observable list
 		if (ObservableArray.isObservableArray(array)) {
-			return array as ObservableArray<ItemType>;
+			return array;
 		}
 
 		if (hasOwnProperty(array, '__aob__')) {

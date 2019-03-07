@@ -3,7 +3,7 @@ import { Property, PropertyChangeEventArgs } from "../lib/model.js/src/property"
 import { SourceAdapter } from "./source-adapter";
 import { SourcePathAdapter } from "./source-path-adapter";
 import { ObservableArray, ArrayChangeType } from "../lib/model.js/src/observable-array";
-import { CustomObserver } from "./custom-observer";
+import { TypedObserver, getCustomObserverConstructor, CustomObserverInterface } from "./vue-model-observability";
 import { PropertyChain } from "../lib/model.js/src/property-chain";
 
 export class SourceIndexAdapter<TEntity extends Entity, TValue> implements SourceAdapter<TValue> {
@@ -14,7 +14,7 @@ export class SourceIndexAdapter<TEntity extends Entity, TValue> implements Sourc
 
 	readonly: boolean;
 
-    __ob__: CustomObserver<SourceIndexAdapter<TEntity, TValue>>;
+    __ob__: TypedObserver<SourceIndexAdapter<TEntity, TValue>> & CustomObserverInterface;
 
 	// Backing fields for properties that are settable and also derived from
 	// other data, calculated in some way, or cannot simply be changed
@@ -29,6 +29,8 @@ export class SourceIndexAdapter<TEntity extends Entity, TValue> implements Sourc
 		// Backing fields for properties
 		Object.defineProperty(this, "_index", { enumerable: false, value: index, writable: true });
         Object.defineProperty(this, "_isOrphaned", { enumerable: false, value: false, writable: true });
+
+        let CustomObserver = getCustomObserverConstructor();
 
         Object.defineProperty(this, "__ob__", { configurable: false, enumerable: false, value: new CustomObserver(this), writable: false });
 

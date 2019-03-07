@@ -1,33 +1,37 @@
-import VueInternals, { Observer, ObserverConstructor, Dep, getObserverProxy, DeferredClass } from "./vue-internals";
+import { VueModel } from "./vue-model";
+import { VueInternals, Dep } from "./vue-internals";
 import { hasOwnProperty } from "./helpers";
-import { observeEntity, dependChildArray } from "./entity-observer";
+import { TypedObserver, observeEntity, dependChildArray } from "./vue-model-observability";
 import { Entity } from "../lib/model.js/src/entity";
 
-var ObserverProxy = getObserverProxy();
+let VueInternals = (VueModel as any)._VueInternals as VueInternals;
 
-export interface CustomObserverPrototype<TValue> {
-    walk(this: Observer): void;
-    getPropertyDep(this: CustomObserver<TValue>, propertyName: string, create?: boolean): Dep;
-    onPropertyAccess(this: CustomObserver<TValue>, propertyName: string, value: any): void;
-    onPropertyChange(this: CustomObserver<TValue>, propertyName: string, newValue: any): void;
+if (!VueInternals.Observer) {
+    throw new Error("Vue's Observer constructor has not yet been obtained, be sure to call Vue.use(VueModel).");
 }
 
-export interface CustomObserver<TValue> extends Observer, CustomObserverPrototype<TValue> {
+let Observer = VueInternals.Observer;
+
+/**
+ * A subclass of Vue's internal Observer class that is responsible
+ * for managing its own access/change events for properties rather than
+ * walking the object's own properties
+ */
+export class CustomObserver<TValue> extends Observer implements TypedObserver<TValue> {
+
     value: TValue;
+
     propertyDeps: { [name: string]: Dep };
-}
 
-export interface CustomObserverConstructor extends ObserverConstructor {
-    new(value: any): CustomObserver<any>;
-    _extend(): void;
-}
-
-export const CustomObserverProto: CustomObserverPrototype<any> = {
+    constructor(value: TValue) {
+        super(value);
+        Object.defineProperty(this, 'propertyDeps', { configurable: true, enumerable: true, value: {}, writable: false });
+    }
 
     walk(): void {
         // Overwrite the `walk()` method to prevent Vue's default property walking behavior
         // TODO: Should we allow this to happen?
-    },
+    }
 
     /**
      * Gets (or creates) a `Dep` object for a property of the given name
@@ -56,7 +60,7 @@ export const CustomObserverProto: CustomObserverPrototype<any> = {
         }
 
         return propertyDep;
-    },
+    }
 
     /**
      * Emulate's Vue's getter logic in `defineReactive()`
@@ -83,7 +87,7 @@ export const CustomObserverProto: CustomObserverPrototype<any> = {
                 dependChildArray(value);
             }
         }
-    },
+    }
 
     /**
      * Emulate's Vue's setter logic in `defineReactive()`
@@ -104,44 +108,4 @@ export const CustomObserverProto: CustomObserverPrototype<any> = {
         propertyDep.notify(); 
     }
 
-};
-
-/**
- * A subclass of Vue's internal Observer class that is responsible
- * for managing its own access/change events for properties rather than
- * walking the object's own properties
- */
-export const CustomObserver = /** @class */ (function CustomObserver<TValue>(_super: ObserverConstructor & DeferredClass, protos: any[]): CustomObserverConstructor & DeferredClass {
-
-    let _extended: boolean;
-
-    function _extendDeferred() {
-        if (!_extended) {
-            _super.extend();
-            var proto = new _super({});
-            (CustomObserver as any).prototype = proto;
-            (CustomObserver as any).prototype.constructor = _super;
-            protos.forEach(function(p) {
-                Object.keys(p).forEach(function(k) {
-                    (proto as any)[k] = (p as any)[k];
-                });
-            });
-            _extended = true;
-        }
-    }
-
-    function CustomObserver(value: TValue) {
-        _extendDeferred();
-        var _this = this;
-        _this = _super.call(this, value) || this;
-        Object.defineProperty(_this, 'propertyDeps', { configurable: true, enumerable: true, value: {}, writable: false });
-        return _this;
-    }
-
-    (CustomObserver as any).extend = function() {
-        _extendDeferred();
-    };
-
-    return CustomObserver as any;
-
-})(ObserverProxy, [CustomObserverProto]);
+}

@@ -1,15 +1,19 @@
-import Vue from "vue";
+import Vue, { VueConstructor, Component, ComponentOptions, PluginObject } from "vue";
 import { Model, ModelOptions, ModelConfiguration } from "../lib/model.js/src/model";
-import { ensureVueInternalTypes } from "./vue-internals";
-import { VueModel$installPlugin } from "./vue-plugin";
+import { VueInternals, ensureVueInternalTypes } from "./vue-internals";
+import { VueModel$installGlobalMixin } from "./vue-global-mixin";
 import { SourcePathMixin } from "./source-path-mixin";
 import { SourceRootMixin } from "./source-root-mixin";
 import { SourceRootAdapter } from "./source-root-adapter";
-import { makeEntitiesVueObservable, EntityObserver } from "./entity-observer";
-import { CustomObserver } from "./custom-observer";
-import { ArrayObserver } from "./array-observer";
+import { makeEntitiesVueObservable } from "./vue-model-observability";
+
+// TODO: Do we need to take `toggleObserving()` into account?
 
 export class VueModel extends Model {
+
+	private static _Vue: VueConstructor = null;
+
+	private static _VueInternals: VueInternals = { Observer: null, Dep: null };
 
 	/**
 	 * Creates a new model with the specified type information.
@@ -17,6 +21,11 @@ export class VueModel extends Model {
 	 */
 	constructor(options?: ModelOptions, config?: ModelConfiguration) {
 		super(options, config);
+
+		if (!VueModel._Vue) {
+			// TODO: auto-install if needed?
+			throw new Error("Vue.use(VueModel) must be called before constructing a VueModel instance.");
+		}
 
 		// Make sure that entities are observable by Vue
 		makeEntitiesVueObservable(this);
@@ -41,16 +50,37 @@ export class VueModel extends Model {
 	 * https://vuejs.org/v2/guide/plugins.html#Writing-a-Plugin
 	 */
 	static install(vue: typeof Vue, options?: any) {
-			
+
+		// Detect if the plugin install has already been called
+		if (VueModel._Vue) {
+			if (process.env.NODE_ENV !== 'production') {
+				console.error('[vuemodel] already installed. Vue.use(VueModel) should be called only once.');
+				return;
+			}
+
+			throw new Error("Vue.use(VueModel) should be called only once.");
+		}	
+
+		// Store a reference to the Vue constructor/module
+		VueModel._Vue = vue;
+
 		// Get access to Vue's internal types that we need
-		ensureVueInternalTypes(Vue);
+		ensureVueInternalTypes(VueModel._VueInternals, Vue);
 
-		// Make sure the Observer subclasses extend Observer
-		CustomObserver.extend();
-		ArrayObserver.extend();
-		EntityObserver.extend();
+		// Install the Vue global mixin
+		return VueModel$installGlobalMixin(vue);
 
-		return VueModel$installPlugin(vue, options);
 	}
 
+}
+
+export interface VueModelMixins {
+	SourcePath: ComponentOptions<Vue>;
+	SourceRoot: ComponentOptions<Vue>;
+}
+
+export interface VueModelConstructor extends PluginObject<any> {
+	new(options?: ModelOptions, config?: ModelConfiguration): VueModel;
+	mixins: VueModelMixins;
+	SourceRoot: any;
 }
