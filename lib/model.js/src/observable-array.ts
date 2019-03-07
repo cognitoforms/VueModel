@@ -109,7 +109,6 @@ export class ObservableArray<ItemType> {
 	 * @param array The array to make observable
 	 */
 	public static ensureObservable<ItemType>(array: Array<ItemType> | ObservableArray<ItemType>): ObservableArray<ItemType> {
-		if (this.isObservableArray)
 		
 		// Check to see if the array is already an observable list
 		if (ObservableArray.isObservableArray(array)) {
