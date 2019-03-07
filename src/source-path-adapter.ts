@@ -1,16 +1,15 @@
 import Vue from 'vue';
 import { Component, Prop } from 'vue-property-decorator'
 import { Entity } from "../lib/model.js/src/entity";
-import { Property, PropertyChangeEventArgs, PropertyChangeEventHandler, Property$addChanged, Property$removeChanged } from "../lib/model.js/src/property";
+import { Property } from "../lib/model.js/src/property";
 import { SourceAdapter, SourcePropertyAdapter, isSourceAdapter } from "./source-adapter";
-import { hasOwnProperty } from "../lib/model.js/src/helpers";
 import { SourceOptionAdapter } from "./source-option-adapter";
 import { AllowedValuesRule } from "../lib/model.js/src/allowed-values-rule";
-import { EventHandler } from "../lib/model.js/src/events";
-import { observeEntity, getEntityObserver } from "./entity-observer";
-import { PropertyChain, PropertyChainChangeEventArgs, PropertyChainChangeEventHandler } from "../lib/model.js/src/property-chain";
-import { ObservableArray, updateArray, ArrayChangedEventArgs, ArrayChangeType } from "../lib/model.js/src/observable-array";
+import { observeEntity } from "./entity-observer";
+import { PropertyChain } from "../lib/model.js/src/property-chain";
+import { ObservableArray, updateArray } from "../lib/model.js/src/observable-array";
 import { getPropertyOrPropertyChain } from '../lib/model.js/src/model';
+import { observeArray } from './array-observer';
 
 export type SourcePathOverrides = {
 	label?: string,
@@ -93,7 +92,13 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	 *  @param value - The new value to assign to the property
 	 */
 	set value(value: TValue) {
-		this.property.value(this.parent.value, this.ensureObservable(value));
+		if (this.property.isList) {
+			let valueArray = (value as any) as any[];
+			let observableArray = this.property.value(this.parent.value) as ObservableArray<any>;
+			observableArray.batchUpdate(() => updateArray(observableArray, valueArray));
+		} else {
+			this.property.value(this.parent.value, this.ensureObservable(value));
+		}
 	}
 
 	get displayValue(): string {
@@ -205,6 +210,9 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	ensureObservable(value: TValue) {
 
 		if (Array.isArray(value)) {
+			if (ObservableArray.isObservableArray(value)) {
+				observeArray((value as any) as ObservableArray<any>).ensureObservable();
+			}
 			for (let i = 0; i < value.length; i++) {
 				let item = value[i];
 				if (item instanceof Entity) {

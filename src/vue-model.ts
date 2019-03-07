@@ -7,6 +7,7 @@ import { SourceRootMixin } from "./source-root-mixin";
 import { SourceRootAdapter } from "./source-root-adapter";
 import { makeEntitiesVueObservable, EntityObserver } from "./entity-observer";
 import { CustomObserver } from "./custom-observer";
+import { ArrayObserver } from "./array-observer";
 
 export class VueModel extends Model {
 
@@ -40,9 +41,15 @@ export class VueModel extends Model {
 	 * https://vuejs.org/v2/guide/plugins.html#Writing-a-Plugin
 	 */
 	static install(vue: typeof Vue, options?: any) {
-		ensureVueInternalTypes(vue);
+			
+		// Get access to Vue's internal types that we need
+		ensureVueInternalTypes(Vue);
+
+		// Make sure the Observer subclasses extend Observer
 		CustomObserver.extend();
+		ArrayObserver.extend();
 		EntityObserver.extend();
+
 		return VueModel$installPlugin(vue, options);
 	}
 

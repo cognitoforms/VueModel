@@ -3,7 +3,7 @@ import { hasOwnProperty } from "./helpers";
 
 export interface ObservableArray<ItemType> extends Array<ItemType> {
 
-	readonly __ob__: ArrayObserver<ItemType>;
+	readonly __aob__: ArrayObserver<ItemType>;
 
 	readonly changed: EventSubscriber<Array<ItemType>, ArrayChangedEventArgs<ItemType>>;
 
@@ -101,7 +101,7 @@ export class ObservableArray<ItemType> {
 	 * @param array The array to check for observability
 	 */
 	public static isObservableArray<ItemType>(array: Array<ItemType> | ObservableArray<ItemType>): boolean {
-		return hasOwnProperty(array, "__ob__") && (array as any).__ob__.constructor === ArrayObserver;
+		return hasOwnProperty(array, "__aob__") && (array as any).__aob__.constructor === ArrayObserver;
 	}
 
 	/**
@@ -116,12 +116,12 @@ export class ObservableArray<ItemType> {
 			return array as ObservableArray<ItemType>;
 		}
 
-		if (hasOwnProperty(array, '__ob__')) {
-			// TODO: Warn about invalid '__ob__' property?
+		if (hasOwnProperty(array, '__aob__')) {
+			// TODO: Warn about invalid '__aob__' property?
 			return;
 		}
 
-		Object.defineProperty(array, "__ob__", {
+		Object.defineProperty(array, "__aob__", {
 			configurable: false,
 			enumerable: false,
 			value: new ArrayObserver(array),
@@ -132,7 +132,7 @@ export class ObservableArray<ItemType> {
 			configurable: false,
 			enumerable: true,
 			get: function() {
-				return this.__ob__.changedEvent.asEventSubscriber();
+				return this.__aob__.changedEvent.asEventSubscriber();
 			}
 		});
 
@@ -176,7 +176,7 @@ export interface ArrayChange<ItemType> {
 
 export class ObservableArrayImplementation<ItemType> extends Array<ItemType> implements ObservableArray<ItemType>, ObservableArrayMethods<ItemType> {
 
-	readonly __ob__: ArrayObserver<ItemType>;
+	readonly __aob__: ArrayObserver<ItemType>;
 
 	/**
 	 * Creates a new observable array
@@ -185,7 +185,7 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
 	public constructor(...items: ItemType[]) {
 		super(...items);
 
-		Object.defineProperty(this, "__ob__", {
+		Object.defineProperty(this, "__aob__", {
 			configurable: false,
 			enumerable: false,
 			value: new ArrayObserver(this),
@@ -194,7 +194,7 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
 
 		Object.defineProperty(this, 'changed', {
 			get: function() {
-				return this.__ob__.changedEvent.asEventSubscriber();
+				return this.__aob__.changedEvent.asEventSubscriber();
 			}
 		});
 
@@ -206,7 +206,7 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
 
 	/** Expose the changed event */
 	get changed(): EventSubscriber<Array<ItemType>, ArrayChangedEventArgs<ItemType>> {
-		return this.__ob__.changedEvent.asEventSubscriber();
+		return this.__aob__.changedEvent.asEventSubscriber();
 	}
 
 	/**
@@ -332,13 +332,13 @@ export function ObservableArray$_overrideNativeMethods<ItemType>(this: Array<Ite
  * Begin queueing changes to the array, make changes in the given callback function, then stop queueing and raise events
  */
 export function ObservableArray$batchUpdate<ItemType>(this: ObservableArray<ItemType>, fn: (array: ObservableArray<ItemType>) => void): void {
-	this.__ob__.startQueueingChanges();
+	this.__aob__.startQueueingChanges();
 	try {
 		fn(this);
-		this.__ob__.stopQueueingChanges(true);
+		this.__aob__.stopQueueingChanges(true);
 	} finally {
-		if (this.__ob__._isQueuingChanges) {
-			this.__ob__.stopQueueingChanges(false);
+		if (this.__aob__._isQueuingChanges) {
+			this.__aob__.stopQueueingChanges(false);
 		}
 	}
 }
@@ -354,7 +354,7 @@ export function ObservableArray$batchUpdate<ItemType>(this: ObservableArray<Item
 export function ObservableArray$copyWithin<ItemType>(this: ObservableArrayImplementation<ItemType>, target: number, start?: number, end?: number): ItemType[] {
 	(Array.prototype as any).copyWithin.apply(this, arguments);
 	// TODO: Warn about non-observable manipulation of observable array?
-	this.__ob__.raiseEvents({ type: ArrayChangeType.replace, startIndex: start, endIndex: end });
+	this.__aob__.raiseEvents({ type: ArrayChangeType.replace, startIndex: start, endIndex: end });
 	return this;
 }
 
@@ -369,7 +369,7 @@ export function ObservableArray$copyWithin<ItemType>(this: ObservableArrayImplem
 export function ObservableArray$fill<ItemType>(this: ObservableArrayImplementation<ItemType>, value: ItemType, start?: number, end?: number): ItemType[] {
 	(Array.prototype as any).fill.apply(this, arguments);
 	// TODO: Warn about non-observable manipulation of observable array?
-	this.__ob__.raiseEvents({ type: ArrayChangeType.replace, startIndex: start, endIndex: end });
+	this.__aob__.raiseEvents({ type: ArrayChangeType.replace, startIndex: start, endIndex: end });
 	return this;
 }
 
@@ -384,7 +384,7 @@ export function ObservableArray$pop<ItemType>(this: ObservableArrayImplementatio
 	let removed: ItemType = Array.prototype.pop.apply(this, arguments);
 	if (this.length !== originalLength) {
 		let removedIndex = originalLength - 1;
-		this.__ob__.raiseEvents({ type: ArrayChangeType.remove, startIndex: removedIndex, endIndex: removedIndex, items: [removed] });
+		this.__aob__.raiseEvents({ type: ArrayChangeType.remove, startIndex: removedIndex, endIndex: removedIndex, items: [removed] });
 	}
 	return removed;
 }
@@ -400,7 +400,7 @@ export function ObservableArray$push<ItemType>(this: ObservableArrayImplementati
 	let addedIndex = this.length;
 	let addedCount: number = Array.prototype.push.apply(this, arguments);
 	if (addedCount > 0) {
-		this.__ob__.raiseEvents({ type: ArrayChangeType.add, startIndex: addedIndex, endIndex: addedIndex + addedCount, items });
+		this.__aob__.raiseEvents({ type: ArrayChangeType.add, startIndex: addedIndex, endIndex: addedIndex + addedCount, items });
 	}
 	return addedCount;
 }
@@ -414,7 +414,7 @@ export function ObservableArray$push<ItemType>(this: ObservableArrayImplementati
 export function ObservableArray$reverse<ItemType>(this: ObservableArrayImplementation<ItemType>): ItemType[] {
 	Array.prototype.reverse.apply(this, arguments);
 	// TODO: Warn about non-observable manipulation of observable array?
-	this.__ob__.raiseEvents({ type: ArrayChangeType.reorder, startIndex: 0, endIndex: this.length - 1 });
+	this.__aob__.raiseEvents({ type: ArrayChangeType.reorder, startIndex: 0, endIndex: this.length - 1 });
 	return this;
 }
 
@@ -428,7 +428,7 @@ export function ObservableArray$shift<ItemType>(this: ObservableArrayImplementat
 	let originalLength = this.length;
 	let removed: ItemType = Array.prototype.shift.apply(this, arguments);
 	if (this.length !== originalLength) {
-		this.__ob__.raiseEvents({ type: ArrayChangeType.remove, startIndex: 0, endIndex: 0, items: [removed] });
+		this.__aob__.raiseEvents({ type: ArrayChangeType.remove, startIndex: 0, endIndex: 0, items: [removed] });
 	}
 	return removed;
 }
@@ -444,7 +444,7 @@ export function ObservableArray$shift<ItemType>(this: ObservableArrayImplementat
 export function ObservableArray$sort<ItemType>(this: ObservableArrayImplementation<ItemType>, compareFunction?: (a: ItemType, b: ItemType) => number): ItemType[] {
 	let result: ItemType = Array.prototype.sort.apply(this, arguments);
 	// TODO: Warn about non-observable manipulation of observable array?
-	this.__ob__.raiseEvents({ type: ArrayChangeType.reorder, startIndex: 0, endIndex: this.length - 1 });
+	this.__aob__.raiseEvents({ type: ArrayChangeType.reorder, startIndex: 0, endIndex: this.length - 1 });
 	return this;
 }
 
@@ -467,7 +467,7 @@ export function ObservableArray$splice<ItemType>(this: ObservableArrayImplementa
 		if (items.length > 0) {
 			changeEvents.push({ type: ArrayChangeType.add, startIndex: start, endIndex: start + items.length - 1, items });
 		}
-		this.__ob__.raiseEvents(changeEvents);
+		this.__aob__.raiseEvents(changeEvents);
 	}
 	return removed;
 }
@@ -483,7 +483,7 @@ export function ObservableArray$unshift<ItemType>(this: ObservableArrayImplement
 	let originalLength = this.length;
 	let newLength: number = Array.prototype.unshift.apply(this, arguments);
 	if (newLength !== originalLength) {
-		this.__ob__.raiseEvents({ type: ArrayChangeType.add, startIndex: 0, endIndex: items.length - 1, items });
+		this.__aob__.raiseEvents({ type: ArrayChangeType.add, startIndex: 0, endIndex: items.length - 1, items });
 	}
 	return newLength;
 }
