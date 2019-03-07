@@ -87,7 +87,6 @@ export const EntityObserver = /** @class */ (function EntityObserver(_super: Cus
         _extendDeferred();
         var _this = this;
         _this = _super.call(this, value) || this;
-
         return _this;
     }
 
@@ -122,7 +121,7 @@ export function dependChildArray(array: any[]): void {
 }
 
 /**
- * Gets or creates and `EntityObserver` for the given entity
+ * Gets or creates an `EntityObserver` for the given entity
  * @param entity The entity begin observed
  * @param create If true, create the observer if it doesn't already exist
  */
