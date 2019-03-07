@@ -4,6 +4,7 @@ import { SourceAdapter } from "./source-adapter";
 import { SourcePathAdapter } from "./source-path-adapter";
 import { ObservableArray, ArrayChangeType } from "../lib/model.js/src/observable-array";
 import { CustomObserver } from "./custom-observer";
+import { PropertyChain } from "../lib/model.js/src/property-chain";
 
 export class SourceIndexAdapter<TEntity extends Entity, TValue> implements SourceAdapter<TValue> {
 
@@ -103,7 +104,14 @@ export class SourceIndexAdapter<TEntity extends Entity, TValue> implements Sourc
             (eventArgs as any)['changes'] = [{ type: ArrayChangeType.replace, startIndex: this.index, endIndex: this.index }];
             (eventArgs as any)['collectionChanged'] = true;
 
-            this.source.property._events.changedEvent.publish(this.source.parent.value, eventArgs);
+            let property: Property;
+            if (this.source.property instanceof PropertyChain) {
+                property = this.source.property.lastProperty;
+            } else {
+                property = this.source.property;
+            }
+
+            property._events.changedEvent.publish(this.source.parent.value, eventArgs);
 
             this.__ob__.onPropertyChange('value', value);
         }
