@@ -188,7 +188,7 @@ export class Property {
 				// Function
 				if (typeof (options.default) === "function") {
 					if (this.containingType === targetType)
-					this._defaultValue = options.default;
+						this._defaultValue = options.default;
 					else
 						options.default = { function: options.default, dependsOn: "" };
 				} else if (!Property.isPropOptions(options.default)) {
