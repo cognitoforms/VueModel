@@ -156,7 +156,6 @@ export class Model {
 			let modelType = this.types[type];
 			return modelType ? modelType.jstype : null;
 		}
-		return jstype;
 	}
 }
 

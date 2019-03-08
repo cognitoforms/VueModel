@@ -40,12 +40,12 @@ export class Property {
 	readonly getter: (args?: any) => any;
 	readonly setter: (value: any, args?: any) => void;
 
-	constructor(containingType: Type, name: string, propertyType: PropertyType, isList: boolean, isStatic: boolean, options?: PropertyOptions) {
+	constructor(containingType: Type, name: string, jstype: PropertyType, isList: boolean, isStatic: boolean, options?: PropertyOptions) {
 
 		// Public read-only properties
 		Object.defineProperty(this, "containingType", { enumerable: true, value: containingType });
 		Object.defineProperty(this, "name", { enumerable: true, value: name });
-		Object.defineProperty(this, "propertyType", { enumerable: true, value: propertyType });
+		Object.defineProperty(this, "propertyType", { enumerable: true, value: jstype });
 		Object.defineProperty(this, "isList", { enumerable: true, value: isList === true });
 		Object.defineProperty(this, "isStatic", { enumerable: true, value: isStatic === true });
 
@@ -104,7 +104,6 @@ export class Property {
 
 		// Use prepare() to defer property path resolution while the model is being extended
 		targetType.model.prepare(() => {
-
 			// Label
 			if (options.label)
 				this.label = options.label;
