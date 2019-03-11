@@ -2,6 +2,7 @@ import Vue from 'vue';
 import { Component, Prop } from 'vue-property-decorator'
 import { Entity } from "../lib/model.js/src/entity";
 import { Property } from "../lib/model.js/src/property";
+import { Format } from "../lib/model.js/src/format";
 import { SourceAdapter, SourcePropertyAdapter, isSourceAdapter } from "./source-adapter";
 import { SourceOptionAdapter } from "./source-option-adapter";
 import { AllowedValuesRule } from "../lib/model.js/src/allowed-values-rule";
@@ -54,7 +55,15 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	 */
 	get label(): string {
 		let label = this.overrides.label;
-		return label === undefined || label === null ? this.property.label : label;
+		if (label === undefined || label === null) {
+			if (Format.hasTokens(this.property.label)) {
+				label = this.parent.value.toString(this.property.label);
+			}
+			else {
+				label = this.property.label;
+			}
+		}
+		return label;
 	}
 
 	/**

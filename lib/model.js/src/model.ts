@@ -27,7 +27,7 @@ export class Model {
 
 	readonly $namespace: any;
 
-	constructor(options?: ModelOptions & ModelNamespaceOption, config?: ModelConfiguration) {
+	constructor(options?: ModelOptions, config?: ModelConfiguration) {
 
 		this.types = {};
 
@@ -35,16 +35,8 @@ export class Model {
 		Object.defineProperty(this, "_fieldNamePrefix", { value: ("_fN" + randomText(3, false, true)) });
 		Object.defineProperty(this, "_events", { value: new ModelEvents() });
 
-		if (options && options.$namespace) {
-			let $namespace = options.$namespace;
-
-			try {
-				delete options.$namespace;
-			} catch {
-				// Ignore error, we'll ignore the property later
-			}
-
-			Object.defineProperty(this, "$namespace", { configurable: false, enumerable: true, value: $namespace, writable: false });
+		if (config && config.namespace) {
+			Object.defineProperty(this, "$namespace", { configurable: false, enumerable: true, value: config.namespace, writable: false });
 		}
 
 		this._formats = {};
@@ -73,24 +65,8 @@ export class Model {
 		// Use prepare() to defer property path resolution while the model is being extended
 		this.prepare(() => {
 
-			if (options.$namespace) {
-				// TODO: Guard against model being set after instances have been created
-				let $namespace = options.$namespace as object;
-				if (!this.$namespace) {
-					Object.defineProperty(this, "$namespace", { configurable: false, enumerable: true, value: $namespace, writable: false });
-				} else if ($namespace !== this.$namespace) {
-					// TODO: Raise an error?
-					console.error("Cannot redefine namespace for model.");
-				}
-			}
-
 			// Create New Types
 			for (let [typeName, typeOptions] of Object.entries(options)) {
-				if (typeName === "$namespace") {
-					// Ignore the $namespace property since it is handled elsewhere
-					continue;
-				}
-
 				let type = this.types[typeName];
 
 				if (!type) {
@@ -103,11 +79,6 @@ export class Model {
 
 			// Extend Types
 			for (let [typeName, typeOptions] of Object.entries(options)) {
-				if (typeName === "$namespace") {
-					// Ignore the $namespace property since it is handled elsewhere
-					continue;
-				}
-
 				this.types[typeName].extend(typeOptions);
 			}
 		});
@@ -185,6 +156,7 @@ export class Model {
 			let modelType = this.types[type];
 			return modelType ? modelType.jstype : null;
 		}
+		return jstype;
 	}
 }
 
@@ -201,25 +173,19 @@ export class ModelEvents {
 	}
 }
 
-export type ModelOptions = {
+export interface ModelOptions {
 
-	/**
-	 * The name of the type.
-	 */
+	/** The name of the type. */
 	[name: string]: TypeOptions;
 
 }
 
-export type ModelNamespaceOption = {
+export interface ModelConfiguration {
 
 	/**
 	 * The object to use as the namespace for model types
 	 */
-	$namespace?: object;
-
-}
-
-export type ModelConfiguration = {
+	namespace?: object;
 
 	/**
 	 * Determines whether properties are created as "own" properties, or placed on the type's prototype

@@ -3,6 +3,7 @@ import { registerPropertyRule, RuleOptions } from "./rule";
 import { PropertyRule, Property, PropertyRuleOptions } from "./property";
 import { Entity } from "./entity";
 import { Type } from "./type";
+import { Format } from "./format";
 
 export class ValidatedPropertyRule extends ConditionRule implements PropertyRule {
 
@@ -38,7 +39,14 @@ export class ValidatedPropertyRule extends ConditionRule implements PropertyRule
 
 		// replace the property label token in the validation message if present
 		if (options.message && typeof (options.message) !== "function") {
-			options.message = options.message.replace('{property}', property.label);
+			if (Format.hasTokens(property.label)) {
+				let format = Format.fromTemplate(rootType, property.label);
+				let message = options.message;
+				options.message = function () { return message.replace('{property}', format.convert(this)); }
+			}
+			else {
+				options.message = options.message.replace('{property}', property.label);
+			}
 		}
 
 		// call the base rule constructor
@@ -77,7 +85,7 @@ export interface ValidatedPropertyRuleOptions extends PropertyRuleOptions {
 	// function (obj, prop, val) { return true; } (a predicate that returns true when the property is valid)
 	isValid?: string | ((this: Entity, prop: Property, val: any) => boolean);
 
-	message?: string
+	message?: string | ((this: Entity) => string);
 }
 
 export interface ValidatedPropertyRuleConstructor {

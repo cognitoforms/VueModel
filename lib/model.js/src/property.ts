@@ -1,7 +1,7 @@
 import { Event, EventObject, EventSubscriber, ContextualEventRegistration } from "./events";
 import { Entity, EntityConstructorForType } from "./entity";
 import { Format } from "./format";
-import { Type, PropertyType, isEntityType, Value, isValueType, isValue } from "./type";
+import { Type, PropertyType, isEntityType, Value } from "./type";
 import { PropertyChain$_addAccessedHandler, PropertyChain$_removeAccessedHandler, PropertyChain$_addChangedHandler, PropertyChain$_removeChangedHandler, PropertyChain, PropertyChainAccessEventHandler, PropertyChainChangeEventHandler } from "./property-chain";
 import { getTypeName, getDefaultValue, parseFunctionName, ObjectLookup, merge, getConstructorName, isType } from "./helpers";
 import { ObservableArray, updateArray } from "./observable-array";
@@ -40,12 +40,12 @@ export class Property {
 	readonly getter: (args?: any) => any;
 	readonly setter: (value: any, args?: any) => void;
 
-	constructor(containingType: Type, name: string, jstype: PropertyType, isList: boolean, isStatic: boolean, options?: PropertyOptions) {
+	constructor(containingType: Type, name: string, propertyType: PropertyType, isList: boolean, isStatic: boolean, options?: PropertyOptions) {
 
 		// Public read-only properties
 		Object.defineProperty(this, "containingType", { enumerable: true, value: containingType });
 		Object.defineProperty(this, "name", { enumerable: true, value: name });
-		Object.defineProperty(this, "propertyType", { enumerable: true, value: jstype });
+		Object.defineProperty(this, "propertyType", { enumerable: true, value: propertyType });
 		Object.defineProperty(this, "isList", { enumerable: true, value: isList === true });
 		Object.defineProperty(this, "isStatic", { enumerable: true, value: isStatic === true });
 
@@ -86,7 +86,8 @@ export class Property {
 				this._defaultValue instanceof Date ? new Date(+this._defaultValue) :
 					// TODO: Implement TimeSpan class/type?
 					// this._defaultValue instanceof TimeSpan ? new TimeSpan(this._defaultValue.totalMilliseconds) :
-					this._defaultValue;
+					this._defaultValue instanceof Function ? this._defaultValue() :
+						this._defaultValue;
 		}
 		else {
 			return getDefaultValue(this.isList, this.propertyType);
@@ -103,6 +104,7 @@ export class Property {
 
 		// Use prepare() to defer property path resolution while the model is being extended
 		targetType.model.prepare(() => {
+
 			// Label
 			if (options.label)
 				this.label = options.label;
@@ -183,32 +185,32 @@ export class Property {
 
 			// Default value or function
 			if (options.default) {
-				let defaultConstant: Value;
 
+				// Function
 				if (typeof (options.default) === "function") {
-					// Always generate a rule for default function
-					options.default = { function: options.default, dependsOn: "" };
-				} else if (isValue(options.default)) {
+					if (this.containingType === targetType)
+					this._defaultValue = options.default;
+					else
+						options.default = { function: options.default, dependsOn: "" };
+				} else if (!Property.isPropOptions(options.default)) {
 					// Constant
-					defaultConstant = options.default;
+					let defaultOptionTypeName = getTypeName(options.default);
 
-					// Can't set default contant value for entity-typed property
 					if (isEntityType(this.propertyType)) {
 						throw new Error(`Cannot set a constant default value for a property of type '${this.propertyType.meta.fullName}'.`);
 					}
 
-					// Verify that the contant value is of the proper built-in type
-					let defaultOptionTypeName = getTypeName(defaultConstant);
 					let propertyTypeName = getConstructorName(this.propertyType).toLowerCase();
+
 					if (defaultOptionTypeName !== propertyTypeName) {
 						throw new Error(`Cannot set a default value of type '${defaultOptionTypeName}' for a property of type '${propertyTypeName}'.`);
 					}
 
 					// If extending baseType property specifically for a child type, use a rule 
 					if (this.containingType === targetType)
-					 	this._defaultValue = defaultConstant;
+						this._defaultValue = options.default;
 					else
-						options.default = { function: function () { return defaultConstant; }, dependsOn: "" };
+						options.default = { function: function () { return options.default }, dependsOn: "" };
 				}
 
 				if (Property.isPropOptions(options.default)) {
@@ -237,8 +239,6 @@ export class Property {
 					targetType.model.ready(() => {
 						rule.register();
 					});
-				} else if (typeof defaultConstant === "undefined") {
-					throw new Error(`Invalid property 'default' option of type '${getTypeName(options.default)}'.`);
 				}
 			}
 
@@ -246,7 +246,7 @@ export class Property {
 			if (options.allowedValues) {
 				if (typeof (options.allowedValues) === "function") {
 					let originalAllowedValues = options.allowedValues;
-					let allowedValuesFunction = function (this: Entity) { return originalAllowedValues.call(this) };
+					let allowedValuesFunction = function (this: Entity) { return originalAllowedValues() };
 					options.get = { function: allowedValuesFunction, dependsOn: "" };
 				}
 
@@ -311,7 +311,7 @@ export class Property {
 
 				this.containingType.model.ready(() => {
 					rule.register();
-				});
+		});
 			}
 
 		});
@@ -476,16 +476,16 @@ export interface PropertyOptions {
 	format?: string | Format<PropertyType> | PropertyFormatOptions,
 
 	/** An optional function or dependency function object that calculates the value of this property. */
-	get?: PropertyValueFunction | PropertyValueFunctionAndDependencies,
+	get?: PropertyValueFunctionOnly | PropertyValueFunctionAndDependencies,
 
 	/** An optional function to call when this property is updated. */
 	set?: (this: Entity, value: any) => void,
 
 	/** An optional constant default value, or a function or dependency function object that calculates the default value of this property. */
-	default?: PropertyValueFunction | PropertyValueFunctionAndDependencies | Value,
+	default?: PropertyValueFunctionOnly | PropertyValueFunctionAndDependencies | Value,
 
 	/** An optional constant default value, or a function or dependency function object that calculates the default value of this property. */
-	allowedValues?: PropertyValueFunction | PropertyValueFunctionAndDependencies | Value[],
+	allowedValues?: PropertyValueFunctionOnly | PropertyValueFunctionAndDependencies | Value[],
 
 	/** True if the property is always required, or a dependency function object for conditionally required properties. */
 	required?: boolean | { function: (this: Entity) => boolean, dependsOn: string },
@@ -507,7 +507,7 @@ export interface PropertyFormatOptions {
 
 }
 
-export type PropertyValueFunction = () => any;
+export type PropertyValueFunctionOnly = () => any;
 
 export interface PropertyValueFunctionAndDependencies {
 	function: (this: Entity) => any;

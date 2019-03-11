@@ -5,12 +5,7 @@
 		"sourceMap": true,
 		"noImplicitAny": true,
 		"module": "commonjs",
-		"target": "es5",
-		"lib": [
-			"esnext",
-			"es2016",
-			"dom"
-		],
+		"target": "es2015"
 	},
 	"exclude": [
 		"bin",
