@@ -422,6 +422,12 @@ export function isValueType(type: any): type is ValueType {
 	return type === String || type === Number || type === Date || type === Boolean;
 }
 
+export function isValue(value: any, valueType: any = null): value is Value {
+	if (!valueType)
+		valueType = value.constructor;
+	return isValueType(valueType);
+}
+
 export function isEntityType(type: any): type is EntityType {
 	return type.meta && type.meta instanceof Type;
 }

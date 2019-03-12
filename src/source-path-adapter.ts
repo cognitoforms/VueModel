@@ -10,6 +10,8 @@ import { observeEntity, observeArray } from "./vue-model-observability";
 import { PropertyChain } from "../lib/model.js/src/property-chain";
 import { ObservableArray, updateArray } from "../lib/model.js/src/observable-array";
 import { getPropertyOrPropertyChain } from '../lib/model.js/src/model';
+import { Condition } from '../lib/model.js/src/condition';
+import { ConditionType } from '../lib/model.js/src/condition-type';
 
 export type SourcePathOverrides = {
 	label?: string,
