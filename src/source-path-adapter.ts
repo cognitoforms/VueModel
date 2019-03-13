@@ -2,7 +2,6 @@ import Vue from 'vue';
 import { Component, Prop } from 'vue-property-decorator'
 import { Entity } from "../lib/model.js/src/entity";
 import { Property } from "../lib/model.js/src/property";
-import { Format } from "../lib/model.js/src/format";
 import { SourceAdapter, SourcePropertyAdapter, isSourceAdapter } from "./source-adapter";
 import { SourceOptionAdapter } from "./source-option-adapter";
 import { AllowedValuesRule } from "../lib/model.js/src/allowed-values-rule";
@@ -10,8 +9,6 @@ import { observeEntity, observeArray } from "./vue-model-observability";
 import { PropertyChain } from "../lib/model.js/src/property-chain";
 import { ObservableArray, updateArray } from "../lib/model.js/src/observable-array";
 import { getPropertyOrPropertyChain } from '../lib/model.js/src/model';
-import { Condition } from '../lib/model.js/src/condition';
-import { ConditionType } from '../lib/model.js/src/condition-type';
 
 export type SourcePathOverrides = {
 	label?: string,
@@ -57,15 +54,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	 */
 	get label(): string {
 		let label = this.overrides.label;
-		if (label === undefined || label === null) {
-			if (Format.hasTokens(this.property.label)) {
-				label = this.parent.value.toString(this.property.label);
-			}
-			else {
-				label = this.property.label;
-			}
-		}
-		return label;
+		return label === undefined || label === null ? this.property.label : label;
 	}
 
 	/**

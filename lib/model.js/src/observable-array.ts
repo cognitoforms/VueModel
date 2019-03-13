@@ -396,12 +396,12 @@ export function ObservableArray$pop<ItemType>(this: ObservableArrayImplementatio
  * @returns The new length property of the object upon which the method was called.
  */
 export function ObservableArray$push<ItemType>(this: ObservableArrayImplementation<ItemType>, ...items: ItemType[]): number {
-	let addedIndex = this.length;
-	let addedCount: number = Array.prototype.push.apply(this, arguments);
-	if (addedCount > 0) {
-		this.__aob__.raiseEvents({ type: ArrayChangeType.add, startIndex: addedIndex, endIndex: addedIndex + addedCount, items });
+	let originalLength = this.length;
+	let newLength: number = Array.prototype.push.apply(this, arguments);
+	if (newLength > 0) {
+		this.__aob__.raiseEvents({ type: ArrayChangeType.add, startIndex: originalLength, endIndex: originalLength + (newLength - originalLength) - 1, items });
 	}
-	return addedCount;
+	return newLength;
 }
 
 /**
