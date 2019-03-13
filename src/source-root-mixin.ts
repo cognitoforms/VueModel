@@ -8,20 +8,32 @@ import { observeEntity } from './vue-model-observability';
 @Component
 export class SourceRootMixin extends Vue {
 
-	@Prop(String)
-	source: string;
+	@Prop({ type: [Object, String] })
+	source: string | Entity;
 
-	@Prop(Boolean)
+	@Prop({ type: Boolean, default: null })
 	readonly: boolean;
 
 	@Watch('readonly')
-	onReadonlyChanged(value: boolean, oldValue: boolean) {
-		this.$source.readonly = this.readonly;
+	onReadonlyChanged(readonly: boolean) {
+		this.$source.readonly = readonly;
 	}
 
 	get $source(): SourceAdapter<Entity> {
-		var entity = (this as any)["entry"] as Entity;
+		let entity: Entity;
+
+		if (this.source instanceof Entity) {
+			entity = this.source;
+		} else {
+			entity = (this as any)[this.source || "entity"];
+			if (!entity || !(entity instanceof Entity)) {
+				throw new Error("No entity data!");
+			}
+		}
+
 		observeEntity(entity).ensureObservable();
+
 		return new SourceRootAdapter<Entity>({ propsData: { entity: entity } });
 	}
-};
+
+}

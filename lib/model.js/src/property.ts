@@ -93,8 +93,8 @@ export class Property {
 		}
 	}
 
-	private static isPropOptions(obj: any): obj is PropertyValueFunctionAndDependencies {
-		return isType<PropertyValueFunctionAndDependencies>(obj, d => getTypeName(d) === "object");
+	private static isPropOptions<TOptions>(obj: any): obj is TOptions {
+		return isType<TOptions>(obj, d => getTypeName(d) === "object");
 	}
 
 	extend(options: PropertyOptions, targetType?: Type) {
@@ -212,7 +212,7 @@ export class Property {
 						options.default = { function: function () { return defaultConstant; }, dependsOn: "" };
 				}
 
-				if (Property.isPropOptions(options.default)) {
+				if (Property.isPropOptions<PropertyDefaultValueFunctionAndOptions>(options.default)) {
 					let ruleName: string = null;
 					let ruleOptions: CalculatedPropertyRuleOptions;
 
@@ -226,9 +226,27 @@ export class Property {
 
 					let ruleOnChangeOf = options.default.dependsOn ? PathTokens$normalizePaths([options.default.dependsOn]).map(t => t.expression) : [];
 
+					let ruleCalculateFn = options.default.function;
+
+					// For list property, if `count` is specified, then invoke the function
+					// the specified number of times and return the array of values
+					if (this.isList && typeof options.default.count === "number") {
+						let defaultFn = options.default.function;
+						let defaultCount = options.default.count;
+
+						ruleCalculateFn = function (this: Entity): any {
+							let values = [];
+							for (var i = 0; i < defaultCount; i++) {
+								let value = defaultFn.call(this);
+								values.push(value);
+							}
+							return values;
+						};
+					}
+
 					ruleOptions = {
 						property: this,
-						calculate: options.default.function,
+						calculate: ruleCalculateFn,
 						onChangeOf: ruleOnChangeOf,
 						isDefaultValue: true
 					};	
@@ -251,8 +269,7 @@ export class Property {
 					options.get = { function: allowedValuesFunction, dependsOn: "" };
 				}
 
-				if (Property.isPropOptions(options.allowedValues)) {
-					let ruleName: string = null;
+				if (Property.isPropOptions<PropertyValueFunctionAndDependencies>(options.allowedValues)) {
 					let ruleOptions: AllowedValuesRuleOptions;
 
 					if (typeof (options.allowedValues.function) !== "function") {
@@ -483,7 +500,7 @@ export interface PropertyOptions {
 	set?: (this: Entity, value: any) => void,
 
 	/** An optional constant default value, or a function or dependency function object that calculates the default value of this property. */
-	default?: PropertyValueFunction | PropertyValueFunctionAndDependencies | Value,
+	default?: PropertyValueFunction | PropertyDefaultValueFunctionAndOptions | Value,
 
 	/** An optional constant default value, or a function or dependency function object that calculates the default value of this property. */
 	allowedValues?: PropertyValueFunction | PropertyValueFunctionAndDependencies | Value[],
@@ -513,6 +530,10 @@ export type PropertyValueFunction = () => any;
 export interface PropertyValueFunctionAndDependencies {
 	function: (this: Entity) => any;
 	dependsOn: string;
+}
+
+export interface PropertyDefaultValueFunctionAndOptions extends PropertyValueFunctionAndDependencies {
+	count?: number;
 }
 
 export interface PropertyConstructor {
@@ -1027,5 +1048,5 @@ export function Property$removeChanged(prop: Property | PropertyChain, handler: 
 export function hasPropertyChangedSubscribers(prop: Property, obj: Entity) {
 	let property = prop as Property;
 	let subscriptions = property._propertyChangeSubscriptions;
-	return subscriptions.length > 0 && subscriptions.some(s => s.context === obj);
+	return subscriptions.length > 0 && subscriptions.some(s => !s.context || s.context === obj);
 }

@@ -75,23 +75,25 @@
     <TypeScriptCompile Include="model-definition-example.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
+    <TypeScriptCompile Include="src\array-observer.ts" />
     <TypeScriptCompile Include="src\custom-observer.ts" />
     <TypeScriptCompile Include="src\entity-observer.ts" />
     <TypeScriptCompile Include="src\source-adapter.ts" />
     <TypeScriptCompile Include="src\helpers.ts" />
     <TypeScriptCompile Include="src\index.ts" />
     <TypeScriptCompile Include="src\source-binding.ts" />
+    <TypeScriptCompile Include="src\source-item-adapter.ts" />
     <TypeScriptCompile Include="src\source-path-mixin.ts" />
-    <TypeScriptCompile Include="src\source-index-adapter.ts" />
     <TypeScriptCompile Include="src\source-option-adapter.ts" />
     <TypeScriptCompile Include="src\source-path-adapter.ts" />
     <TypeScriptCompile Include="src\source-root-adapter.ts" />
     <TypeScriptCompile Include="src\source-root-mixin.ts" />
+    <TypeScriptCompile Include="src\vm-source-component.ts" />
+    <TypeScriptCompile Include="src\vue-global-mixin.ts" />
     <TypeScriptCompile Include="src\vue-helpers.ts" />
     <TypeScriptCompile Include="src\vue-internals.ts" />
+    <TypeScriptCompile Include="src\vue-model-observability.ts" />
     <TypeScriptCompile Include="src\vue-model.ts" />
-    <TypeScriptCompile Include="src\vue-plugin-entities.ts" />
-    <TypeScriptCompile Include="src\vue-plugin.ts" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="dist\" />
