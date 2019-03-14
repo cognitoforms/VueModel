@@ -1,18 +1,20 @@
 import { Type, isEntityType, EntityType } from "./type";
-import { Property, PropertyAccessEventArgs, PropertyChangeEventArgs, Property$addChanged, Property$addAccessed } from "./property";
-import { Event, EventSubscriber, ContextualEventRegistration, EventObject } from "./events";
+import { Property } from "./property";
+import { PropertyAccessEventArgs, PropertyChangeEventArgs, PropertyChangeEventHandler, PropertyAccessEventHandler } from "./property-path";
+import { Event, EventSubscriber, ContextualEventRegistration, EventObject, EventPublisher } from "./events";
 import { FunctorWith1Arg, Functor$create } from "./functor";
 import { Entity } from "./entity";
 import { Format } from "./format";
 import { getEventSubscriptions } from "./helpers";
 import { PathTokens } from "./path-tokens";
+import { PropertyPath } from "./property-path";
 
 /**
  * Encapsulates the logic required to work with a chain of properties and
  * a root object, allowing interaction with the chain as if it were a 
  * single property of the root object.
  */
-export class PropertyChain {
+export class PropertyChain implements PropertyPath {
 
 	// Public read-only properties: aspects of the object that cannot be
 	// changed without fundamentally changing what the object is
@@ -20,13 +22,13 @@ export class PropertyChain {
 
 	// Backing fields for properties that are settable and also derived from
 	// other data, calculated in some way, or cannot simply be changed
-	readonly _properties: Property[];
-	readonly _propertyFilters: ((obj: Entity) => boolean)[];
-	readonly _propertyAccessSubscriptions: ContextualEventRegistration<Entity, PropertyAccessEventArgs, Entity>[];
-	readonly _propertyChainAccessSubscriptions: ContextualEventRegistration<Entity, PropertyChainAccessEventArgs, Entity>[];
-	readonly _propertyChangeSubscriptions: ContextualEventRegistration<Entity, PropertyChangeEventArgs, Entity>[];
-	readonly _propertyChainChangeSubscriptions: ContextualEventRegistration<Entity, PropertyChainChangeEventArgs, Entity>[];
-	readonly _events: PropertyChainEvents;
+	readonly properties: Property[];
+
+	readonly changed: EventSubscriber<Entity, PropertyChangeEventArgs>;
+	readonly accessed: EventSubscriber<Entity, PropertyAccessEventArgs>;
+
+	private stepChanged: PropertyChangeEventHandler;
+	private stepAccessed: PropertyAccessEventHandler;
 
 	private _path: string;
 
@@ -89,15 +91,8 @@ export class PropertyChain {
 		// Public read-only properties
 		Object.defineProperty(this, "rootType", { enumerable: true, value: rootType });
 
-		// Backing fields for properties
-		Object.defineProperty(this, "_properties", { value: properties });
 		Object.defineProperty(this, "_propertyFilters", { value: filters || new Array(properties.length) });
-		Object.defineProperty(this, "_propertyAccessSubscriptions", { value: [] });
-		Object.defineProperty(this, "_propertyChainAccessSubscriptions", { value: [] });
-		Object.defineProperty(this, "_propertyChangeSubscriptions", { value: [] });
-		Object.defineProperty(this, "_propertyChainChangeSubscriptions", { value: [] });
 
-		Object.defineProperty(this, "_events", { value: new PropertyChainEvents() });
 
 		// Cache the chain to avoid having to evaluate the same path more than once
 		var cache: { [name: string]: PropertyChain } = (rootType as any)._chains;
@@ -106,14 +101,34 @@ export class PropertyChain {
 		}
 
 		cache[pathTokens.expression] = this;
-	}
 
-	get changed(): EventSubscriber<Entity, PropertyChainChangeEventArgs> {
-		return this._events.changedEvent.asEventSubscriber();
-	}
+		// create the accessed event and automatically subscribe to property accesses along the path when the event is used
+		this.accessed = new Event<Entity, PropertyAccessEventArgs>((event) => {
+			
+			if (event.hasSubscribers() && !this.stepAccessed) {
+				this.stepAccessed = args => { 
+					this.rootType.known().forEach(known => {
+						if (this.testConnection(known, args.entity, priorProp)) {
+							(this.accessed as EventPublisher<Entity, PropertyAccessEventArgs>).publish(known, {
+								entity: known,
+								chain: this,
+								originalEntity: args.entity,
+								property: args.property,
+								value: args.value,
+							});
+						}
+					});
+				};
+				properties.forEach(property => property.accessed.subscribe(this.stepAccessed));
+			}
+			else if (!event.hasSubscribers() && this.stepAccessed) {
+				properties.forEach(property => property.accessed.unsubscribe(this.stepAccessed));
+				this.stepAccessed = null;
+			}
+			
+		});
 
-	get accessed(): EventSubscriber<Entity, PropertyChainAccessEventArgs> {
-		return this._events.accessedEvent.asEventSubscriber();
+		this.accessed = new Event<Entity, PropertyAccessEventArgs>();
 	}
 
 	equals(prop: Property | PropertyChain): boolean {
@@ -123,16 +138,16 @@ export class PropertyChain {
 		}
 
 		if (prop instanceof Property) {
-			return this._properties.length === 1 && this._properties[0] === prop;
+			return this.properties.length === 1 && this.properties[0] === prop;
 		}
 
 		if (prop instanceof PropertyChain) {
-			if (prop._properties.length !== this._properties.length) {
+			if (prop.properties.length !== this.properties.length) {
 				return false;
 			}
 
-			for (var i = 0; i < this._properties.length; i++) {
-				if (!this._properties[i].equals(prop._properties[i])) {
+			for (var i = 0; i < this.properties.length; i++) {
+				if (!this.properties[i].equals(prop.properties[i])) {
 					return false;
 				}
 			}
@@ -162,39 +177,33 @@ export class PropertyChain {
 		// invoke callback on obj first
 		var target: Entity = arguments[4] || obj;
 		var lastProp: Property = arguments[6] || null;
-		var props = this._properties.slice(arguments[5] || 0);
-		for (var p: number = arguments[5] || 0; p < this._properties.length; p++) {
-			var prop = this._properties[p];
-			var isLastProperty = p === this._properties.length - 1;
+		var props = this.properties.slice(arguments[5] || 0);
+		for (var p: number = arguments[5] || 0; p < this.properties.length; p++) {
+			var prop = this.properties[p];
+			var isLastProperty = p === this.properties.length - 1;
 			var canSkipRemainingProps = isLastProperty || (propFilter && lastProp === propFilter);
 			var enableCallback = (!propFilter || lastProp === propFilter);
 	
 			if (target instanceof Array) {
 				// if the target is a list, invoke the callback once per item in the list
 				for (var i = 0; i < target.length; ++i) {
-					// take into account any any chain filters along the way
-					if (!this._propertyFilters || !this._propertyFilters[p] || this._propertyFilters[p](target[i])) {
-	
-						if (enableCallback && callback.call(thisPtr || this, target[i], i, target, prop, p, props) === false) {
+
+					if (enableCallback && callback.call(thisPtr || this, target[i], i, target, prop, p, props) === false) {
+						return false;
+					}
+
+					if (!canSkipRemainingProps) {
+						var targetValue = prop.value(target[i]);
+						// continue along the chain for this list item
+						if (!targetValue || PropertyChain.prototype.forEach.call(this, obj, callback, thisPtr, propFilter, targetValue, p + 1, prop) === false) {
 							return false;
-						}
-	
-						if (!canSkipRemainingProps) {
-							var targetValue = prop.value(target[i]);
-							// continue along the chain for this list item
-							if (!targetValue || PropertyChain.prototype.forEach.call(this, obj, callback, thisPtr, propFilter, targetValue, p + 1, prop) === false) {
-								return false;
-							}
 						}
 					}
 				}
 				// subsequent properties already visited in preceding loop
 				return true;
-			} else {
-				// return early if the target is filtered and does not match
-				if (this._propertyFilters && this._propertyFilters[p] && this._propertyFilters[p](target) === false) {
-					break;
-				}
+			} 
+			else {
 	
 				// take into account any chain filters along the way
 				if (enableCallback && callback.call(thisPtr || this, target, -1, null, prop, p, props) === false) {
@@ -221,6 +230,10 @@ export class PropertyChain {
 		return true;
 	}
 
+	get containingType(): Type {
+		return this.rootType;
+	}
+
 	get path(): string {
 		if (!this._path) {
 			let path = getPropertyChainPathFromIndex(this, 0);
@@ -231,21 +244,21 @@ export class PropertyChain {
 	}
 
 	get firstProperty(): Property {
-		return this._properties[0];
+		return this.properties[0];
 	}
 
 	get lastProperty(): Property {
-		return this._properties[this._properties.length - 1];
+		return this.properties[this.properties.length - 1];
 	}
 
 	toPropertyArray(): Property[] {
-		return this._properties.slice();
+		return this.properties.slice();
 	}
 
 	getLastTarget(obj: Entity): Entity {
 
-		for (var p = 0; p < this._properties.length - 1; p++) {
-			var prop = this._properties[p];
+		for (var p = 0; p < this.properties.length - 1; p++) {
+			var prop = this.properties[p];
 
 			// exit early on null or undefined
 			if (!obj === undefined || obj === null)
@@ -281,10 +294,10 @@ export class PropertyChain {
 	}
 
 	getRootedPath(rootType: Type) {
-		for (var i = 0; i < this._properties.length; i++) {
-			if (rootType.hasModelProperty(this._properties[i])) {
+		for (var i = 0; i < this.properties.length; i++) {
+			if (rootType.hasModelProperty(this.properties[i])) {
 				var path = getPropertyChainPathFromIndex(this, i);
-				return this._properties[i].isStatic ? this._properties[i].containingType + "." + path : path;
+				return this.properties[i].isStatic ? this.properties[i].containingType + "." + path : path;
 			}
 		}
 	}
@@ -301,9 +314,13 @@ export class PropertyChain {
 		return this.lastProperty.isList;
 	}
 
-	// get isStatic(): boolean {
-	// 	return this.lastProperty.isStatic;
-	// }
+	get isStatic(): boolean {
+		return this.lastProperty.isStatic;
+	}
+
+	get isCalculated(): boolean {
+		return this.lastProperty.isCalculated;
+	}
 
 	get label(): string {
 		return this.lastProperty.label;
@@ -313,13 +330,9 @@ export class PropertyChain {
 		return this.lastProperty.helptext;
 	}
 
-	// get name() {
-	// 	return this.lastProperty.name;
-	// }
-
-	// rules(filter) {
-	// 	return this.lastProperty().rules(filter);
-	// }
+	get name() {
+		return this.lastProperty.name;
+	}
 
 	value(obj: Entity = null, val: any = null, additionalArgs: any = null): any {
 		var lastTarget = this.getLastTarget(obj);
@@ -338,7 +351,7 @@ export class PropertyChain {
 	 * @param enforceCompleteness Whether or not the chain must be complete in order to be considered initialized
 	 */
 	isInited(obj: Entity, enforceCompleteness: boolean = false /*, fromIndex: number, fromProp: IProperty */) {
-		var allInited = true, initedProperties: Property[] = [], fromIndex = arguments[2] || 0, fromProp = arguments[3] || null, expectedProps = this._properties.length - fromIndex;
+		var allInited = true, initedProperties: Property[] = [], fromIndex = arguments[2] || 0, fromProp = arguments[3] || null, expectedProps = this.properties.length - fromIndex;
 
 		PropertyChain.prototype.forEach.call(this, obj, function (target: any, targetIndex: number, targetArray: any[], property: Property, propertyIndex: number, properties: Property[]) {
 			if (targetArray && enforceCompleteness) {
@@ -372,37 +385,10 @@ export class PropertyChain {
 	}
 
 	toString() {
-		var path = this._properties.map(function (e) { return e.name; }).join(".");
+		var path = this.properties.map(function (e) { return e.name; }).join(".");
 		return `this<${this.rootType}>.${path}`;
 	}
 
-}
-
-export class PropertyChainEvents {
-	readonly changedEvent: Event<Entity, PropertyChainChangeEventArgs>;
-	readonly accessedEvent: Event<Entity, PropertyChainAccessEventArgs>;
-	constructor() {
-		this.changedEvent = new Event<Entity, PropertyChainChangeEventArgs>();
-		this.accessedEvent = new Event<Entity, PropertyChainAccessEventArgs>();
-	}
-}
-
-export interface PropertyChainAccessEventHandler {
-    (this: Entity, args: EventObject & PropertyChainAccessEventArgs): void;
-}
-
-export interface PropertyChainAccessEventArgs extends PropertyAccessEventArgs {
-	chain: PropertyChain;
-	originalEntity: Entity;
-}
-
-export interface PropertyChainChangeEventHandler {
-    (this: Entity, args: EventObject & PropertyChainChangeEventArgs): void;
-}
-
-export interface PropertyChainChangeEventArgs extends PropertyChangeEventArgs {
-	chain: PropertyChain;
-	originalEntity: Entity;
 }
 
 export interface PropertyChainConstructor {
@@ -435,100 +421,6 @@ function getPropertyChainPathFromIndex(chain: PropertyChain, startIndex: number)
 
 }
 
-function onPropertyChainStepAccessed(chain: PropertyChain, priorProp: Property, entity: Entity, args: PropertyAccessEventArgs) {
-	// scan all known objects of this type and raise event for any instance connected
-	// to the one that sent the event.
-	chain.rootType.known().forEach(function (known: Entity) {
-		if (chain.testConnection(known, args.entity, priorProp)) {
-			chain._events.accessedEvent.publish(known, {
-				entity: known,
-				chain: chain,
-				originalEntity: args.entity,
-				property: args.property,
-				value: args.value,
-			});
-		}
-	});
-}
-
-function updatePropertyAccessSubscriptions(chain: PropertyChain, props: (Property & Property)[], subscriptions: ContextualEventRegistration<Entity, PropertyAccessEventArgs, Entity>[]) {
-	var chainEventSubscriptions = getEventSubscriptions<Entity, PropertyChainAccessEventArgs>(chain._events.accessedEvent);
-	var chainEventSubscriptionsExist = chainEventSubscriptions && chainEventSubscriptions.length > 0;
-	var subscribedToPropertyChanges = subscriptions !== null && subscriptions.length > 0;
-
-	if (!chainEventSubscriptionsExist && subscribedToPropertyChanges) {
-		// If there are no more subscribers then unsubscribe from property-level events
-		props.forEach((prop: Property, index: number) => prop.accessed.unsubscribe(subscriptions[index].handler));
-		subscriptions.length = 0;
-	}
-
-	if (chainEventSubscriptionsExist && !subscribedToPropertyChanges) {
-		// If there are subscribers and we have not subscribed to property-level events, then do so
-		subscriptions.length = 0;
-		props.forEach(function (prop, index) {
-			var priorProp = (index === 0) ? undefined : props[index - 1];
-			let handler = function (this: Entity, args: PropertyAccessEventArgs) { onPropertyChainStepAccessed(chain, priorProp, this, args) };
-			Property$addAccessed(prop, handler);
-			subscriptions.push({ registeredHandler: handler, handler });
-		}, chain);
-	}
-}
-
-export function PropertyChain$_addAccessedHandler(chain: PropertyChain, handler: PropertyChainAccessEventHandler, obj: Entity = null, toleratePartial: boolean): void {
-
-	let propertyAccessFilters = Functor$create(true) as FunctorWith1Arg<Entity, boolean> & ((entity: Entity) => boolean[]);
-
-	let context: Entity = null;
-
-	let filteredHandler: (this: Entity, args: EventObject & PropertyChainAccessEventArgs) => void = null;
-
-	if (obj) {
-		propertyAccessFilters.add((entity) => entity === obj);
-		context = obj;
-	}
-
-	propertyAccessFilters.add((entity) => chain.isInited(entity, true));
-
-	filteredHandler = function (args) {
-		let filterResults = propertyAccessFilters(args.entity);
-		if (!filterResults.some(b => !b)) {
-			handler.call(this, args);
-		}
-	};
-
-	chain._events.accessedEvent.subscribe(filteredHandler);
-
-	chain._propertyChainAccessSubscriptions.push({ registeredHandler: filteredHandler, handler, context });
-
-	updatePropertyAccessSubscriptions(chain, chain._properties, chain._propertyAccessSubscriptions);
-
-}
-
-export function PropertyChain$_removeAccessedHandler(chain: PropertyChain, handler: PropertyChainAccessEventHandler, obj: Entity = null, toleratePartial: boolean): void {
-	chain._propertyAccessSubscriptions.forEach(sub => {
-		if (handler === sub.handler && ((!obj && !sub.context) || (obj && obj === sub.context))) {
-			chain._events.accessedEvent.unsubscribe(sub.registeredHandler);
-		}
-	});
-}
-
-function onPropertyChainStepChanged(chain: PropertyChain, priorProp: Property, entity: Entity, args: PropertyChangeEventArgs) {
-	// scan all known objects of this type and raise event for any instance connected
-	// to the one that sent the event.
-	chain.rootType.known().forEach(function (known: Entity) {
-		if (chain.testConnection(known, args.entity, priorProp)) {
-			chain._events.changedEvent.publish(known, {
-				entity: known,
-				chain: chain,
-				property: args.property,
-				originalEntity: args.entity,
-				oldValue: args.oldValue,
-				newValue: args.newValue,
-			});
-		}
-	});
-}
-
 function updatePropertyChangeSubscriptions(chain: PropertyChain, props: Property[] = null, subscriptions: ContextualEventRegistration<Entity, PropertyChangeEventArgs, Entity>[]) {
 	var chainEventSubscriptions = getEventSubscriptions<Entity, PropertyChainChangeEventArgs>(chain._events.changedEvent);
 	var chainEventSubscriptionsExist = chainEventSubscriptions && chainEventSubscriptions.length > 0;
@@ -545,8 +437,23 @@ function updatePropertyChangeSubscriptions(chain: PropertyChain, props: Property
 		subscriptions.length = 0;
 		props.forEach((prop, index) => {
 			var priorProp = (index === 0) ? undefined : props[index - 1];
-			let handler = function (this: Entity, args: PropertyChangeEventArgs) { onPropertyChainStepChanged(chain, priorProp, this, args) };
-			Property$addChanged(prop, handler);
+			let handler = function (this: Entity, args: PropertyChangeEventArgs) { 
+				// scan all known objects of this type and raise event for any instance connected
+				// to the one that sent the event.
+				chain.rootType.known().forEach(function (known: Entity) {
+					if (chain.testConnection(known, args.entity, priorProp)) {
+						chain.changedEvent.publish(known, {
+							entity: known,
+							chain: chain,
+							property: args.property,
+							originalEntity: args.entity,
+							oldValue: args.oldValue,
+							newValue: args.newValue,
+						});
+					}
+				});
+			 };
+			prop.changed.subscribe(handler);
 			subscriptions.push({ registeredHandler: handler, handler });
 		}, chain);
 	}
@@ -580,7 +487,7 @@ export function PropertyChain$_addChangedHandler(chain: PropertyChain, handler: 
 
 	chain._propertyChainChangeSubscriptions.push({ registeredHandler: filteredHandler, handler, context });
 
-	updatePropertyChangeSubscriptions(chain, chain._properties, chain._propertyChangeSubscriptions);
+	updatePropertyChangeSubscriptions(chain, chain.properties, chain._propertyChangeSubscriptions);
 
 }
 

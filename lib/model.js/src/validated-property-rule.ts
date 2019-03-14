@@ -1,5 +1,5 @@
 import { ConditionRule, ConditionRuleOptions } from "./condition-rule";
-import { registerPropertyRule, RuleOptions } from "./rule";
+import { RuleOptions } from "./rule";
 import { PropertyRule, Property, PropertyRuleOptions } from "./property";
 import { Entity } from "./entity";
 import { Type } from "./type";
@@ -19,16 +19,17 @@ export class ValidatedPropertyRule extends ConditionRule implements PropertyRule
 		var property = typeof options.property === "string" ? rootType.getProperty(options.property) as Property : options.property as Property;
 
 		// ensure the properties and predicates to include the target property
-
 		if (!options.properties) {
-			options.properties = [property.name];
-		} else if (options.properties.indexOf(property.name) < 0 && options.properties.indexOf(property) < 0) {
-			options.properties.push(property.name);
+			options.properties = [property];
+		} 
+		else if (options.properties.indexOf(property) < 0) {
+			options.properties.push(property);
 		}
 
 		if (!options.onChangeOf) {
 			options.onChangeOf = [property];
-		} else if (options.onChangeOf.indexOf(property.name) < 0 && options.onChangeOf.indexOf(property) < 0) {
+		} 
+		else if (options.onChangeOf.indexOf(property) < 0) {
 			options.onChangeOf.push(property);
 		}
 
@@ -60,41 +61,25 @@ export class ValidatedPropertyRule extends ConditionRule implements PropertyRule
 			}
 		}
 
+		options.assert = function(this: Entity): boolean {
+			var isValid = options.isValid.call(this, options.property as Property, options.property.value(this));
+			return isValid === undefined ? isValid : !isValid;
+		}
+
 		// call the base rule constructor
 		super(rootType, options);
 
 		Object.defineProperty(this, "property", { value: property });
 
-		// override the prototype isValid function if specified
-		if (options.isValid instanceof Function) {
-			Object.defineProperty(this, "_isValid", { value: options.isValid });
-		}
-	}
-
-	// returns false if the property is valid, true if invalid, or undefined if unknown
-	isValid(obj: Entity, prop: Property, val: any): boolean {
-		return this._isValid.call(obj, prop, val);
-	}
-
-	// returns false if the property is valid, true if invalid, or undefined if unknown
-	assert(obj: Entity): boolean {
-		var isValid = this.isValid(obj, this.property as Property, this.property.value(obj));
-		return isValid === undefined ? isValid : !isValid;
-	}
-
-	// perform addition initialization of the rule when it is registered
-	onRegister(): void {
-
 		// register the rule with the target property
-		registerPropertyRule(this);
+		this.property.rules.push(this);
 	}
-
 }
 
 export interface ValidatedPropertyRuleOptions extends PropertyRuleOptions {
 
 	// function (obj, prop, val) { return true; } (a predicate that returns true when the property is valid)
-	isValid?: string | ((this: Entity, prop: Property, val: any) => boolean);
+	isValid?: ((this: Entity, prop: Property, val: any) => boolean);
 
 	message?: string | ((this: Entity) => string);
 }

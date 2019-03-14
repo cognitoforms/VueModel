@@ -1,13 +1,11 @@
 import { Entity, EntityConstructorForType } from "./entity";
-import { Property$addChanged, Property$addAccessed, hasPropertyChangedSubscribers, Property$pendingInit, Property$getRules, Property, PropertyChangeEventArgs, PropertyAccessEventArgs, PropertyRule } from "./property";
-import { PropertyChain, PropertyChainChangeEventArgs, PropertyChainAccessEventArgs } from "./property-chain";
+import { PropertyChangeEventArgs, PropertyAccessEventArgs } from "./property-path";
+import { Property$pendingInit, Property } from "./property";
+import { PropertyChain } from "./property-chain";
 import { Type } from "./type";
-import { getPropertyOrPropertyChain } from "./model";
 import { RuleInvocationType } from "./rule-invocation-type";
 import { EventScope$current, EventScope$perform, EventScope$onExit, EventScope$onAbort } from "./event-scope";
 import { ObjectMeta } from "./object-meta";
-import { PathTokens$normalizePaths } from "./path-tokens";
-import { getEventSubscriptions } from "./helpers";
 import { ErrorConditionType, WarningConditionType, ConditionType, ErrorConditionTypeConstructor, WarningConditionTypeConstructor } from "./condition-type";
 
 // TODO: Make `detectRunawayRules` an editable configuration value
@@ -180,38 +178,6 @@ export class Rule {
 		// Indicate that the rule should now be considered registered and cannot be reconfigured
 		Object.defineProperty(this, '_registered', { enumerable: false, value: true, writable: false });
 
-		// resolve return values, which should all be loaded since the root type is now definitely loaded
-		if (rule.returnValues) {
-			rule.returnValues.forEach(function (returnValue, i) {
-				if (!(returnValue instanceof Property)) {
-					rule.returnValues[i] = rule.rootType.getProperty((returnValue as any) as string);
-				}
-			});
-		}
-
-		// resolve all predicates, because the rule cannot run until the dependent types have all been loaded
-		if (rule.predicates) {
-			// setup loading of each property path that the calculation is based on
-			for (let i = 0; i < rule.predicates.length; i++) {
-				let predicate = rule.predicates[i];
-				if (typeof predicate === "string") {
-					// Parse string inputs, which may be paths containing nesting {} hierarchial syntax
-					PathTokens$normalizePaths([predicate]).forEach(function (path, index) {
-						var prop = getPropertyOrPropertyChain(path, rule.rootType);
-						if (index == 0) {
-							rule.predicates[i] = prop;
-						} else {
-							// If expanding resulted in more than one path, then expand the predicates array accordingly
-							rule.predicates.splice(i++, 0, prop);
-						}
-					}, this);
-				} else if (!(predicate instanceof Property || predicate instanceof PropertyChain)) {
-					// TODO: Remove invalid predicates?
-					rule.predicates.splice(i--, 1);
-				}
-			}
-		}
-
 		// register for init new
 		if (rule.invocationTypes & RuleInvocationType.InitNew) {
 			rule.rootType._events.initNewEvent.subscribe(function (args) { executeRule(rule, args.entity, args) });
@@ -225,22 +191,19 @@ export class Rule {
 		// register for property change
 		if (rule.invocationTypes & RuleInvocationType.PropertyChanged) {
 			rule.predicates.forEach(function (predicate) {
-				Property$addChanged(predicate,
-					function (args: PropertyChangeEventArgs | PropertyChainChangeEventArgs) {
-						if (canExecuteRule(rule, args.entity, args) && !pendingInvocation(args.entity.meta as ObjectMeta, rule)) {
-							pendingInvocation(args.entity.meta as ObjectMeta, rule, true);
+				predicate.changed.subscribe(
+					function (args) {
+						if (canExecuteRule(rule, args.entity, args) && !pendingInvocation(args.entity.meta, rule)) {
+							pendingInvocation(args.entity.meta, rule, true);
 							EventScope$onExit(function () {
-								pendingInvocation(args.entity.meta as ObjectMeta, rule, false);
+								pendingInvocation(args.entity.meta, rule, false);
 								executeRule(rule, args.entity, args);
 							});
 							EventScope$onAbort(function () {
-								pendingInvocation(args.entity.meta as ObjectMeta, rule, false);
+								pendingInvocation(args.entity.meta, rule, false);
 							});
 						}
-					},
-					null, // no object filter
-					// false, // subscribe for all time, not once
-					true // tolerate nulls since rule execution logic will handle guard conditions
+					}
 				);
 			});
 		}
@@ -250,20 +213,22 @@ export class Rule {
 
 			// register for property get events for each return value to calculate the property when accessed
 			rule.returnValues.forEach(function (returnValue) {
-				Property$addAccessed(returnValue, function (args: PropertyAccessEventArgs | PropertyChainAccessEventArgs) {
-					// run the rule to initialize the property if it is pending initialization
-					if (canExecuteRule(rule, args.entity, args) && Property$pendingInit(args.entity, returnValue)) {
-						Property$pendingInit(args.entity, returnValue, false);
-						executeRule(rule, args.entity, args);
+				returnValue.accessed.subscribe(
+					function (args) {
+						// run the rule to initialize the property if it is pending initialization
+						if (canExecuteRule(rule, args.entity, args) && Property$pendingInit(args.entity, returnValue)) {
+							Property$pendingInit(args.entity, returnValue, false);
+							executeRule(rule, args.entity, args);
+						}
 					}
-				});
+				);
 			});
 
 			// register for property change events for each predicate to invalidate the property value when inputs change
 			rule.predicates.forEach(function (predicate) {
-				Property$addChanged(predicate,
-					function (args: PropertyChangeEventArgs | PropertyChainChangeEventArgs) {
-						if (rule.returnValues.some((returnValue) => hasPropertyChangedSubscribers(returnValue, args.entity))) {
+				predicate.changed.subscribe(
+					function (args) {
+						if (rule.returnValues.some((returnValue) => returnValue.changed.hasSubscribers())) {
 							// Immediately execute the rule if there are explicit event subscriptions for the property
 							if (canExecuteRule(rule, args.entity, args) && !pendingInvocation(args.entity.meta, rule)) {
 								pendingInvocation(args.entity.meta, rule, true);
@@ -288,10 +253,7 @@ export class Rule {
 								});
 							});
 						}
-					},
-					null, // no object filter
-					// false, // subscribe for all time, not once
-					true // tolerate nulls since rule execution logic will handle guard conditions
+					}
 				);
 			});
 		}
@@ -395,21 +357,6 @@ function executeRule(rule: Rule, obj: Entity, eventArgument: any): void {
 		rule.execute(obj);
 	});
 };
-
-// registers a rule with a specific property
-export function registerPropertyRule(rule: PropertyRule) {
-
-	let propRules = Property$getRules(rule.property);
-
-	propRules.push(rule);
-
-	// Raise events if registered.
-	let subscriptions = getEventSubscriptions(rule.property._events.ruleRegisteredEvent);
-	if (subscriptions && subscriptions.length > 0) {
-		rule.property._events.ruleRegisteredEvent.publish(rule.property, { rule: rule });
-	}
-
-}
 
 function extractRuleOptions(obj: any): RuleOptions & RuleInvocationOptions {
 

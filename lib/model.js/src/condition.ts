@@ -3,6 +3,8 @@ import { FormatError$getConditionType } from "./format-error";
 import { Entity } from "./entity";
 import { ConditionType } from "./condition-type";
 import { ConditionTarget } from "./condition-target";
+import { PropertyPath } from "./property-path";
+import { Property } from "./property";
 
 export class Condition {
 
@@ -17,87 +19,82 @@ export class Condition {
 		* @param message The optional message to use for the condition, which will default to the condition type message if not specified.
 		* @param target The root target entity the condition is associated with.
 		* @param properties The set of property paths specifying which properties and entities the condition should be attached to.
-		* @param origin The original source of the condition, either "client" or "server".
 		*/
-	constructor(type: ConditionType, message: string, target: Entity, properties: string[], origin: string = null) {
+	constructor(type: ConditionType, message: string, target: Entity, properties: PropertyPath[] = []) {
 
 		this.type = type;
 		this.message = message || (type ? type.message : undefined);
-		this.origin = origin;
-
 		let targets: ConditionTarget[] = [];
 
 		// create targets if a root was specified
 		if (target) {
 
-			// set the properties to an empty array if not specified and normalize the paths to expand {} syntax if used
-			let paths = PathTokens$normalizePaths(properties || []);
+			// process each property path to build up the condition sources
+			for (let p = properties.length - 1; p >= 0; p--) {
 
-			// create a single condition target if the specified properties are all on the root
-			if (paths.every(function (p) { return p.steps.length === 1; }))
-				targets.push(new ConditionTarget(this, target, paths.map(path => target.meta.type.getProperty(path.expression))));
+				let property = properties[p];
+				// if (property instanceof Property) {
+				// 	targets.push(new ConditionTarget(this, target, properties.map(p => p as Property)));
+				// }
+				
+				// // property.forEach(target, function (obj) {
+					
+				// // }, this, property.l);
 
-			// otherwise, process the property paths to create the necessary sources
-			else {
+				// let instances = [target];
 
-				// process each property path to build up the condition sources
-				for (let p = paths.length - 1; p >= 0; p--) {
-					let steps = paths[p].steps;
-					let instances = [target];
+				// let leaf = steps.length - 1;
 
-					let leaf = steps.length - 1;
+				// // iterate over each step along the path
+				// for (let s = 0; s < steps.length; s++) {
+				// 	let step = steps[s].property;
+				// 	let childInstances: Entity[] = [];
 
-					// iterate over each step along the path
-					for (let s = 0; s < steps.length; s++) {
-						let step = steps[s].property;
-						let childInstances: Entity[] = [];
+				// 	// create condition targets for all instances for the current step along the path
+				// 	for (let i = instances.length - 1; i >= 0; i--) {
+				// 		let instance = instances[i];
 
-						// create condition targets for all instances for the current step along the path
-						for (let i = instances.length - 1; i >= 0; i--) {
-							let instance = instances[i];
+				// 		// get the property for the current step and instance type and skip if the property cannot be found
+				// 		let property = instance.meta.type.getProperty(step);
+				// 		if (!property) {
+				// 			continue;
+				// 		}
 
-							// get the property for the current step and instance type and skip if the property cannot be found
-							let property = instance.meta.type.getProperty(step);
-							if (!property) {
-								continue;
-							}
+				// 		// only create conditions on the last step, the leaf node
+				// 		if (s === leaf) {
+				// 			// see if a target already exists for the current instance
+				// 			let conditionTarget = null;
+				// 			for (let t = targets.length - 1; t >= 0; t--) {
+				// 				if (targets[t].target === instance) {
+				// 					conditionTarget = targets[t];
+				// 					break;
+				// 				}
+				// 			}
 
-							// only create conditions on the last step, the leaf node
-							if (s === leaf) {
-								// see if a target already exists for the current instance
-								let conditionTarget = null;
-								for (let t = targets.length - 1; t >= 0; t--) {
-									if (targets[t].target === instance) {
-										conditionTarget = targets[t];
-										break;
-									}
-								}
+				// 			// create the condition target if it does not already exist
+				// 			if (!conditionTarget) {
+				// 				conditionTarget = new ConditionTarget(this, instance, [property]);
+				// 				targets.push(conditionTarget);
+				// 			}
 
-								// create the condition target if it does not already exist
-								if (!conditionTarget) {
-									conditionTarget = new ConditionTarget(this, instance, [property]);
-									targets.push(conditionTarget);
-								}
+				// 			// otherwise, just ensure it references the current step
+				// 			else if (conditionTarget.properties.indexOf(property) < 0)
+				// 				conditionTarget.properties.push(property);
+				// 		}
 
-								// otherwise, just ensure it references the current step
-								else if (conditionTarget.properties.indexOf(property) < 0)
-									conditionTarget.properties.push(property);
-							}
+				// 		// get the value of the current step
+				// 		var child = property.value(instance);
 
-							// get the value of the current step
-							var child = property.value(instance);
+				// 		// add the children, if any, to the set of child instances to process for the next step
+				// 		if (child instanceof Entity)
+				// 			childInstances.push(child);
+				// 		else if (child instanceof Array && child.length > 0 && child[0] instanceof Entity)
+				// 			childInstances = childInstances.concat(child);
+				// 	}
 
-							// add the children, if any, to the set of child instances to process for the next step
-							if (child instanceof Entity)
-								childInstances.push(child);
-							else if (child instanceof Array && child.length > 0 && child[0] instanceof Entity)
-								childInstances = childInstances.concat(child);
-						}
-
-						// assign the set of instances to process for the next step
-						instances = childInstances;
-					}
-				}
+				// 	// assign the set of instances to process for the next step
+				// 	instances = childInstances;
+				// }
 			}
 		}
 

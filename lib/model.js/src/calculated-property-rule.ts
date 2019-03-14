@@ -1,4 +1,4 @@
-import { Rule, registerPropertyRule, RuleOptions, RuleInvocationOptions } from "./rule";
+import { Rule, RuleOptions, RuleInvocationOptions } from "./rule";
 import { Type } from "./type";
 import { Property, PropertyRule, PropertyRuleOptions } from "./property";
 import { Entity } from "./entity";
@@ -62,6 +62,13 @@ export class CalculatedPropertyRule extends Rule {
 
 		// Backing fields for properties
 		if (calculateFn) Object.defineProperty(this, "_calculateFn", { enumerable: false, value: calculateFn, writable: true });
+
+		// register the rule with the target property
+		this.property.rules.push(this);
+
+		// mark the property as calculated if the rule runs on property access
+		if (this.invocationTypes & RuleInvocationType.PropertyGet)
+			this.property.isCalculated = true;
 	}
 
 	execute(obj: Entity) {
@@ -130,15 +137,6 @@ export class CalculatedPropertyRule extends Rule {
 
 	toString() {
 		return "calculation of " + this.property.name;
-	}
-
-	// perform additional initialization of the rule when it is registered
-	onRegister() {
-		// register the rule with the target property
-		registerPropertyRule(this);
-
-		if (this.invocationTypes & RuleInvocationType.PropertyGet)
-			this.property.isCalculated = true;
 	}
 }
 
