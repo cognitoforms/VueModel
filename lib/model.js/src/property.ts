@@ -13,6 +13,7 @@ import { ConditionRuleOptions } from "./condition-rule";
 import { AllowedValuesRuleOptions } from "./allowed-values-rule";
 import { ValidatedPropertyRuleOptions, ValidatedPropertyRule } from "./validated-property-rule";
 import { AllowedValuesRule } from "./allowed-values-rule";
+import { RequiredRule } from "./required-rule";
 
 export class Property {
 
@@ -295,6 +296,25 @@ export class Property {
 					});
 				} else {
 					throw new Error(`Invalid property 'get' option of type '${getTypeName(options.get)}'.`);
+				}
+			}
+
+			// Required
+			if (options.required) {
+
+				// Always Required
+				if (typeof (options.required) === "boolean") {
+
+					let rule = new RequiredRule(this.containingType, { property: this });
+
+					this.containingType.model.ready(() => {
+						rule.register();
+					});
+				}
+
+				// Conditionally Required
+				else {
+					// required if
 				}
 			}
 

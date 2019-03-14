@@ -1,5 +1,5 @@
 import { Type, isEntityType, EntityType } from "./type";
-import { Property, PropertyAccessEventArgs, PropertyChangeEventArgs } from "./property";
+import { Property, PropertyAccessEventArgs, PropertyChangeEventArgs, Property$addChanged, Property$addAccessed } from "./property";
 import { Event, EventSubscriber, ContextualEventRegistration, EventObject } from "./events";
 import { FunctorWith1Arg, Functor$create } from "./functor";
 import { Entity } from "./entity";
@@ -468,7 +468,7 @@ function updatePropertyAccessSubscriptions(chain: PropertyChain, props: (Propert
 		props.forEach(function (prop, index) {
 			var priorProp = (index === 0) ? undefined : props[index - 1];
 			let handler = function (this: Entity, args: PropertyAccessEventArgs) { onPropertyChainStepAccessed(chain, priorProp, this, args) };
-			prop._events.accessedEvent.subscribe(handler);
+			Property$addAccessed(prop, handler);
 			subscriptions.push({ registeredHandler: handler, handler });
 		}, chain);
 	}
@@ -546,7 +546,7 @@ function updatePropertyChangeSubscriptions(chain: PropertyChain, props: Property
 		props.forEach((prop, index) => {
 			var priorProp = (index === 0) ? undefined : props[index - 1];
 			let handler = function (this: Entity, args: PropertyChangeEventArgs) { onPropertyChainStepChanged(chain, priorProp, this, args) };
-			prop.changed.subscribe(handler);
+			Property$addChanged(prop, handler);
 			subscriptions.push({ registeredHandler: handler, handler });
 		}, chain);
 	}

@@ -3,6 +3,7 @@ import { registerPropertyRule, RuleOptions } from "./rule";
 import { PropertyRule, Property, PropertyRuleOptions } from "./property";
 import { Entity } from "./entity";
 import { Type } from "./type";
+import { Format } from "./format";
 
 export class ValidatedPropertyRule extends ConditionRule implements PropertyRule {
 
@@ -31,14 +32,32 @@ export class ValidatedPropertyRule extends ConditionRule implements PropertyRule
 			options.onChangeOf.push(property);
 		}
 
-		// Default condition category to Error if a condition category was not specified
+		// default condition category to Error if a condition category was not specified
 		if (!options.conditionType) {
 			options.category = "Error";
 		}
 
 		// replace the property label token in the validation message if present
-		if (options.message && typeof (options.message) !== "function") {
-			options.message = options.message.replace('{property}', property.label);
+		if (options.message && typeof (options.message) !== "function" && options.message.indexOf("{property}") >= 0) {
+
+			// Property label with dynamic format tokens
+			if (Format.hasTokens(property.label)) {
+
+				// convert the property label into a model format
+				let format = Format.fromTemplate(rootType, property.label);
+
+				// create a function to apply the format to the property label when generating the message
+				let message = options.message;
+				options.message = function () { return message.replace('{property}', format.convert(this)); }
+
+				// ensure tokens included in the format trigger rule execution
+				Array.prototype.push.apply(options.properties, format.paths);
+			}
+
+			// Static property label
+			else {
+				options.message = options.message.replace('{property}', property.label);
+			}
 		}
 
 		// call the base rule constructor
@@ -77,7 +96,7 @@ export interface ValidatedPropertyRuleOptions extends PropertyRuleOptions {
 	// function (obj, prop, val) { return true; } (a predicate that returns true when the property is valid)
 	isValid?: string | ((this: Entity, prop: Property, val: any) => boolean);
 
-	message?: string
+	message?: string | ((this: Entity) => string);
 }
 
 export interface ValidatedPropertyRuleConstructor {
