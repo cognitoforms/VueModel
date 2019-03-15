@@ -54,6 +54,7 @@ export class Type {
 		this._properties = {};
 		this._formats = {};
 		this._derivedTypes = [];
+		this.chains = {};
 
 		this.initNew = new Event<Type, EntityInitNewEventArgs>();
 		this.initExisting = new Event<Type, EntityInitExistingEventArgs>();

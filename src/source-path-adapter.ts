@@ -11,7 +11,7 @@ import { PropertyChain } from "../lib/model.js/src/property-chain";
 import { ObservableArray, updateArray } from "../lib/model.js/src/observable-array";
 import { PropertyPath } from '../lib/model.js/src/property-path';
 import { SourceItemAdapter } from './source-item-adapter';
-import { isEntityType } from '../lib/model.js/src';
+import { isEntityType } from '../lib/model.js/src/type';
 
 export type SourcePathOverrides = {
 	label?: string,
