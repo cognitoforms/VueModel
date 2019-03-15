@@ -21,37 +21,25 @@ export class EventScope {
 
 	parent: EventScope;
 
-	_isActive: boolean;
+	isActive: boolean;
 
 	private _exitEventVersion: number;
 	private _exitEventHandlerCount: number;
 
-	readonly _events: EventScopeEvents;
+	readonly onExit: EventSubscriber<EventScope, EventScopeExitEventArgs>;
+	readonly onAbort: EventSubscriber<EventScope, EventScopeAbortEventArgs>;
 
 	constructor() {
+
 		// If there is a current event scope
 		// then it will be the parent of the new event scope
-		var parent = EventScope$current;
+		this.parent = EventScope$current;
 
-		Object.defineProperty(this, "parent", { enumerable: true, value: parent });
-
-		Object.defineProperty(this, "_isActive", { enumerable: false, value: true, writable: true });
-
-		Object.defineProperty(this, "_events", { value: new EventScopeEvents() });
+		this.isActive = true;
+		this.onExit = new Event<EventScope, EventScopeExitEventArgs>();
+		this.onAbort = new Event<EventScope, EventScopeAbortEventArgs>();
 
 		EventScope$current = this;
-	}
-
-	get isActive(): boolean {
-		return this._isActive;
-	}
-
-	get exitEvent(): EventSubscriber<EventScope, EventScopeExitEventArgs> {
-		return this._events.exitEvent.asEventSubscriber();
-	}
-
-	get abortEvent(): EventSubscriber<EventScope, EventScopeAbortEventArgs> {
-		return this._events.abortEvent.asEventSubscriber();
 	}
 
 	abort(maxNestingExceeded: boolean = false) {
@@ -60,17 +48,16 @@ export class EventScope {
 		}
 
 		try {
-			// TODO: Don't raise event if nothing is subscribed
-			this._events.abortEvent.publish(this, { maxNestingExceeded: maxNestingExceeded });
+			(this.onAbort as Event<EventScope, EventScopeAbortEventArgs>).publish(this, { maxNestingExceeded: maxNestingExceeded });
 
 			// Clear the events to ensure that they aren't
 			// inadvertantly raised again through this scope
-			this._events.abortEvent.clear();
-			this._events.exitEvent.clear();
+			this.onAbort.clear();
+			this.onExit.clear();
 		}
 		finally {
 			// The event scope is no longer active
-			this._isActive = false;
+			this.isActive = false;
 
 			if (EventScope$current && EventScope$current === this) {
 				// Roll back to the closest active scope
@@ -87,7 +74,7 @@ export class EventScope {
 		}
 
 		try {
-			var exitSubscriptions = getEventSubscriptions(this._events.exitEvent);
+			var exitSubscriptions = getEventSubscriptions(this.onExit as Event<EventScope, EventScopeExitEventArgs>);
 			if (exitSubscriptions && exitSubscriptions.length > 0) {
 
 				// If there is no parent scope, then go ahead and execute the 'exit' event
@@ -98,7 +85,7 @@ export class EventScope {
 					this._exitEventHandlerCount = exitSubscriptions.length;
 
 					// Invoke all subscribers
-					this._events.exitEvent.publish(this, {});
+					(this.onExit as Event<EventScope, EventScopeExitEventArgs>).publish(this, {});
 
 					// Delete the fields to indicate that raising the exit event suceeded
 					delete this._exitEventHandlerCount;
@@ -116,7 +103,7 @@ export class EventScope {
 					// Move subscribers to the parent scope
 					exitSubscriptions.forEach(sub => {
 						if (!sub.isOnce || !sub.isExecuted) {
-							this.parent._events.exitEvent.subscribe(sub.handler);
+							this.parent.onExit.subscribe(sub.handler);
 						}
 					});
 
@@ -127,13 +114,13 @@ export class EventScope {
 
 				// Clear the events to ensure that they aren't
 				// inadvertantly raised again through this scope
-				this._events.abortEvent.clear();
-				this._events.exitEvent.clear();
+				this.onAbort.clear();
+				this.onExit.clear();
 			}
 		}
 		finally {
 			// The event scope is no longer active
-			this._isActive = false;
+			this.isActive = false;
 
 			if (EventScope$current && EventScope$current === this) {
 				// Roll back to the closest active scope
@@ -143,19 +130,6 @@ export class EventScope {
 			}
 		}
 	}
-}
-
-export class EventScopeEvents {
-
-	readonly exitEvent: Event<EventScope, EventScopeExitEventArgs>;
-
-	readonly abortEvent: Event<EventScope, EventScopeAbortEventArgs>;
-
-	constructor() {
-		this.exitEvent = new Event<EventScope, EventScopeExitEventArgs>();
-		this.abortEvent = new Event<EventScope, EventScopeAbortEventArgs>();
-	}
-
 }
 
 export function EventScope$onExit(callback: Function, thisPtr: any = null) {
@@ -170,7 +144,7 @@ export function EventScope$onExit(callback: Function, thisPtr: any = null) {
 		throw new Error("The current event scope cannot be inactive.");
 	} else {
 		// Subscribe to the exit event
-		EventScope$current._events.exitEvent.subscribe(callback.bind(thisPtr));
+		EventScope$current.onExit.subscribe(callback.bind(thisPtr));
 	}
 }
 
@@ -181,7 +155,7 @@ export function EventScope$onAbort(callback: Function, thisPtr: any = null) {
 		}
 
 		// Subscribe to the abort event
-		EventScope$current._events.abortEvent.subscribe(callback.bind(thisPtr));
+		EventScope$current.onAbort.subscribe(callback.bind(thisPtr));
 	}
 }
 

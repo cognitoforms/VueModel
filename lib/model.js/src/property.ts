@@ -1,17 +1,15 @@
 import { Event, EventSubscriber, EventPublisher } from "./events";
-import { Entity, EntityConstructorForType } from "./entity";
+import { Entity, EntityConstructorForType, EntityChangeEventArgs, EntityAccessEventArgs } from "./entity";
 import { Format } from "./format";
 import { Type, PropertyType, isEntityType, Value, isValue } from "./type";
 import { PropertyChain } from "./property-chain";
 import { getTypeName, getDefaultValue, parseFunctionName, ObjectLookup, merge, getConstructorName, isType } from "./helpers";
 import { ObservableArray, updateArray } from "./observable-array";
 import { Rule } from "./rule";
-import { CalculatedPropertyRule, CalculatedPropertyRuleOptions } from "./calculated-property-rule";
-import { PathTokens$normalizePaths } from "./path-tokens";
+import { CalculatedPropertyRule } from "./calculated-property-rule";
 import { StringFormatRule } from "./string-format-rule";
 import { ConditionRuleOptions } from "./condition-rule";
-import { AllowedValuesRuleOptions } from "./allowed-values-rule";
-import { ValidatedPropertyRuleOptions, ValidatedPropertyRule } from "./validated-property-rule";
+import { ValidationRule } from "./validation-rule";
 import { AllowedValuesRule } from "./allowed-values-rule";
 import { RequiredRule } from "./required-rule";
 import { PropertyPath, PropertyAccessEventArgs, PropertyChangeEventArgs } from "./property-path";
@@ -59,7 +57,7 @@ export class Property implements PropertyPath {
 	}
 
 	get fieldName(): string {
-		return this.containingType.model._fieldNamePrefix + "_" + this.name;
+		return this.containingType.model.fieldNamePrefix + "_" + this.name;
 	}
 
 	get path(): string {
@@ -98,7 +96,9 @@ export class Property implements PropertyPath {
 			// throw an exception if dependsOn is not a string
 			if (typeof(dependsOn) !== "string")
 				throw new Error(`Invalid dependsOn property for '${rule}' rule on '${property}.`);
-			let paths = PathTokens$normalizePaths([dependsOn]).map(t => t.expression) : [];
+
+			// get the property paths for the specified dependency string
+			return property.containingType.getPaths(dependsOn);
 		};
 
 		// Use prepare() to defer property path resolution while the model is being extended
@@ -115,30 +115,40 @@ export class Property implements PropertyPath {
 
 			// Format
 			if (options.format) {
+
+				// Specifier
 				if (typeof (options.format) === "string") {
 					let format = options.format;
 					targetType.model.ready(() => {
 						this.format = targetType.model.getFormat(this.propertyType, format);
 					});
 				}
+
+				// Format
 				else if (options.format instanceof Format) {
 					// TODO: convert description/expression/reformat into a Format object
 					this.format = options.format;
-				} else if (isType<PropertyFormatOptions>(options.format, (f: any) => getTypeName(f) === "object" && f.expression)) {
+				}
+				
+				// String Format
+				else if (isType<PropertyFormatOptions>(options.format, (f: any) => getTypeName(f) === "object" && f.expression)) {
 
-					let rule = new StringFormatRule(targetType, {
-						property: this,
-						description: options.format.description,
-						expression: options.format.expression,
-						reformat: options.format.reformat,
-					});
-
+					let format = options.format;
 					targetType.model.ready(() => {
-						rule.register();
+						new StringFormatRule(targetType, {
+							property: this,
+							description: format.description,
+							expression: format.expression,
+							reformat: format.reformat,
+						})
+						.register();
 					});
 
-				} else {
-					throw new Error(`Invalid property 'format' option of type '${getTypeName(options.format)}'.`);
+				} 
+				
+				// Error
+				else {
+					throw new Error(`Invalid 'format' option for '${this}'.`);
 				}
 			}
 
@@ -149,25 +159,24 @@ export class Property implements PropertyPath {
 				}
 
 				if (Property.isPropOptions(options.get)) {
-					let ruleName: string = null;
-					let ruleOptions: CalculatedPropertyRuleOptions;
+					let getOptions = options.get;
 
-					if (typeof (options.get.function) !== "function") {
-						throw new Error(`Invalid property 'get' function of type '${getTypeName(options.get.function)}'.`);
+					if (typeof (getOptions.function) !== "function") {
+						throw new Error(`Invalid property 'get' function of type '${getTypeName(getOptions.function)}'.`);
 					}
 
-					ruleOptions = {
-						property: this,
-						calculate: options.get.function,
-						onChangeOf: resolveDependsOn("get", options.get.dependsOn)
-					};
-
-					let rule = new CalculatedPropertyRule(targetType, ruleName, ruleOptions);
-
 					targetType.model.ready(() => {
-						rule.register();
+
+						new CalculatedPropertyRule(targetType, null, {
+							property: this,
+							calculate: getOptions.function,
+							onChangeOf: resolveDependsOn(this, "get", getOptions.dependsOn)
+						})
+						.register();
 					});
-				} else {
+
+				} 
+				else {
 					throw new Error(`Invalid property 'get' option of type '${getTypeName(options.get)}'.`);
 				}
 			}
@@ -203,32 +212,24 @@ export class Property implements PropertyPath {
 				}
 
 				if (Property.isPropOptions(options.default)) {
-					let ruleName: string = null;
-					let ruleOptions: CalculatedPropertyRuleOptions;
+					let defaultOptions = options.default;
 
 					if (typeof (options.default.function) !== "function") {
 						throw new Error(`Invalid property 'default' function of type '${getTypeName(options.default.function)}'.`);
 					}
 
-					if (options.default.dependsOn && typeof (options.default.dependsOn) !== "string") {
-						throw new Error(`Invalid property 'default' dependsOn of type '${getTypeName(options.default.dependsOn)}'.`);
-					}
-
-					let ruleOnChangeOf = options.default.dependsOn ? PathTokens$normalizePaths([options.default.dependsOn]).map(t => t.expression) : [];
-
-					ruleOptions = {
-						property: this,
-						calculate: options.default.function,
-						onChangeOf: ruleOnChangeOf,
-						isDefaultValue: true
-					};	
-
-					let rule = new CalculatedPropertyRule(targetType, ruleName, ruleOptions);
-
 					targetType.model.ready(() => {
-						rule.register();
+
+						new CalculatedPropertyRule(targetType, null, {
+							property: this,
+							calculate: defaultOptions.function,
+							onChangeOf: resolveDependsOn(this, "default", defaultOptions.dependsOn),
+							isDefaultValue: true
+						})
+						.register();
 					});
-				} else if (typeof defaultConstant === "undefined") {
+				}
+				else if (typeof defaultConstant === "undefined") {
 					throw new Error(`Invalid property 'default' option of type '${getTypeName(options.default)}'.`);
 				}
 			}
@@ -242,29 +243,20 @@ export class Property implements PropertyPath {
 				}
 
 				if (Property.isPropOptions(options.allowedValues)) {
-					let ruleName: string = null;
-					let ruleOptions: AllowedValuesRuleOptions;
+					let allowedValuesOptions = options.allowedValues;
 
 					if (typeof (options.allowedValues.function) !== "function") {
 						throw new Error(`Invalid property 'allowedValues' function of type '${getTypeName(options.allowedValues.function)}'.`);
 					}
 
-					if (options.allowedValues.dependsOn && typeof (options.allowedValues.dependsOn) !== "string") {
-						throw new Error(`Invalid property 'allowedValues' dependsOn of type '${getTypeName(options.allowedValues.dependsOn)}'.`);
-					}
-
-					let ruleOnChangeOf = options.allowedValues.dependsOn ? PathTokens$normalizePaths([options.allowedValues.dependsOn]).map(t => t.expression) : [];
-
-					ruleOptions = {
-						property: this,
-						source: options.allowedValues.function,
-						onChangeOf: ruleOnChangeOf
-					};
-
-					let rule = new AllowedValuesRule(targetType, ruleOptions);
-
 					targetType.model.ready(() => {
-						rule.register();
+
+						let rule = new AllowedValuesRule(targetType, {
+							property: this,
+							source: allowedValuesOptions.function,
+							onChangeOf: resolveDependsOn(this, "allowedValues", allowedValuesOptions.dependsOn)
+						})
+						.register();
 					});
 				} else {
 					throw new Error(`Invalid property 'get' option of type '${getTypeName(options.get)}'.`);
@@ -293,34 +285,24 @@ export class Property implements PropertyPath {
 			// Error
 			if (options.error) {
 
-				let ruleName: string = null;
-				let ruleOptions: ValidatedPropertyRuleOptions;
-				let ruleFunction: (this: Entity) => boolean = options.error.function;
+				let isValid = options.error.function;
+				let message = options.error.message;
 
-
-				if (typeof (ruleFunction) !== "function") {
+				if (typeof (isValid) !== "function") {
 					throw new Error(`Invalid property 'get' function of type '${getTypeName(options.error.function)}'.`);
 				}
 
-				if (options.error.dependsOn && typeof (options.error.dependsOn) !== "string") {
-					throw new Error(`Invalid property 'get' dependsOn of type '${getTypeName(options.error.dependsOn)}'.`);
-				}
-
-				let ruleOnChangeOf = options.error.dependsOn ? PathTokens$normalizePaths([options.error.dependsOn]).map(t => t.expression) : [];
-
-				ruleOptions = {
-					property: this,
-					isValid: function () {
-						return !ruleFunction.call(this);
-					},
-					onChangeOf: ruleOnChangeOf,
-					message: options.error.message
-				};
-
-				let rule = new ValidatedPropertyRule(this.containingType, ruleOptions);
-
 				this.containingType.model.ready(() => {
-					rule.register();
+
+					new ValidationRule(this.containingType, {
+						property: this,
+						isValid: function () {
+							return !isValid.call(this) || !message || (typeof(message) === "function" && !message.call(this));
+						},
+						onChangeOf: resolveDependsOn(this, "allowedValues", options.error.dependsOn),
+						message: message
+					})
+					.register();
 				});
 			}
 
@@ -500,7 +482,7 @@ export interface PropertyOptions {
 	required?: boolean | { function: (this: Entity) => boolean, dependsOn: string },
 
 	/** An optional dependency function object that adds an error with the specified message when true. */
-	error?: { function: (this: Entity) => boolean, dependsOn: string, message: string }
+	error?: { function: (this: Entity) => boolean, dependsOn: string, message: string | ((this: Entity) => string) }
 }
 
 export interface PropertyFormatOptions {
@@ -632,7 +614,7 @@ export function Property$_generateOwnPropertyWithClosure(property: Property, obj
 				}
 
 				// TODO: Account for static properties (obj is undefined)
-				obj._events.changedEvent.publish(obj, { entity: obj, property: property });
+				(obj.changed as Event<Entity, EntityChangeEventArgs>).publish(obj, { entity: obj, property: property });
 			}
 
 			// Mark the property as pending initialization
@@ -725,7 +707,7 @@ function Property$_subArrayEvents(obj: Entity, property: Property, array: Observ
 		(eventArgs as any)['collectionChanged'] = true;
 
 		(property.changed as EventPublisher<Entity, PropertyChangeEventArgs>).publish(obj, eventArgs);
-		obj._events.changedEvent.publish(obj, { entity: obj, property });
+		(obj.changed as Event<Entity, EntityChangeEventArgs>).publish(obj, { entity: obj, property });
 	});
 
 }
@@ -764,7 +746,7 @@ function Property$_ensureInited(property: Property, obj: Entity) {
 			}
 
 			// TODO: Implement observable?
-			obj._events.changedEvent.publish(obj, { entity: obj, property });
+			(obj.changed as Event<Entity, EntityChangeEventArgs>).publish(obj, { entity: obj, property });
 
 			// Mark the property as pending initialization
 			Property$pendingInit(target, property, true);
@@ -779,7 +761,7 @@ function Property$_getter(property: Property, obj: Entity) {
 
 	// Raise access events
 	(property.accessed as EventPublisher<Entity, PropertyAccessEventArgs>).publish(obj, { entity: obj, property, value: (obj as any)[property.fieldName] });
-	obj._events.accessedEvent.publish(obj, { entity: obj, property });
+	(obj.accessed as Event<Entity, EntityAccessEventArgs>).publish(obj, { entity: obj, property });
 
     // Return the property value
     return (obj as any)[property.fieldName];
@@ -844,7 +826,7 @@ function Property$_setValue(property: Property, obj: Entity, currentValue: any, 
 		if (oldValue !== undefined) {
 			var eventArgs: PropertyChangeEventArgs = { entity: obj, property, newValue, oldValue };
 			(property.changed as EventPublisher<Entity, PropertyChangeEventArgs>).publish(obj, additionalArgs ? merge(eventArgs, additionalArgs) : eventArgs);
-			obj._events.changedEvent.publish(obj, { entity: obj, property });
+			(obj.changed as Event<Entity, EntityChangeEventArgs>).publish(obj, { entity: obj, property });
 		}
     }
 }

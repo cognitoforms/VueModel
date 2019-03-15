@@ -1,11 +1,8 @@
 import { Rule, Rule$ensureConditionType, RuleOptions, RuleInvocationOptions } from "./rule";
-import { hasOwnProperty } from "./helpers";
-import { Property } from "./property";
 import { ConditionType } from "./condition-type";
 import { Entity } from "./entity";
 import { Type } from "./type";
 import { ConditionTypeSet } from "./condition-type-set";
-import { PropertyChain } from "./property-chain";
 import { PropertyPath } from "./property-path";
 
 export class ConditionRule extends Rule {

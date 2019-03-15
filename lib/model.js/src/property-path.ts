@@ -1,6 +1,6 @@
 import { Type, PropertyType } from "./type";
 import { Format } from "./format";
-import { Event, EventObject, EventSubscriber } from "./events";
+import { EventObject, EventSubscriber } from "./events";
 import { Entity } from "./entity";
 
 export interface PropertyPath {
@@ -10,6 +10,7 @@ export interface PropertyPath {
 	readonly propertyType: PropertyType;
 	readonly isList: boolean;
 	readonly isStatic: boolean;
+	readonly path: string;
 
 	label: string;
 	helptext: string;
@@ -18,6 +19,8 @@ export interface PropertyPath {
 
     readonly changed: EventSubscriber<Entity, PropertyChangeEventArgs>;
 	readonly accessed: EventSubscriber<Entity, PropertyAccessEventArgs>;
+	
+	value(obj: Entity, val?: any, additionalArgs?: any): any;
 }
 
 export interface PropertyAccessEventHandler {

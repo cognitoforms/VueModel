@@ -1,5 +1,7 @@
 import { Entity } from "../lib/model.js/src/entity";
-import { Property, PropertyChangeEventArgs } from "../lib/model.js/src/property";
+import { Event } from "../lib/model.js/src/events";
+import { Property } from "../lib/model.js/src/property";
+import { PropertyChangeEventArgs } from "../lib/model.js/src/property-path";
 import { SourceAdapter } from "./source-adapter";
 import { SourcePathAdapter } from "./source-path-adapter";
 import { ObservableArray, ArrayChangeType } from "../lib/model.js/src/observable-array";
@@ -109,11 +111,11 @@ export class SourceIndexAdapter<TEntity extends Entity, TValue> implements Sourc
             let property: Property;
             if (this.source.property instanceof PropertyChain) {
                 property = this.source.property.lastProperty;
-            } else {
+            } else if (this.source.property instanceof Property) {
                 property = this.source.property;
             }
 
-            property._events.changedEvent.publish(this.source.parent.value, eventArgs);
+            (property.changed as Event<Entity, PropertyChangeEventArgs>).publish(this.source.parent.value, eventArgs);
 
             this.__ob__.onPropertyChange('value', value);
         }

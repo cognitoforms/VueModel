@@ -9,9 +9,7 @@ import { AllowedValuesRule } from "../lib/model.js/src/allowed-values-rule";
 import { observeEntity, observeArray } from "./vue-model-observability";
 import { PropertyChain } from "../lib/model.js/src/property-chain";
 import { ObservableArray, updateArray } from "../lib/model.js/src/observable-array";
-import { getPropertyOrPropertyChain } from '../lib/model.js/src/model';
-import { Condition } from '../lib/model.js/src/condition';
-import { ConditionType } from '../lib/model.js/src/condition-type';
+import { PropertyPath } from '../lib/model.js/src/property-path';
 
 export type SourcePathOverrides = {
 	label?: string,
@@ -40,8 +38,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		throw new Error("Parent source not found!");
 	}
 
-	get property(): Property | PropertyChain {
-		let property = getPropertyOrPropertyChain(this.source, this.parent.value.meta.type);
+	get property(): PropertyPath {
+		let property = this.parent.value.meta.type.getPath(this.source);
 
 		// Make sure Property and PropertyChain aren't made observable by Vue
 		const Observer = Object.getPrototypeOf((this as any)._data.__ob__).constructor;
@@ -124,17 +122,11 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		let property: Property;
 		if (this.property instanceof PropertyChain) {
 			property = this.property.lastProperty;
-		} else {
+		} 
+		else if (this.property instanceof Property){
 			property = this.property;
 		}
-		return property._rules.filter(r => r instanceof AllowedValuesRule)[0] as AllowedValuesRule;
-	}
-
-	get allowedValuesSource(): Property | PropertyChain {
-		let allowedValuesRule = this.allowedValuesRule;
-		if (allowedValuesRule) {
-			return (allowedValuesRule as any)._source as Property | PropertyChain;
-		}
+		return property.rules.filter(r => r instanceof AllowedValuesRule)[0] as AllowedValuesRule;
 	}
 
 	get allowedValues(): TValue[] {

@@ -131,7 +131,7 @@ export class ObservableArray<ItemType> {
 			configurable: false,
 			enumerable: true,
 			get: function() {
-				return this.__aob__.changedEvent.asEventSubscriber();
+				return this.__aob__.changed;
 			}
 		});
 
@@ -193,7 +193,7 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
 
 		Object.defineProperty(this, 'changed', {
 			get: function() {
-				return this.__aob__.changedEvent.asEventSubscriber();
+				return this.__aob__.changed;
 			}
 		});
 
@@ -205,7 +205,7 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
 
 	/** Expose the changed event */
 	get changed(): EventSubscriber<Array<ItemType>, ArrayChangedEventArgs<ItemType>> {
-		return this.__aob__.changedEvent.asEventSubscriber();
+		return this.__aob__.changed;
 	}
 
 	/**
@@ -498,7 +498,7 @@ export class ArrayObserver<ItemType> {
 
 	readonly array: Array<ItemType>;
 
-	readonly changedEvent: Event<Array<ItemType>, ArrayChangedEventArgs<ItemType>>;
+	readonly changed: Event<Array<ItemType>, ArrayChangedEventArgs<ItemType>>;
 
 	_queuedChanges: ArrayChange<ItemType>[];
 
@@ -506,7 +506,7 @@ export class ArrayObserver<ItemType> {
 
 	public constructor(array: Array<ItemType>) {
 		this.array = array;
-		this.changedEvent = new Event<Array<ItemType>, ArrayChangedEventArgs<ItemType>>();
+		this.changed = new Event<Array<ItemType>, ArrayChangedEventArgs<ItemType>>();
 		this._isQueuingChanges = false;
 	}
 
@@ -521,9 +521,9 @@ export class ArrayObserver<ItemType> {
 				this._queuedChanges.push(changes);
 			}
 		} else if (Array.isArray(changes)) {
-			this.changedEvent.publish(this.array, { changes: changes });
+			this.changed.publish(this.array, { changes: changes });
 		} else {
-			this.changedEvent.publish(this.array, { changes: [changes] });
+			this.changed.publish(this.array, { changes: [changes] });
 		}
 	}
 
