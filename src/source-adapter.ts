@@ -1,9 +1,10 @@
+import { Property } from "../lib/model.js/src/property";
 import { SourceRootAdapter } from "./source-root-adapter";
 import { SourcePathAdapter } from "./source-path-adapter";
-import { SourceIndexAdapter } from "./source-index-adapter";
+import { SourceItemAdapter } from "./source-item-adapter";
 import { SourceOptionAdapter } from "./source-option-adapter";
 import { Entity } from "../lib/model.js/src/entity";
-import { PropertyPath } from "../lib/model.js/src/property-path";
+import { PropertyChain } from "../lib/model.js/src/property-chain";
 
 export interface SourceAdapter<TValue> {
 	readonly: boolean;
@@ -14,14 +15,14 @@ export interface SourceAdapter<TValue> {
 export interface SourcePropertyAdapter<TValue> extends SourceAdapter<TValue> {
     readonly label: string;
 	readonly helptext: string;
-	readonly property: PropertyPath;
+	readonly property: Property | PropertyChain;
     readonly options: SourceOptionAdapter<TValue>[];
 }
 
-export function isSourceAdapter(obj: any): obj is SourceRootAdapter<Entity> | SourcePathAdapter<Entity, any> | SourceIndexAdapter<Entity, any> {
+export function isSourceAdapter(obj: any): obj is SourceRootAdapter<Entity> | SourcePathAdapter<Entity, any> | SourceItemAdapter<Entity, any> {
     if (obj instanceof SourceRootAdapter) return true;
     if (obj instanceof SourcePathAdapter) return true;
-    if (obj instanceof SourceIndexAdapter) return true;
+    if (obj instanceof SourceItemAdapter) return true;
     return false;
 }
 

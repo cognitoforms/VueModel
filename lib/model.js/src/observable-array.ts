@@ -131,7 +131,7 @@ export class ObservableArray<ItemType> {
 			configurable: false,
 			enumerable: true,
 			get: function() {
-				return this.__aob__.changed;
+				return this.__aob__.changedEvent.asEventSubscriber();
 			}
 		});
 
@@ -193,7 +193,7 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
 
 		Object.defineProperty(this, 'changed', {
 			get: function() {
-				return this.__aob__.changed;
+				return this.__aob__.changedEvent.asEventSubscriber();
 			}
 		});
 
@@ -205,7 +205,7 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
 
 	/** Expose the changed event */
 	get changed(): EventSubscriber<Array<ItemType>, ArrayChangedEventArgs<ItemType>> {
-		return this.__aob__.changed;
+		return this.__aob__.changedEvent.asEventSubscriber();
 	}
 
 	/**
@@ -396,12 +396,12 @@ export function ObservableArray$pop<ItemType>(this: ObservableArrayImplementatio
  * @returns The new length property of the object upon which the method was called.
  */
 export function ObservableArray$push<ItemType>(this: ObservableArrayImplementation<ItemType>, ...items: ItemType[]): number {
-	let addedIndex = this.length;
-	let addedCount: number = Array.prototype.push.apply(this, arguments);
-	if (addedCount > 0) {
-		this.__aob__.raiseEvents({ type: ArrayChangeType.add, startIndex: addedIndex, endIndex: addedIndex + addedCount, items });
+	let originalLength = this.length;
+	let newLength: number = Array.prototype.push.apply(this, arguments);
+	if (newLength > 0) {
+		this.__aob__.raiseEvents({ type: ArrayChangeType.add, startIndex: originalLength, endIndex: originalLength + (newLength - originalLength) - 1, items });
 	}
-	return addedCount;
+	return newLength;
 }
 
 /**
@@ -498,7 +498,7 @@ export class ArrayObserver<ItemType> {
 
 	readonly array: Array<ItemType>;
 
-	readonly changed: Event<Array<ItemType>, ArrayChangedEventArgs<ItemType>>;
+	readonly changedEvent: Event<Array<ItemType>, ArrayChangedEventArgs<ItemType>>;
 
 	_queuedChanges: ArrayChange<ItemType>[];
 
@@ -506,7 +506,7 @@ export class ArrayObserver<ItemType> {
 
 	public constructor(array: Array<ItemType>) {
 		this.array = array;
-		this.changed = new Event<Array<ItemType>, ArrayChangedEventArgs<ItemType>>();
+		this.changedEvent = new Event<Array<ItemType>, ArrayChangedEventArgs<ItemType>>();
 		this._isQueuingChanges = false;
 	}
 
@@ -521,9 +521,9 @@ export class ArrayObserver<ItemType> {
 				this._queuedChanges.push(changes);
 			}
 		} else if (Array.isArray(changes)) {
-			this.changed.publish(this.array, { changes: changes });
+			this.changedEvent.publish(this.array, { changes: changes });
 		} else {
-			this.changed.publish(this.array, { changes: [changes] });
+			this.changedEvent.publish(this.array, { changes: [changes] });
 		}
 	}
 

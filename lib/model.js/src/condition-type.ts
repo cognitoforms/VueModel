@@ -3,30 +3,29 @@ import { ConditionTypeSet } from "./condition-type-set";
 import { ObservableArray } from "./observable-array";
 import { Event, EventSubscriber } from "./events";
 import { Entity } from "./entity";
-import { Property } from "./property";
-import { PropertyChain } from "./property-chain";
-import { PropertyPath } from "./property-path";
-
 
 const allConditionTypes: { [id: string]: ConditionType } = {};
 
 export class ConditionType {
 
-	readonly code: string;
-	readonly category: string;
-	readonly message: string;
-	readonly conditions: ObservableArray<Condition>;
-	readonly sets: ConditionTypeSet[];
-	readonly conditionsChanged: EventSubscriber<ConditionType, ConditionsChangedEventArgs>;
+	code: string;
+	category: string;
+	message: string;
+	// rules: Rule[];
+	conditions: ObservableArray<Condition>;
+	sets: ConditionTypeSet[];
+	origin: string;
+
+	readonly _events: ConditionTypeEvents;
 
 	/**
 	* Creates a unique type of model condition.
 	* @param code The unique condition type code.
 	* @param category The category of the condition type, such as "Error", "Warning", or "Permission".
 	* @param message The default message to use when the condition is present.
-	* @param sets One or more sets the condition type belongs to.
+	* @param origin The origin of the condition, Origin.Client or Origin.Server.
 	*/
-	constructor(code: string, category: string, message: string, sets?: ConditionTypeSet[]) {
+	constructor(code: string, category: string, message: string, sets: ConditionTypeSet[], origin: string) {
 
 		// Ensure unique condition type codes
 		if (allConditionTypes[code])
@@ -38,11 +37,16 @@ export class ConditionType {
 		// this.rules = [];
 		this.conditions = ObservableArray.create<Condition>();
 		this.sets = sets || [];
+		this.origin = origin;
 
-		this.conditionsChanged = new Event<ConditionType, ConditionsChangedEventArgs>();
+		Object.defineProperty(this, "_events", { value: new ConditionTypeEvents() });
 
 		// Register with the static dictionary of all condition types
 		allConditionTypes[code] = this;
+	}
+
+	get conditionsChanged(): EventSubscriber<ConditionType, ConditionsChangedEventArgs> {
+		return this._events.conditionsChangedEvent.asEventSubscriber();
 	}
 
 	/**
@@ -52,7 +56,7 @@ export class ConditionType {
 	* @param properties The properties to attach the condition to
 	* @param message The condition message (or a function to generate the message)
 	*/
-	when(condition: boolean, target: Entity, properties: PropertyPath[], message: string | ((target: Entity) => string)): Condition | void {
+	when(condition: boolean, target: Entity, properties: string[], message: string | ((target: Entity) => string)): Condition | void {
 
 		// get the current condition if it exists
 		var conditionTarget = target.meta.getCondition(this);
@@ -65,7 +69,7 @@ export class ConditionType {
 
 			// create a new condition if one does not exist
 			if (!conditionTarget) {
-				return new Condition(this, message, target, properties);
+				return new Condition(this, message, target, properties, "client");
 			}
 
 			// replace the condition if the message has changed
@@ -75,7 +79,7 @@ export class ConditionType {
 				conditionTarget.condition.destroy();
 
 				// create a new condition with the updated message
-				return new Condition(this, message, target, properties);
+				return new Condition(this, message, target, properties, "client");
 			}
 
 			// otherwise, just return the existing condition
@@ -116,39 +120,46 @@ export class ConditionType {
 	};
 }
 
+export class ConditionTypeEvents {
+	readonly conditionsChangedEvent: Event<ConditionType, ConditionsChangedEventArgs>;
+	constructor() {
+		this.conditionsChangedEvent = new Event<ConditionType, ConditionsChangedEventArgs>();
+	}
+}
+
 export class ErrorConditionType extends ConditionType {
-	constructor(code: string, message: string, sets?: ConditionTypeSet[]) {
-		super(code, "Error", message, sets);
+	constructor(code: string, message: string, sets: ConditionTypeSet[], origin: string = null) {
+		super(code, "Error", message, sets, origin);
 	}
 }
 
 export interface ErrorConditionTypeConstructor {
-	new(code: string, message: string, sets?: ConditionTypeSet[]): ErrorConditionType;
+	new(code: string, message: string, sets: ConditionTypeSet[], origin?: string): ErrorConditionType;
 }
 
 export class WarningConditionType extends ConditionType {
-	constructor(code: string, message: string, sets?: ConditionTypeSet[]) {
-		super(code, "Warning", message, sets);
+	constructor(code: string, message: string, sets: ConditionTypeSet[], origin: string = null) {
+		super(code, "Warning", message, sets, origin);
 	}
 }
 
 export interface WarningConditionTypeConstructor {
-	new(code: string, message: string, sets?: ConditionTypeSet[]): WarningConditionType;
+	new(code: string, message: string, sets: ConditionTypeSet[], origin?: string): WarningConditionType;
 }
 
 export class PermissionConditionType extends ConditionType {
 
 	isAllowed: boolean;
 
-	constructor(code: string, message: string, sets?: ConditionTypeSet[], isAllowed: boolean = true) {
-		super(code, "Warning", message, sets);
+	constructor(code: string, message: string, sets: ConditionTypeSet[], isAllowed: boolean, origin: string = null) {
+		super(code, "Warning", message, sets, origin);
 
-		this.isAllowed = !(isAllowed === false);
+		this.isAllowed = isAllowed;
 	}
 }
 
 export interface PermissionConditionTypeConstructor {
-	new(code: string, message: string, sets?: ConditionTypeSet[], isAllowed?: boolean): PermissionConditionType;
+	new(code: string, message: string, sets: ConditionTypeSet[], isAllowed: boolean, origin?: string): PermissionConditionType;
 }
 
 export namespace ConditionType {

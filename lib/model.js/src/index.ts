@@ -6,6 +6,7 @@ export * from "./property-chain";
 export * from "./entity";
 export * from "./object-meta";
 export * from "./format";
+export * from "./path-tokens";
 
 // Conditions, etc.
 export * from "./condition-target";
@@ -18,7 +19,7 @@ export * from "./format-error";
 export * from "./rule";
 export * from "./rule-invocation-type";
 export * from "./condition-rule";
-export * from "./validation-rule";
+export * from "./validated-property-rule";
 export * from "./allowed-values-rule";
 export * from "./calculated-property-rule";
 
@@ -30,5 +31,5 @@ export * from "./calculated-property-rule";
 // export * from "./observable-list";
 // export * from "./signal";
 
-//import "./legacy-api";
+import "./legacy-api";
 

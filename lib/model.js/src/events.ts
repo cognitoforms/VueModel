@@ -21,17 +21,20 @@ export interface EventSubscriber<This, EventArgsType> {
 }
 
 export interface EventPublisher<This, EventArgsType> extends EventSubscriber<This, EventArgsType> {
+	asEventSubscriber(): EventSubscriber<This, EventArgsType>;
 	publish(thisObject: This, args: EventArgsType): void;
+}
+
+export interface ContextualEventRegistration<This, EventArgsType, TContext> {
+	registeredHandler: EventHandler<This, EventArgsType>;
+	handler: EventHandler<This, EventArgsType>;
+	context?: TContext;
 }
 
 export interface EventSubscription<This, EventArgsType> {
 	handler: EventHandler<This, EventArgsType>,
 	isExecuted?: boolean;
 	isOnce?: boolean;
-}
-
-export interface EventSubscriptionChanged<EventType> {
-    (event: EventType): void;
 }
 
 function createEventObject<EventArgsType>(args: EventArgsType): EventObject & EventArgsType {
@@ -46,68 +49,85 @@ function createEventObject<EventArgsType>(args: EventArgsType): EventObject & Ev
     return eventObject as EventObject & EventArgsType;
 }
 
-export class Event<This, EventArgsType> implements EventPublisher<This, EventArgsType>, EventSubscriber<This, EventArgsType> { 
-    private func: FunctorWith1Arg<EventArgsType, void> & ((this: This, args: EventObject & EventArgsType) => void);
-    private readonly subscriptionChanged: EventSubscriptionChanged<Event<This, EventArgsType>>;
+export class EventSubWrapper<This, EventArgsType> implements EventSubscriber<This, EventArgsType> {
+    private readonly _event: Event<This, EventArgsType>;
+    constructor(event: Event<This, EventArgsType>) {
+        Object.defineProperty(this, "_event", { value: event });
+    }
+    subscribe(handler: EventHandler<This, EventArgsType>): void {
+        this._event.subscribe(handler);
+    }
+    subscribeOne(handler: EventHandler<This, EventArgsType>): void {
+        this._event.subscribeOne(handler);
+    }
+    unsubscribe(handler: EventHandler<This, EventArgsType>): void {
+        this._event.unsubscribe(handler);
+    }
+    hasSubscribers(handler?: EventHandler<This, EventArgsType>): boolean {
+        return this._event.hasSubscribers(handler);
+    }
+    clear(): void {
+        this._event.clear();
+    }
+}
 
-    constructor(subscriptionChanged?: EventSubscriptionChanged<Event<This, EventArgsType>>) {
-        this.subscriptionChanged = subscriptionChanged;
+export class Event<This, EventArgsType> implements EventPublisher<This, EventArgsType>, EventSubscriber<This, EventArgsType> {
+    private _subscriber: EventSubWrapper<This, EventArgsType>;
+    private _func: FunctorWith1Arg<EventArgsType, void> & ((this: This, args: EventObject & EventArgsType) => void);
+
+    asEventSubscriber(): EventSubscriber<This, EventArgsType> {
+        if (!this._subscriber) {
+            Object.defineProperty(this, "_subscriber", { value: new EventSubWrapper(this) });
+        }
+        return this._subscriber;
     }
 
     publish(thisObject: This, args: EventArgsType): void {
-        if (!this.func) {
+        if (!this._func) {
             // No subscribers
             return;
         }
         let eventObject = createEventObject<EventArgsType>(args);
-        this.func.call(thisObject, eventObject);
+        this._func.call(thisObject, eventObject);
     }
 
     subscribe(handler: EventHandler<This, EventArgsType>): void {
-        if (!this.func) {
-            Object.defineProperty(this, "func", { value: Functor$create() });
+        if (!this._func) {
+            Object.defineProperty(this, "_func", { value: Functor$create() });
         }
-        this.func.add(handler);
-        if (this.subscriptionChanged)
-            this.subscriptionChanged(this);
+        this._func.add(handler);
     }
 
     subscribeOne(handler: EventHandler<This, EventArgsType>): void {
-        if (!this.func) {
-            Object.defineProperty(this, "func", { value: Functor$create() });
+        if (!this._func) {
+            Object.defineProperty(this, "_func", { value: Functor$create() });
         }
-        this.func.add(handler, null, true);
-        if (this.subscriptionChanged)
-            this.subscriptionChanged(this);
+        this._func.add(handler, null, true);
     }
 
     hasSubscribers(handler?: EventHandler<This, EventArgsType>): boolean {
-        if (!this.func) {
+        if (!this._func) {
             return false;
         }
 
-        let functorItems = ((this.func as any)._funcs) as FunctorItem[];
+        let functorItems = ((this._func as any)._funcs) as FunctorItem[];
         return functorItems.some(function(i) { return i.fn === handler; });
     }
 
     unsubscribe(handler: EventHandler<This, EventArgsType>): void {
-        if (!this.func) {
+        if (!this._func) {
             // No subscribers
             return;
         }
-        this.func.remove(handler);
-        if (this.subscriptionChanged)
-            this.subscriptionChanged(this);
+        this._func.remove(handler);
     }
 
     clear(): void {
-        if (!this.func) {
+        if (!this._func) {
             // No subscribers
             return;
         }
-        this.func.clear();
-        if (this.subscriptionChanged)
-            this.subscriptionChanged(this);
+        this._func.clear();
     }
 
 }

@@ -1,4 +1,4 @@
-import { ValidationRule, ValidationRuleOptions } from "./validation-rule";
+import { ValidatedPropertyRule, ValidatedPropertyRuleOptions } from "./validated-property-rule";
 import { ConditionRuleOptions } from "./condition-rule";
 import { Property, PropertyRuleOptions } from "./property";
 import { Entity } from "./entity";
@@ -6,9 +6,11 @@ import { Type } from "./type";
 import { Resource } from "./resource";
 import { RuleOptions } from "./rule";
 
-export class StringFormatRule extends ValidationRule {
+export class StringFormatRule extends ValidatedPropertyRule {
 
-	private readonly description: string;
+	description: string;
+	expression: RegExp;
+	reformat: string | ((val: any) => string);
 
 	/**
 	 * Creates a rule that validates that a string property value is correctly formatted.
@@ -32,39 +34,37 @@ export class StringFormatRule extends ValidationRule {
 			}
 		}
 
-		// get the default validation message if not specified
 		if (!options.message) {
 			options.message = Resource.get("string-format").replace("{formatDescription}", options.description);
-		}
-
-		let expression = options.expression instanceof RegExp ? options.expression : RegExp(options.expression);
-		let reformat = options.reformat;
-
-		// create the string format validation function
-		options.isValid = function(this: Entity, prop: Property, val: any): boolean {
-			var isValid = true;
-			if (val && val != "") {
-				expression.lastIndex = 0;
-				isValid = expression.test(val);
-				if (isValid && options.reformat) {
-					if (reformat instanceof Function) {
-						val = reformat(val);
-					}
-					else {
-						expression.lastIndex = 0;
-						val = val.replace(expression, reformat);
-					}
-					prop.value(this, val);
-				}
-			}
-			return isValid;
 		}
 
 		// call the base type constructor
 		super(rootType, options);
 	
 		// define properties for the rule
-		this.description = options.description;
+		Object.defineProperty(this, "description", { value: options.description });
+		Object.defineProperty(this, "expression", { value: options.expression instanceof RegExp ? options.expression : RegExp(options.expression) });
+		Object.defineProperty(this, "reformat", { value: options.reformat });
+	}
+
+	// returns true if the property is valid, otherwise false
+	isValid(obj: Entity, prop: Property, val: any): boolean {
+		var isValid = true;
+		if (val && val != "") {
+			this.expression.lastIndex = 0;
+			isValid = this.expression.test(val);
+			if (isValid && this.reformat) {
+				if (this.reformat instanceof Function) {
+					val = this.reformat(val);
+				}
+				else {
+					this.expression.lastIndex = 0;
+					val = val.replace(this.expression, this.reformat);
+				}
+				prop.value(obj, val);
+			}
+		}
+		return isValid;
 	}
 
 	// get the string representation of the rule
@@ -74,7 +74,7 @@ export class StringFormatRule extends ValidationRule {
 
 }
 
-export interface StringFormatRuleOptions extends ValidationRuleOptions {
+export interface StringFormatRuleOptions extends ValidatedPropertyRuleOptions {
 
 	/** The human readable description of the format, such as MM/DD/YYY */
 	description: string;
@@ -84,4 +84,5 @@ export interface StringFormatRuleOptions extends ValidationRuleOptions {
 
 	/** An optional regular expression reformat string or reformat function that will be used to correct the value if it matches */
 	reformat: string | ((val: any) => string);
+
 }

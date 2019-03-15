@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{84111aa3-88c8-479d-81ee-308d0b9f5225}</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <ProjectView>ProjectFiles</ProjectView>
+    <ProjectView>ShowAllFiles</ProjectView>
     <StartupFile />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -52,14 +52,17 @@
     <TypeScriptCompile Include="lib\model.js\src\format.ts" />
     <TypeScriptCompile Include="lib\model.js\src\functor.ts" />
     <TypeScriptCompile Include="lib\model.js\src\helpers.ts" />
+    <TypeScriptCompile Include="lib\model.js\src\legacy-api.ts" />
     <TypeScriptCompile Include="lib\model.js\src\list-length-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\index.ts" />
     <TypeScriptCompile Include="lib\model.js\src\model.ts" />
     <TypeScriptCompile Include="lib\model.js\src\object-meta.ts" />
     <TypeScriptCompile Include="lib\model.js\src\observable-array.ts" />
+    <TypeScriptCompile Include="lib\model.js\src\path-tokens.ts" />
     <TypeScriptCompile Include="lib\model.js\src\property-chain.ts" />
     <TypeScriptCompile Include="lib\model.js\src\property.ts" />
     <TypeScriptCompile Include="lib\model.js\src\range-rule.ts" />
+    <TypeScriptCompile Include="lib\model.js\src\required-if-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\required-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\resource.ts" />
     <TypeScriptCompile Include="lib\model.js\src\rule-invocation-type.ts" />
@@ -67,27 +70,30 @@
     <TypeScriptCompile Include="lib\model.js\src\string-format-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\string-length-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\type.ts" />
+    <TypeScriptCompile Include="lib\model.js\src\validated-property-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\validation-rule.ts" />
     <TypeScriptCompile Include="model-definition-example.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
+    <TypeScriptCompile Include="src\array-observer.ts" />
     <TypeScriptCompile Include="src\custom-observer.ts" />
     <TypeScriptCompile Include="src\entity-observer.ts" />
     <TypeScriptCompile Include="src\source-adapter.ts" />
     <TypeScriptCompile Include="src\helpers.ts" />
     <TypeScriptCompile Include="src\index.ts" />
     <TypeScriptCompile Include="src\source-binding.ts" />
+    <TypeScriptCompile Include="src\source-item-adapter.ts" />
     <TypeScriptCompile Include="src\source-path-mixin.ts" />
-    <TypeScriptCompile Include="src\source-index-adapter.ts" />
     <TypeScriptCompile Include="src\source-option-adapter.ts" />
     <TypeScriptCompile Include="src\source-path-adapter.ts" />
     <TypeScriptCompile Include="src\source-root-adapter.ts" />
     <TypeScriptCompile Include="src\source-root-mixin.ts" />
+    <TypeScriptCompile Include="src\vm-source-component.ts" />
+    <TypeScriptCompile Include="src\vue-global-mixin.ts" />
     <TypeScriptCompile Include="src\vue-helpers.ts" />
     <TypeScriptCompile Include="src\vue-internals.ts" />
+    <TypeScriptCompile Include="src\vue-model-observability.ts" />
     <TypeScriptCompile Include="src\vue-model.ts" />
-    <TypeScriptCompile Include="src\vue-plugin-entities.ts" />
-    <TypeScriptCompile Include="src\vue-plugin.ts" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="dist\" />

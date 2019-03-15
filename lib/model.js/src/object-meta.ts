@@ -1,7 +1,7 @@
 import { Event, EventSubscriber } from "./events";
 import { FormatError$getConditionType } from "./format-error";
 import { Type } from "./type";
-import { Entity, EntityDestroyEventArgs } from "./entity";
+import { Entity } from "./entity";
 import { ConditionTarget, ConditionTargetsChangedEventArgs } from "./condition-target";
 import { ConditionType, PermissionConditionType } from "./condition-type";
 
@@ -20,7 +20,7 @@ export class ObjectMeta {
 	private _legacyId: string;
 	private _conditions: { [code: string]: ConditionTarget };
 
-	readonly conditionsChanged: EventSubscriber<ObjectMeta, ConditionTargetsChangedEventArgs>;
+	readonly _events: ObjectMetaEvents;
 
 	constructor(type: Type, entity: Entity, id: string, isNew: boolean) {
 		// Public read-only properties
@@ -32,7 +32,7 @@ export class ObjectMeta {
 		Object.defineProperty(this, "_isNew", { enumerable: false, value: isNew, writable: true });
 		Object.defineProperty(this, "_conditions", { enumerable: false, value: {}, writable: true });
 
-		this.conditionsChanged = new Event<ObjectMeta, ConditionTargetsChangedEventArgs>();
+		Object.defineProperty(this, "_events", { value: new ObjectMetaEvents() });
 	}
 
 	get id(): string {
@@ -59,6 +59,10 @@ export class ObjectMeta {
 	set legacyId(value) {
 		// TODO: Don't allow setting legacy ID if already set
 		this._legacyId = value;
+	}
+
+	get conditionsChanged(): EventSubscriber<ObjectMeta, ConditionTargetsChangedEventArgs> {
+		return this._events.conditionsChangedEvent.asEventSubscriber();
 	}
 
 	// gets the condition target with the specified condition type
@@ -114,7 +118,14 @@ export class ObjectMeta {
 
 		// Raise the destroy event on this type and all base types
 		for (var t = this.type; t; t = t.baseType) {
-			(t.destroy as Event<Type, EntityDestroyEventArgs>).publish(t, { entity: this.entity });
+			t._events.destroyEvent.publish(t, { entity: this.entity });
 		}
+	}
+}
+
+export class ObjectMetaEvents {
+	readonly conditionsChangedEvent: Event<ObjectMeta, ConditionTargetsChangedEventArgs>;
+	constructor() {
+		this.conditionsChangedEvent = new Event<ObjectMeta, ConditionTargetsChangedEventArgs>();
 	}
 }

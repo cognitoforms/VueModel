@@ -2,14 +2,12 @@ import { Model } from "./model";
 import { Entity, EntityConstructorForType, EntityDestroyEventArgs, EntityInitNewEventArgs, EntityInitExistingEventArgs, EntityConstructor } from "./entity";
 import { Property, Property$_generateStaticProperty, Property$_generatePrototypeProperty, Property$_generateOwnProperty, Property$_generateShortcuts, PropertyOptions } from "./property";
 import { navigateAttribute, getTypeName, parseFunctionName, ensureNamespace, getGlobalObject } from "./helpers";
-import { ObjectMeta } from "./object-meta";
+import { ObjectMeta, ObjectMetaEvents } from "./object-meta";
 import { Event, EventSubscriber } from "./events";
 import { ObservableArray } from "./observable-array";
 import { RuleOptions, Rule } from "./rule";
 import { Format } from "./format";
 import { ConditionTargetsChangedEventArgs } from "./condition-target";
-import { PropertyChain, EntityRegisteredEventArgs, EntityUnregisteredEventArgs } from ".";
-import { PropertyPath } from "./property-path";
 
 export const Type$newIdPrefix = "+c"
 
@@ -33,41 +31,52 @@ export class Type {
 	private readonly _derivedTypes: Type[];
 
 	readonly _properties: { [name: string]: Property };
-	readonly chains: { [path: string]: PropertyChain };
 
 	readonly _formats: { [name: string]: Format<any> };
 
-	readonly initNew: EventSubscriber<Type, EntityInitNewEventArgs>;
-	readonly initExisting: EventSubscriber<Type, EntityInitExistingEventArgs>;
-	readonly destroy: EventSubscriber<Type, EntityDestroyEventArgs>;
-	readonly conditionsChanged: EventSubscriber<Type, ConditionTargetsChangedEventArgs>;
+	readonly _events: TypeEvents;
 
 	constructor(model: Model, fullName: string, baseType: Type = null, options?: TypeOptions) {
 
-		this.model =  model;
-		this.fullName = fullName;
-		this.jstype = Type$_generateConstructor(this, fullName, baseType, model.settings.useGlobalObject ? getGlobalObject() : null);
-		this.baseType = baseType;
-		this._lastId = 0;
-		this._pool = {};
-		this._legacyPool = {};
-		this._properties = {};
-		this._formats = {};
-		this._derivedTypes = [];
+		// Public read-only properties
+		Object.defineProperty(this, "model", { enumerable: true, value: model });
+		Object.defineProperty(this, "fullName", { enumerable: true, value: fullName });
+		Object.defineProperty(this, "jstype", { enumerable: true, value: Type$_generateConstructor(this, fullName, baseType, model.settings.useGlobalObject ? getGlobalObject() : null) });
+		Object.defineProperty(this, "baseType", { enumerable: true, value: baseType });
 
-		this.initNew = new Event<Type, EntityInitNewEventArgs>();
-		this.initExisting = new Event<Type, EntityInitExistingEventArgs>();
-		this.destroy = new Event<Type, EntityDestroyEventArgs>();
-		this.conditionsChanged = new Event<Type, ConditionTargetsChangedEventArgs>();
+		// Backing fields for properties
+		Object.defineProperty(this, "_lastId", { enumerable: false, value: 0, writable: true });
+		Object.defineProperty(this, "_pool", { enumerable: false, value: {}, writable: false });
+		Object.defineProperty(this, "_legacyPool", { enumerable: false, value: {}, writable: false });
+		Object.defineProperty(this, "_properties", { enumerable: false, value: {}, writable: false });
+		Object.defineProperty(this, "_formats", { configurable: false, enumerable: false, value: {}, writable: false });
+		Object.defineProperty(this, '_derivedTypes', { enumerable: false, value: [], writable: false });
+
+		Object.defineProperty(this, "_events", { value: new TypeEvents() });
 
 		// Apply type options
 		if (options)
 			this.extend(options);
 	}
 
-	/** Generates a unique id suitable for an instance in the current type hierarchy. */
-	newId() {
+	get destroy(): EventSubscriber<Type, EntityDestroyEventArgs> {
+		return this._events.destroyEvent.asEventSubscriber();
+	}
 
+	get initNew(): EventSubscriber<Type, EntityInitNewEventArgs> {
+		return this._events.initNewEvent.asEventSubscriber();
+	}
+
+	get initExisting(): EventSubscriber<Type, EntityInitExistingEventArgs> {
+		return this._events.initExistingEvent.asEventSubscriber();
+	}
+
+	get conditionsChanged(): EventSubscriber<Type, ConditionTargetsChangedEventArgs> {
+		return this._events.conditionsChangedEvent.asEventSubscriber();
+	}
+
+	newId() {
+		// Get the next id for this type's heirarchy.
 		for (var lastId, type: Type = this; type; type = type.baseType) {
 			lastId = Math.max(lastId || 0, type._lastId);
 		}
@@ -84,7 +93,6 @@ export class Type {
 	}
 
 	register(obj: Entity, id: string, suppressModelEvent: boolean = false): void {
-
 		// register is called with single argument from default constructor
 		if (arguments.length === 2) {
 			Type$_validateId.call(this, id);
@@ -125,7 +133,7 @@ export class Type {
 		}
 
 		if (!suppressModelEvent) {
-			(this.model.entityRegistered as Event<Model, EntityRegisteredEventArgs>).publish(this.model, { entity: obj });
+			this.model._events.entityRegisteredEvent.publish(this.model, { entity: obj });
 		}
 	}
 
@@ -171,7 +179,7 @@ export class Type {
 			}
 		}
 
-		(this.model.entityUnregistered as Event<Model, EntityUnregisteredEventArgs>).publish(this.model, { entity: obj });
+		this.model._events.entityUnregisteredEvent.publish(this.model, { entity: obj });
 	}
 
 	get(id: string, exactTypeOnly: boolean = false) {
@@ -221,73 +229,6 @@ export class Type {
 			}
 		}
 		return null;
-	}
-
-	/** Gets the {Property} or {PropertyChain} for the specified simple path {string}. */
-	getPath(path: string): PropertyPath {
-
-		// Get single property
-		let property: PropertyPath = this.getProperty(path);
-
-		// Get cached property chain
-		if (!property)
-			property = this.chains[path];
-
-		// Create and cache property chain
-		if (!property) {
-			property = this.chains[path] = new PropertyChain(this, path);
-		}
-
-		// Return the property path
-		return property;
-	}
-
-	/** Gets and array of {Property} or {PropertyChain} instances for the specified complex graph path {string}. */
-	getPaths(path: string): PropertyPath[] {
-
-		var stack: string[] = [];
-		var parent: string;
-		var start = 0;
-		var len = path.length;
-		var paths = [];
-
-		for (var i = 0; i < len; ++i) {
-			var c = path.charAt(i);
-
-			if (c === '{' || c === ',' || c === '}') {
-				var seg = path.substring(start, i).trim();
-				start = i + 1;
-
-				if (c === '{') {
-					if (parent) {
-						stack.push(parent);
-						parent += "." + seg;
-					}
-					else {
-						parent = seg;
-					}
-				}
-				else {   // ',' or '}'
-					if (seg.length > 0) {
-						paths.push(this.getPath(parent ? parent + "." + seg : seg));
-					}
-
-					if (c === '}') {
-						parent = (stack.length === 0) ? undefined : stack.pop();
-					}
-				}
-			}
-		}
-
-		if (stack.length > 0) {
-			throw new Error("Unclosed '{' in path: " + path);
-		}
-
-		if (start === 0) {
-			paths.push(this.getPath(path.trim()));
-		}
-
-		return paths;
 	}
 
 	get properties(): Property[] {
@@ -464,6 +405,19 @@ export interface TypeOptions {
 
 }
 
+export class TypeEvents {
+	readonly initNewEvent: Event<Type, EntityInitNewEventArgs>;
+	readonly initExistingEvent: Event<Type, EntityInitExistingEventArgs>;
+	readonly destroyEvent: Event<Type, EntityDestroyEventArgs>;
+	readonly conditionsChangedEvent: Event<Type, ConditionTargetsChangedEventArgs>;
+	constructor() {
+		this.initNewEvent = new Event<Type, EntityInitNewEventArgs>();
+		this.initExistingEvent = new Event<Type, EntityInitExistingEventArgs>();
+		this.destroyEvent = new Event<Type, EntityDestroyEventArgs>();
+		this.conditionsChangedEvent = new Event<Type, ConditionTargetsChangedEventArgs>();
+	}
+}
+
 export function isValueType(type: any): type is ValueType {
 	return type === String || type === Number || type === Date || type === Boolean;
 }
@@ -548,10 +502,9 @@ export function Type$_generateConstructor(type: Type, fullName: string, baseType
 
 				// Raise the initExisting event on this type and all base types
 				for (let t = type; t; t = t.baseType) {
-					(t.initExisting as Event<Type, EntityInitExistingEventArgs>).publish(t, { entity: this });
+					t._events.initExistingEvent.publish(t, { entity: this });
 				}
-			} 
-			else {
+			} else {
 				let props = arguments[0];
 
 				// TODO: Is this needed?
@@ -568,7 +521,7 @@ export function Type$_generateConstructor(type: Type, fullName: string, baseType
 
 				// Raise the initNew event on this type and all base types
 				for (let t = type; t; t = t.baseType) {
-					(t.initNew as Event<Type, EntityInitExistingEventArgs>).publish(t, { entity: this });
+					t._events.initNewEvent.publish(t, { entity: this });
 				}
 			}
 		}

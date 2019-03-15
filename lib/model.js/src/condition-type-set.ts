@@ -8,10 +8,11 @@ const allConditionTypeSets: { [id: string]: ConditionTypeSet; } = {};
 /** Groups condition types into a set in order to be notified conditions for these types change. */
 export class ConditionTypeSet {
 
-	readonly name: string;
-	readonly types: ConditionType[];
-	readonly conditions: ObservableArray<Condition>;
-	readonly conditionsChanged: EventSubscriber<ConditionTypeSet, ConditionsChangedEventArgs>
+	name: string;
+	types: ConditionType[];
+	conditions: ObservableArray<Condition>;
+
+	readonly _events: ConditionTypeSetEvents;
 
 	/**
 	* Creates a set of condition types.
@@ -20,14 +21,19 @@ export class ConditionTypeSet {
 	constructor(name: string) {
 
 		if (allConditionTypeSets[name])
-			throw new Error(`A set with the name '${name}' has already been created.`);
+			throw new Error("A set with the name \"" + name + "\" has already been created.");
 
 		this.name = name;
 		this.types = [];
 		this.conditions = ObservableArray.create<Condition>();
-		this.conditionsChanged = new Event<ConditionTypeSet, ConditionsChangedEventArgs>();
+
+		Object.defineProperty(this, "_events", { value: new ConditionTypeSetEvents() });
 
 		allConditionTypeSets[name] = this;
+	}
+
+	get conditionsChanged(): EventSubscriber<ConditionTypeSet, ConditionsChangedEventArgs> {
+		return this._events.conditionsChangedEvent.asEventSubscriber();
 	}
 
 	/**
@@ -53,4 +59,11 @@ export class ConditionTypeSet {
 		return allConditionTypeSets[name];
 	}
 
+}
+
+export class ConditionTypeSetEvents {
+	readonly conditionsChangedEvent: Event<ConditionTypeSet, ConditionsChangedEventArgs>;
+	constructor() {
+		this.conditionsChangedEvent = new Event<ConditionTypeSet, ConditionsChangedEventArgs>();
+	}
 }

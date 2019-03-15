@@ -1,10 +1,10 @@
-import { ValidationRule } from "./validation-rule";
+import { ValidatedPropertyRule } from "./validated-property-rule";
 import { Property, Property$format } from "./property";
 import { Entity } from "./entity";
 import { Type } from "./type";
 import { Resource } from "./resource";
 
-export class RangeRule extends ValidationRule {
+export class RangeRule extends ValidatedPropertyRule {
 
 	_min: string | ((this: Entity) => any);
 
