@@ -9,11 +9,7 @@ import { AllowedValuesRule } from "../lib/model.js/src/allowed-values-rule";
 import { observeEntity, observeArray } from "./vue-model-observability";
 import { PropertyChain } from "../lib/model.js/src/property-chain";
 import { ObservableArray, updateArray } from "../lib/model.js/src/observable-array";
-import { getPropertyOrPropertyChain } from '../lib/model.js/src/model';
-import { Condition } from '../lib/model.js/src/condition';
-import { ConditionType } from '../lib/model.js/src/condition-type';
-import { SourceItemAdapter } from './source-item-adapter';
-import { isEntityType } from '../lib/model.js/src';
+import { PropertyPath } from '../lib/model.js/src/property-path';
 
 export type SourcePathOverrides = {
 	label?: string,
@@ -31,7 +27,9 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	overrides: SourcePathOverrides;
 
 	get parent(): SourceAdapter<TEntity> {
+
 		for (let parentVm: Vue = this.$parent.$parent, parentLevel = 1; parentVm != null; parentVm = parentVm.$parent, parentLevel += 1) {
+
 			if (isSourceAdapter((parentVm as any).$source)) {
 				return (parentVm as any).$source as SourceAdapter<TEntity>;
 			}
@@ -40,8 +38,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		throw new Error("Parent source not found!");
 	}
 
-	get property(): Property | PropertyChain {
-		let property = getPropertyOrPropertyChain(this.source, this.parent.value.meta.type);
+	get property(): PropertyPath {
+		let property = this.parent.value.meta.type.getPath(this.source);
 
 		// Make sure Property and PropertyChain aren't made observable by Vue
 		const Observer = Object.getPrototypeOf((this as any)._data.__ob__).constructor;
@@ -56,7 +54,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	 *  @returns The source override label if specified, or the model property label if not
 	 */
 	get label(): string {
-		let label = this.overrides ? this.overrides.label : null;
+		let label = this.overrides.label;
 		if (label === undefined || label === null) {
 			if (Format.hasTokens(this.property.label)) {
 				label = this.parent.value.toString(this.property.label);
@@ -74,7 +72,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	 *  @returns The source override helptext if specified, or the model property helptext if not
 	 */
 	get helptext(): string {
-		let helptext = this.overrides ? this.overrides.helptext : null;
+		let helptext = this.overrides.helptext;
 		return helptext === undefined || helptext === null ? this.property.helptext : helptext;
 	}
 
@@ -84,7 +82,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	 *  @returns True if either the parent source or the source override is read only, otherwise false
 	 */
 	get readonly(): boolean {
-		return this.parent.readonly || (this.overrides ? this.overrides.readonly : false);
+		return this.parent.readonly || this.overrides.readonly;
 	}
 
 	/**
@@ -124,17 +122,11 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		let property: Property;
 		if (this.property instanceof PropertyChain) {
 			property = this.property.lastProperty;
-		} else {
+		} 
+		else if (this.property instanceof Property){
 			property = this.property;
 		}
-		return property._rules.filter(r => r instanceof AllowedValuesRule)[0] as AllowedValuesRule;
-	}
-
-	get allowedValuesSource(): Property | PropertyChain {
-		let allowedValuesRule = this.allowedValuesRule;
-		if (allowedValuesRule) {
-			return (allowedValuesRule as any)._source as Property | PropertyChain;
-		}
+		return property.rules.filter(r => r instanceof AllowedValuesRule)[0] as AllowedValuesRule;
 	}
 
 	get allowedValues(): TValue[] {
@@ -172,10 +164,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	get options(): SourceOptionAdapter<TValue>[] {
 
 		// Destroy existing option components
-		let optionsToDestroy = this.$children.filter(function(c) { return c instanceof SourceOptionAdapter; });
-		optionsToDestroy.forEach(c => c.$destroy());
-
-		// TODO: preserve option adapters if possible?
+		var optionsToDestroy = this.$children.filter(function(c) { return c instanceof SourceOptionAdapter; });
+		optionsToDestroy.forEach(o => o.$destroy());
 
 		let allowedValues = this.allowedValues;
 
@@ -190,70 +180,6 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 		// Map the allowed values to option adapters
 		return allowedValues.map(v => new SourceOptionAdapter<any>({ parent: this, propsData: { value: v } }));
-
-	}
-
-	get items(): SourceItemAdapter<TEntity, any>[] {
-
-		let items: SourceItemAdapter<TEntity, any>[] = [];
-
-		// Collect existing option components to potentially be destroyed
-		let existingItemsToDestroy = this.$children.filter(function(c) { return c instanceof SourceItemAdapter; }) as SourceItemAdapter<TEntity, any>[];
-
-		let value = this.value;
-
-		if (Array.isArray(value)) {
-			if (isEntityType(this.property.propertyType)) {
-
-				let existingItemsMap: { [key: string]: SourceItemAdapter<TEntity, Entity> } = {};
-				existingItemsToDestroy.forEach(function(c) {
-					let adapter = c as SourceItemAdapter<TEntity, Entity>;
-					if (!adapter.isOrphaned) {
-						let key = adapter.value ? adapter.value.meta.id : null;
-						if (key) {
-							existingItemsMap[key] = adapter;
-						}
-					}
-				});
-
-				for (var i = 0; i < value.length; i++) {
-					let key = value[i].meta.id;
-					let existingItem = existingItemsMap[key];
-					if (existingItem) {
-						// Delete the existing item from the map so that it can't be fetched more than once
-						delete existingItemsMap[key];
-
-						// Remove the component from the list of items to destroy since we're going to reuse it
-						let existingItemIndex = existingItemsToDestroy.indexOf(existingItem);
-						if (existingItemIndex >= 0) {
-							existingItemsToDestroy.splice(existingItemIndex, 1);
-						}
-
-						// Set the backing storage for the 'index' prop, the internal data should
-						// already have this value, this just makes the component's state consistent,
-						// since the inconsistency is just a side-effect of reusing item adapters
-						let propsData: any = existingItem.$options.propsData;
-						propsData.index = i;
-
-						// Include the existing item in the return value
-						items.push(existingItem);
-					} else {
-						// Create a new item adapter
-						let newItem = new SourceItemAdapter<TEntity, any>({ parent: this, propsData: { index: i, parentSource: this } });
-
-						// Subscribes to changes to its underlying list source in order to update its index and detect when it becomes orphaned
-						newItem.subscribeToSourceChanges();
-
-						// Include the new item in the return value
-						items.push(newItem);
-					}
-				}
-			}
-		}
-
-		existingItemsToDestroy.forEach(c => c.$destroy());
-
-		return items;
 
 	}
 

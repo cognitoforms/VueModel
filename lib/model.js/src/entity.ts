@@ -7,21 +7,16 @@ import { Property } from "./property";
 
 export class Entity {
 	readonly meta: ObjectMeta;
-
-	readonly _events: EntityEvents;
+	readonly accessed: Event<Entity, EntityAccessEventArgs>;
+	readonly changed: Event<Entity, EntityChangeEventArgs>;
 
 	constructor(properties?: { [name: string]: any }) {
-		Object.defineProperty(this, "_events", { value: new EntityEvents() });
+		
+		this.accessed = new Event<Entity, EntityAccessEventArgs>();
+		this.changed = new Event<Entity, EntityChangeEventArgs>();
+
 		if (properties)
 			this.init(properties);
-	}
-
-	get accessed(): EventSubscriber<Entity, EntityAccessEventArgs> {
-		return this._events.accessedEvent.asEventSubscriber();
-	}
-
-	get changed(): EventSubscriber<Entity, EntityChangeEventArgs> {
-		return this._events.changedEvent.asEventSubscriber();
 	}
 
 	init(properties: { [name: string]: any }): void;
@@ -43,7 +38,7 @@ export class Entity {
 				let prop = this.meta.type.getProperty(name);
 
 				if (!prop)
-					throw new Error("Could not find property \"" + name + "\" on type \"" + this.meta.type.fullName + "\".");
+					throw new Error(`Could not find property '${name}' on type '${this.meta.type.fullName}'.`);
 
 				// Set the property
 				prop.value(this, properties[name]);
@@ -70,7 +65,7 @@ export class Entity {
 				let prop = this.meta.type.getProperty(name);
 
 				if (!prop)
-					throw new Error("Could not find property \"" + name + "\" on type \"" + this.meta.type.fullName + "\".");
+					throw new Error(`Could not find property '${name}' on type '${this.meta.type.fullName}'.`);
 
 				prop.value(this, properties[name]);
 			}
@@ -152,13 +147,4 @@ export interface EntityChangeEventHandler {
 export interface EntityChangeEventArgs {
 	entity: Entity;
 	property: Property;
-}
-
-export class EntityEvents {
-	readonly accessedEvent: Event<Entity, EntityAccessEventArgs>;
-	readonly changedEvent: Event<Entity, EntityChangeEventArgs>;
-	constructor() {
-		this.accessedEvent = new Event<Entity, EntityAccessEventArgs>();
-		this.changedEvent = new Event<Entity, EntityChangeEventArgs>();
-	}
 }

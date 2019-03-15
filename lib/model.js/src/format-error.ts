@@ -19,8 +19,7 @@ export class FormatError {
 		return new Condition(FormatError$getConditionType(),
 			this.message.replace("{property}", prop.label),
 			target,
-			[prop.name],
-			"client");
+			[prop]);
 	}
 
 	toString() {

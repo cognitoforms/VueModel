@@ -1,4 +1,4 @@
-import Vue, { VueConstructor, ComponentOptions, PluginObject } from "vue";
+import Vue, { VueConstructor, Component, ComponentOptions, PluginObject } from "vue";
 import { Model, ModelOptions, ModelConfiguration } from "../lib/model.js/src/model";
 import { VueInternals, ensureVueInternalTypes } from "./vue-internals";
 import { VueModel$installGlobalMixin } from "./vue-global-mixin";
@@ -6,7 +6,6 @@ import { SourcePathMixin } from "./source-path-mixin";
 import { SourceRootMixin } from "./source-root-mixin";
 import { SourceRootAdapter } from "./source-root-adapter";
 import { makeEntitiesVueObservable } from "./vue-model-observability";
-import { VMSource } from "./vm-source-component";
 
 // TODO: Do we need to take `toggleObserving()` into account?
 
@@ -42,6 +41,11 @@ export class VueModel extends Model {
 	};
 
 	/**
+	 * Expose the source root adapter so that a component can construct it if needed
+	 */
+	static SourceRoot = SourceRootAdapter;
+
+	/**
 	 * Implement the Vue plugin interface:
 	 * https://vuejs.org/v2/guide/plugins.html#Writing-a-Plugin
 	 */
@@ -56,9 +60,6 @@ export class VueModel extends Model {
 
 			throw new Error("Vue.use(VueModel) should be called only once.");
 		}	
-
-		// Register components globally for use in templates
-		vue.component("vm-source", VMSource);
 
 		// Store a reference to the Vue constructor/module
 		VueModel._Vue = vue;

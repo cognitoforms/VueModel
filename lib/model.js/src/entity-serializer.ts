@@ -105,11 +105,8 @@ export class EntitySerializer {
 
 	private static defaultPropertyConverter(prop: Property, value: any): PropertySerializationResult {
 		let result = { key: prop.name, value };
-		if (value) {
-			if (prop.isList)
-				result.value = value.slice();
-			if (isEntityType(prop.propertyType))
-				result.value = value.serialize();
+		if (value && isEntityType(prop.propertyType)) {
+			result.value = value.serialize();
 		}
 		return result;
 	}

@@ -1,13 +1,12 @@
-import { Entity, EntityConstructorForType } from "./entity";
-import { Property$addChanged, Property$addAccessed, hasPropertyChangedSubscribers, Property$pendingInit, Property$getRules, Property, PropertyChangeEventArgs, PropertyAccessEventArgs, PropertyRule } from "./property";
-import { PropertyChain, PropertyChainChangeEventArgs, PropertyChainAccessEventArgs } from "./property-chain";
+import { Entity, EntityConstructorForType, EntityChangeEventArgs } from "./entity";
+import { PropertyChangeEventArgs, PropertyAccessEventArgs, PropertyPath } from "./property-path";
+import { Property$pendingInit, Property } from "./property";
+import { PropertyChain } from "./property-chain";
+import { Event } from "./events";
 import { Type } from "./type";
-import { getPropertyOrPropertyChain } from "./model";
 import { RuleInvocationType } from "./rule-invocation-type";
 import { EventScope$current, EventScope$perform, EventScope$onExit, EventScope$onAbort } from "./event-scope";
 import { ObjectMeta } from "./object-meta";
-import { PathTokens$normalizePaths } from "./path-tokens";
-import { getEventSubscriptions } from "./helpers";
 import { ErrorConditionType, WarningConditionType, ConditionType, ErrorConditionTypeConstructor, WarningConditionTypeConstructor } from "./condition-type";
 
 // TODO: Make `detectRunawayRules` an editable configuration value
@@ -29,12 +28,11 @@ export class Rule {
 	readonly rootType: Type;
 	readonly name: string;
 
-	_execute: (this: Entity) => void;
-
 	invocationTypes: RuleInvocationType = 0;
-	predicates: (Property | PropertyChain)[] = [];
+	predicates: PropertyPath[] = [];
 	returnValues: Property[] = [];
-
+	
+	private _execute: (this: Entity) => void;
 	private _registered: boolean;
 
 	/**
@@ -51,7 +49,6 @@ export class Rule {
 
 		// Configure the rule based on the specified options
 		if (options) {
-			options = extractRuleOptions(options);
 
 			if (options.onInit)
 				this.onInit();
@@ -116,8 +113,8 @@ export class Rule {
 	 * Indicates that the rule should automatically run when one of the specified property paths changes.
 	 * @param predicates An array of property paths (strings, Property or PropertyChain instances) that drive when the rule should execute due to property changes.
 	 */
-	onChangeOf(predicates: (string | Property | PropertyChain)[]): this
-	onChangeOf(...predicates: (string | Property | PropertyChain)[]): this
+	onChangeOf(predicates: PropertyPath[]): this
+	onChangeOf(...predicates: PropertyPath[]): this
 	onChangeOf(predicates: any) {
 
 		// ensure the rule has not already been registered
@@ -125,7 +122,7 @@ export class Rule {
 			throw new Error("Rules cannot be configured once they have been registered: " + this.name);
 
 		// allow change of predicates to be specified as a parameter array without []'s
-		if (predicates && predicates.constructor === String) {
+		if (!(predicates instanceof Array)) {
 			predicates = Array.prototype.slice.call(arguments);
 		}
 
@@ -180,67 +177,32 @@ export class Rule {
 		// Indicate that the rule should now be considered registered and cannot be reconfigured
 		Object.defineProperty(this, '_registered', { enumerable: false, value: true, writable: false });
 
-		// resolve return values, which should all be loaded since the root type is now definitely loaded
-		if (rule.returnValues) {
-			rule.returnValues.forEach(function (returnValue, i) {
-				if (!(returnValue instanceof Property)) {
-					rule.returnValues[i] = rule.rootType.getProperty((returnValue as any) as string);
-				}
-			});
-		}
-
-		// resolve all predicates, because the rule cannot run until the dependent types have all been loaded
-		if (rule.predicates) {
-			// setup loading of each property path that the calculation is based on
-			for (let i = 0; i < rule.predicates.length; i++) {
-				let predicate = rule.predicates[i];
-				if (typeof predicate === "string") {
-					// Parse string inputs, which may be paths containing nesting {} hierarchial syntax
-					PathTokens$normalizePaths([predicate]).forEach(function (path, index) {
-						var prop = getPropertyOrPropertyChain(path, rule.rootType);
-						if (index == 0) {
-							rule.predicates[i] = prop;
-						} else {
-							// If expanding resulted in more than one path, then expand the predicates array accordingly
-							rule.predicates.splice(i++, 0, prop);
-						}
-					}, this);
-				} else if (!(predicate instanceof Property || predicate instanceof PropertyChain)) {
-					// TODO: Remove invalid predicates?
-					rule.predicates.splice(i--, 1);
-				}
-			}
-		}
-
 		// register for init new
 		if (rule.invocationTypes & RuleInvocationType.InitNew) {
-			rule.rootType._events.initNewEvent.subscribe(function (args) { executeRule(rule, args.entity, args) });
+			rule.rootType.initNew.subscribe(function (args) { executeRule(rule, args.entity, args) });
 		}
 
 		// register for init existing
 		if (rule.invocationTypes & RuleInvocationType.InitExisting) {
-			rule.rootType._events.initExistingEvent.subscribe(function (args) { executeRule(rule, args.entity, args) });
+			rule.rootType.initExisting.subscribe(function (args) { executeRule(rule, args.entity, args) });
 		}
 
 		// register for property change
 		if (rule.invocationTypes & RuleInvocationType.PropertyChanged) {
 			rule.predicates.forEach(function (predicate) {
-				Property$addChanged(predicate,
-					function (args: PropertyChangeEventArgs | PropertyChainChangeEventArgs) {
-						if (canExecuteRule(rule, args.entity, args) && !pendingInvocation(args.entity.meta as ObjectMeta, rule)) {
-							pendingInvocation(args.entity.meta as ObjectMeta, rule, true);
+				predicate.changed.subscribe(
+					function (args) {
+						if (canExecuteRule(rule, args.entity, args) && !pendingInvocation(args.entity.meta, rule)) {
+							pendingInvocation(args.entity.meta, rule, true);
 							EventScope$onExit(function () {
-								pendingInvocation(args.entity.meta as ObjectMeta, rule, false);
+								pendingInvocation(args.entity.meta, rule, false);
 								executeRule(rule, args.entity, args);
 							});
 							EventScope$onAbort(function () {
-								pendingInvocation(args.entity.meta as ObjectMeta, rule, false);
+								pendingInvocation(args.entity.meta, rule, false);
 							});
 						}
-					},
-					null, // no object filter
-					// false, // subscribe for all time, not once
-					true // tolerate nulls since rule execution logic will handle guard conditions
+					}
 				);
 			});
 		}
@@ -250,20 +212,22 @@ export class Rule {
 
 			// register for property get events for each return value to calculate the property when accessed
 			rule.returnValues.forEach(function (returnValue) {
-				Property$addAccessed(returnValue, function (args: PropertyAccessEventArgs | PropertyChainAccessEventArgs) {
-					// run the rule to initialize the property if it is pending initialization
-					if (canExecuteRule(rule, args.entity, args) && Property$pendingInit(args.entity, returnValue)) {
-						Property$pendingInit(args.entity, returnValue, false);
-						executeRule(rule, args.entity, args);
+				returnValue.accessed.subscribe(
+					function (args) {
+						// run the rule to initialize the property if it is pending initialization
+						if (canExecuteRule(rule, args.entity, args) && Property$pendingInit(args.entity, returnValue)) {
+							Property$pendingInit(args.entity, returnValue, false);
+							executeRule(rule, args.entity, args);
+						}
 					}
-				});
+				);
 			});
 
 			// register for property change events for each predicate to invalidate the property value when inputs change
 			rule.predicates.forEach(function (predicate) {
-				Property$addChanged(predicate,
-					function (args: PropertyChangeEventArgs | PropertyChainChangeEventArgs) {
-						if (rule.returnValues.some((returnValue) => hasPropertyChangedSubscribers(returnValue, args.entity))) {
+				predicate.changed.subscribe(
+					function (args) {
+						if (rule.returnValues.some((returnValue) => returnValue.changed.hasSubscribers())) {
 							// Immediately execute the rule if there are explicit event subscriptions for the property
 							if (canExecuteRule(rule, args.entity, args) && !pendingInvocation(args.entity.meta, rule)) {
 								pendingInvocation(args.entity.meta, rule, true);
@@ -284,14 +248,11 @@ export class Rule {
 							EventScope$onExit(() => {
 								rule.returnValues.forEach((returnValue) => {
 									// TODO: Implement observable?
-									args.entity._events.changedEvent.publish(args.entity, { entity: args.entity, property: returnValue });
+									(args.entity.changed as Event<Entity, EntityChangeEventArgs>).publish(args.entity, { entity: args.entity, property: returnValue });
 								});
 							});
 						}
-					},
-					null, // no object filter
-					// false, // subscribe for all time, not once
-					true // tolerate nulls since rule execution logic will handle guard conditions
+					}
 				);
 			});
 		}
@@ -313,10 +274,10 @@ export interface RuleOptions {
 	execute?: (this: Entity) => void;
 
 	/** Array of property paths (strings, Property or PropertyChain instances) that trigger rule execution when changed. */
-	onChangeOf?: (string | Property | PropertyChain)[];
+	onChangeOf?: PropertyPath[];
 
 	/** Array of properties (strings or Property instances) that the rule is responsible for calculating */
-	returns?: (string | Property)[];
+	returns?: Property[];
 
 	rootType?: EntityConstructorForType<Entity>;
 }
@@ -396,126 +357,6 @@ function executeRule(rule: Rule, obj: Entity, eventArgument: any): void {
 	});
 };
 
-// registers a rule with a specific property
-export function registerPropertyRule(rule: PropertyRule) {
-
-	let propRules = Property$getRules(rule.property);
-
-	propRules.push(rule);
-
-	// Raise events if registered.
-	let subscriptions = getEventSubscriptions(rule.property._events.ruleRegisteredEvent);
-	if (subscriptions && subscriptions.length > 0) {
-		rule.property._events.ruleRegisteredEvent.publish(rule.property, { rule: rule });
-	}
-
-}
-
-function extractRuleOptions(obj: any): RuleOptions & RuleInvocationOptions {
-
-	if (!obj) {
-		return;
-	}
-
-	let options: RuleOptions & RuleInvocationOptions = {};
-
-	let keys = Object.keys(obj);
-
-	keys.filter(key => {
-		let value = obj[key];
-		if (key === 'onInit') {
-			if (typeof value === "boolean") {
-				options.onInit = value;
-				return true;
-			}
-		} else if (key === 'onInitNew') {
-			if (typeof value === "boolean") {
-				options.onInitNew = value;
-				return true;
-			}
-		} else if (key === 'onInitExisting') {
-			if (typeof value === "boolean") {
-				options.onInitExisting = value;
-				return true;
-			}
-		} else if (key === 'onChangeOf') {
-			if (Array.isArray(value)) {
-				let invalidOnChangeOf: any[] = null;
-				options.onChangeOf = (value as any[]).filter(p => {
-					if (typeof p === "string" || p instanceof PropertyChain || p instanceof Property) {
-						return true;
-					} else {
-						// TODO: Warn about invalid 'onChangeOf' item?
-						if (!invalidOnChangeOf) {
-							invalidOnChangeOf = [];
-						}
-						invalidOnChangeOf.push(p);
-						return false;
-					}
-				});
-				if (invalidOnChangeOf) {
-					obj.onChangeOf = invalidOnChangeOf;
-					return false;
-				} else {
-					return true;
-				}
-			} else if (typeof value === "string") {
-				options.onChangeOf = [value] as string[];
-				return true;
-			} else if (value instanceof PropertyChain) {
-				options.onChangeOf = [value] as PropertyChain[];
-				return true;
-			} else if (value instanceof Property) {
-				options.onChangeOf = [value] as Property[];
-				return true;
-			}
-		} else if (key === 'returns') {
-			if (Array.isArray(value)) {
-				let invalidReturns: any[] = null;
-				options.returns = (value as any[]).filter(p => {
-					if (typeof p === "string" || p instanceof PropertyChain || p instanceof Property) {
-						return true;
-					} else {
-						// TODO: Warn about invalid 'returns' item?
-						if (!invalidReturns) {
-							invalidReturns = [];
-						}
-						return false;
-					}
-				});
-				if (invalidReturns) {
-					obj.returns = invalidReturns;
-					return false;
-				} else {
-					return true;
-				}
-			} else if (typeof value === "string") {
-				options.returns = [value] as string[];
-				return true;
-			} else if (value instanceof Property) {
-				options.returns = [value] as Property[];
-				return true;
-			}
-		} else if (key === 'execute') {
-			if (value instanceof Function) {
-				options.execute = value as (this: Entity) => void;
-				return true;
-			}
-		} else {
-			// TODO: Warn about unsupported rule options?
-			return;
-		}
-
-		// TODO: Warn about invalid rule option value?
-		return;
-	}).forEach(key => {
-		delete obj[key];
-	});
-
-	return options;
-
-}
-
 export function Rule$ensureConditionType<DesiredConditionType = ErrorConditionType | WarningConditionType>(ruleName: string, typeOrProp: Type | Property, category: string = "Error"): ErrorConditionType | WarningConditionType {
 	var generatedCode =
 		typeOrProp instanceof Property ? `${typeOrProp.containingType.fullName}.${typeOrProp.name}.${ruleName}` :
@@ -538,5 +379,5 @@ export function Rule$ensureConditionType<DesiredConditionType = ErrorConditionTy
 	}
 
 	// return a new client condition type of the specified category
-	return new DesiredConditionType(generatedCode + counter, `Generated condition type for ${ruleName} rule.`, null, "client");
+	return new DesiredConditionType(generatedCode + counter, `Generated condition type for ${ruleName} rule.`);
 }
