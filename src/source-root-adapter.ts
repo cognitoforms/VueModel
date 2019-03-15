@@ -6,18 +6,18 @@ import { SourceAdapter } from "./source-adapter";
 @Component
 export class SourceRootAdapter<TEntity extends Entity> extends Vue implements SourceAdapter<TEntity> {
 
-	@Prop(Object)
+    @Prop(Object)
     entity: TEntity;
 
-	@Prop(Boolean)
-	readonly: boolean;
+    @Prop(Boolean)
+    readonly: boolean;
 
     get value(): TEntity {
-		return this.entity;
+        return this.entity;
     }
 
     get displayValue(): string {
-		return this.entity.toString();
+        return this.entity.toString();
     }
 
     toString(): string {
