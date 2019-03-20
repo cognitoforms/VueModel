@@ -1,27 +1,74 @@
-import { Event, EventSubscriber, EventObject } from "./events";
+import { Event, EventObject } from "./events";
 import { Format } from "./format";
-import { Model } from "./model";
 import { Type, EntityType } from "./type";
 import { ObjectMeta } from "./object-meta";
 import { Property, Property$_init, Property$_setter } from "./property";
+import { ObjectLookup } from "./helpers";
 
 export class Entity {
+
+	static ctorDepth: number = 0;
+
 	readonly meta: ObjectMeta;
+
 	readonly accessed: Event<Entity, EntityAccessEventArgs>;
 	readonly changed: Event<Entity, EntityChangeEventArgs>;
 
-	constructor(properties?: { [name: string]: any }) {
-		
-		this.accessed = new Event<Entity, EntityAccessEventArgs>();
-		this.changed = new Event<Entity, EntityChangeEventArgs>();
+	constructor(); // Prototype assignment ***
+	constructor(type: Type, id: string, properties?: { [name: string]: any }); // Construct existing instance with state
+	constructor(type: Type, properties?: { [name: string]: any }); // Construct new instance with state
+	constructor(type: Type, properties?: { [name: string]: any });
+	constructor(type?: Type, id?: string | ObjectLookup<any>, properties?: ObjectLookup<any>) {
+		if (arguments.length === 0) {
+			// TODO: Warn about direct call in dev build?
+		}
+		else {
+			if (Entity.ctorDepth === 0) {
+				throw new Error("Entity constructor should not be called directly.");
+			}
 
-		if (properties)
-			this.init(properties);
+			this.accessed = new Event<Entity, EntityAccessEventArgs>();
+			this.changed = new Event<Entity, EntityChangeEventArgs>();
+
+			var isNew: boolean;
+
+			if (typeof id === "string")
+				type.assertValidId(id);
+			else
+			{
+				properties = id;
+				id = type.newId();
+				isNew = true;
+			}
+
+			this.meta = new ObjectMeta(type, this, id, isNew);
+
+			// Register the newly constructed existing instance.
+			type.register(this);
+
+			// Initialize properties if provided.
+			if (properties) {
+				this.init(properties);
+			}
+
+			// Raise the initNew or initExisting event on this type and all base types
+			for (let t = type; t; t = t.baseType)
+			{
+				if (isNew)
+					(t.initNew as Event<Type, EntityInitExistingEventArgs>).publish(t, { entity: this });
+				else
+					(t.initExisting as Event<Type, EntityInitExistingEventArgs>).publish(t, { entity: this });
+			}
+		}
 	}
 
-	init(properties: { [name: string]: any }): void;
-	init(property: string, value: any): void;
-	init(property: any, value?: any): void {
+	private init(properties: { [name: string]: any }): void;
+	private init(property: string, value: any): void;
+	private init(property: any, value?: any): void {
+		if (Entity.ctorDepth === 0) {
+			throw new Error("Entity.init() should not be called directly.");
+		}
+
 		let properties: { [name: string]: any };
 
 		// Convert property/value pair to a property dictionary

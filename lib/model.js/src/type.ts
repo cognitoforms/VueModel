@@ -84,27 +84,25 @@ export class Type {
 		return Type$newIdPrefix + nextId;
 	}
 
-	register(obj: Entity, id: string, suppressModelEvent: boolean = false): void {
-
-		// register is called with single argument from default constructor
-		if (arguments.length === 2) {
-			Type$_validateId.call(this, id);
+	assertValidId(id: string): void {
+		if (id === null || id === undefined) {
+			throw new Error(`Id cannot be ${(id === null ? "null" : "undefined")} (entity = ${this.fullName}).`);
+		} else if (getTypeName(id) !== "string") {
+			throw new Error(`Id must be a string:  encountered id ${id} of type \"${parseFunctionName(id.constructor)}\" (entity = ${this.fullName}).`);
+		} else if (id === "") {
+			throw new Error(`Id cannot be a blank string (entity = ${this.fullName}).`);
 		}
+	}
+	
+	register(obj: Entity): void {
 
-		var isNew: boolean;
+		this.assertValidId(obj.meta.id);
 
-		if (!id) {
-			id = this.newId();
-			isNew = true;
-		}
-
-		Object.defineProperty(obj, "meta", { value: new ObjectMeta(this, obj, id, isNew), configurable: false, enumerable: false, writable: false });
-
-		var key = id.toLowerCase();
+		var key = obj.meta.id.toLowerCase();
 
 		for (var t: Type = this; t; t = t.baseType) {
 			if (t._pool.hasOwnProperty(key)) {
-				throw new Error(`Object \"${this.fullName}|${id}\" has already been registered.`);
+				throw new Error(`Object \"${this.fullName}|${obj.meta.id}\" has already been registered.`);
 			}
 
 			t._pool[key] = obj;
@@ -125,14 +123,12 @@ export class Type {
 			}
 		}
 
-		if (!suppressModelEvent) {
-			(this.model.entityRegistered as Event<Model, EntityRegisteredEventArgs>).publish(this.model, { entity: obj });
-		}
+		(this.model.entityRegistered as Event<Model, EntityRegisteredEventArgs>).publish(this.model, { entity: obj });
 	}
 
 	changeObjectId(oldId: string, newId: string) {
-		Type$_validateId.call(this, oldId);
-		Type$_validateId.call(this, newId);
+		this.assertValidId(oldId);
+		this.assertValidId(newId);
 
 		var oldKey = oldId.toLowerCase();
 		var newKey = newId.toLowerCase();
@@ -479,16 +475,6 @@ export function isEntityType(type: any): type is EntityType {
 	return type.meta && type.meta instanceof Type;
 }
 
-function Type$_validateId(this: Type, id: string) {
-	if (id === null || id === undefined) {
-		throw new Error(`Id cannot be ${(id === null ? "null" : "undefined")} (entity = ${this.fullName}).`);
-	} else if (getTypeName(id) !== "string") {
-		throw new Error(`Id must be a string:  encountered id ${id} of type \"${parseFunctionName(id.constructor)}\" (entity = ${this.fullName}).`);
-	} else if (id === "") {
-		throw new Error(`Id cannot be a blank string (entity = ${this.fullName}).`);
-	}
-}
-
 // TODO: Get rid of disableConstruction?
 let disableConstruction: boolean = false;
 
@@ -511,72 +497,35 @@ export function Type$_generateConstructor(type: Type, fullName: string, baseType
 	// The final name to use is the last token
 	let finalName = token;
 
+	let baseConstructor: EntityConstructor;
+
+	if (baseType) {
+		baseConstructor = baseType.jstype;
+		// // TODO: Implement `inheritBaseTypePropShortcuts`
+		// // inherit all shortcut properties that have aleady been defined
+		// inheritBaseTypePropShortcuts(ctor, baseType);
+	} else {
+		baseConstructor = Entity;
+	}
+
 	let ctorFactory = new Function("construct", "return function " + finalName + " () { construct.apply(this, arguments); }");
 
-	function construct() {
+	function construct(this: Entity) {
 		if (!disableConstruction) {
-			if (arguments.length > 0 && arguments[0] != null && arguments[0].constructor === String) {
-				let id = arguments[0] as string;
-
-				let props = arguments[1];
-
-				// TODO: Is this needed?
-				let suppressModelEvent = arguments[2];
-
-				// When a constructor is called we do not want to silently
-				// return an instance of a sub type, so fetch using exact type.
-				let exactTypeOnly = true;
-
-				// TODO: Indicate that an object is currently being constructed?
-
-				let obj = type.get(id, exactTypeOnly);
-
-				// If the instance already exists, then initialize properties and return it.
-				if (obj) {
-					if (props) {
-						obj.init(props);
-					}
-					return obj;
-				}
-
-				// Register the newly constructed existing instance.
-				type.register(this, id, suppressModelEvent);
-
-				// Initialize properties if provided.
-				if (props) {
-					this.init(props);
-				}
-
-				// Raise the initExisting event on this type and all base types
-				for (let t = type; t; t = t.baseType) {
-					(t.initExisting as Event<Type, EntityInitExistingEventArgs>).publish(t, { entity: this });
-				}
-			} 
-			else {
-				let props = arguments[0];
-
-				// TODO: Is this needed?
-				let suppressModelEvent = arguments[2];
-
-				// Register the newly constructed new instance. It will
-				// be assigned a sequential client-generated id.
-				type.register(this, null, suppressModelEvent);
-
-				// Set properties passed into constructor.
-				if (props) {
-					this.set(props);
-				}
-
-				// Raise the initNew event on this type and all base types
-				for (let t = type; t; t = t.baseType) {
-					(t.initNew as Event<Type, EntityInitExistingEventArgs>).publish(t, { entity: this });
-				}
+			try
+			{
+				Entity.ctorDepth++;
+				let baseTypeArgs: ArrayLike<any> = (arguments.length > 0 && arguments[0] instanceof Type) ? arguments : [type].concat(Array.from(arguments));
+				baseConstructor.apply(this, baseTypeArgs);
+			}
+			finally
+			{
+				Entity.ctorDepth--;
 			}
 		}
 	}
 
 	let ctor = ctorFactory(construct) as any;
-
 	// If the namespace already contains a type with this name, prepend a '$' to the name
 	if (!namespaceObj[finalName]) {
 		namespaceObj[finalName] = ctor;
@@ -594,17 +543,6 @@ export function Type$_generateConstructor(type: Type, fullName: string, baseType
 	}
 
 	// Setup inheritance
-
-	let baseConstructor: EntityConstructor;
-
-	if (baseType) {
-		baseConstructor = baseType.jstype;
-		// // TODO: Implement `inheritBaseTypePropShortcuts`
-		// // inherit all shortcut properties that have aleady been defined
-		// inheritBaseTypePropShortcuts(ctor, baseType);
-	} else {
-		baseConstructor = Entity;
-	}
 
 	disableConstruction = true;
 
