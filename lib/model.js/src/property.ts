@@ -470,6 +470,7 @@ export class Property implements PropertyPath {
 	}
 
 	isInited(obj: Entity): boolean {
+
 		// If the backing field has been created, the property is initialized
 		var target = (this.isStatic ? this.containingType.jstype : obj);
 		return target.hasOwnProperty(this.fieldName);
@@ -760,31 +761,35 @@ function Property$_getInitialValue(property: Property) {
 	return val;
 }
 
+export function Property$_init(property: Property, obj: Entity, val: any) {
+	var target = (property.isStatic ? property.containingType.jstype : obj);
+
+	Property$pendingInit(target, property, false);
+
+	Object.defineProperty(target, property.fieldName, { value: val, writable: true });
+
+	if (Array.isArray(val)) {
+		Property$_subArrayEvents(obj, property, val as ObservableArray<any>);
+	}
+
+	// TODO: Implement observable?
+	(obj.changed as Event<Entity, EntityChangeEventArgs>).publish(obj, { entity: obj, property });
+}
+
 function Property$_ensureInited(property: Property, obj: Entity) {
 	var target = (property.isStatic ? property.containingType.jstype : obj);
 
     // Determine if the property has been initialized with a value
     // and initialize the property if necessary
-    if (!obj.hasOwnProperty(property.fieldName)) {
+    if (!target.hasOwnProperty(property.fieldName)) {
 
-        // // Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.  
-        // if (!property.isCalculated) {
-			Property$pendingInit(target, property, false);
+		// Mark the property as pending initialization
+		Property$pendingInit(target, property, true);
 
-			let val = Property$_getInitialValue(property);
-
-			Object.defineProperty(target, property.fieldName, { value: val, writable: true });
-
-			if (Array.isArray(val)) {
-				Property$_subArrayEvents(obj, property, val as ObservableArray<any>);
-			}
-
-			// TODO: Implement observable?
-			(obj.changed as Event<Entity, EntityChangeEventArgs>).publish(obj, { entity: obj, property });
-
-			// Mark the property as pending initialization
-			Property$pendingInit(target, property, true);
-        // }
+        // Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.  
+        if (!property.isCalculated) {
+			Property$_init(property, obj, Property$_getInitialValue(property));
+		}
     }
 }
 
@@ -801,7 +806,7 @@ function Property$_getter(property: Property, obj: Entity) {
     return (obj as any)[property.fieldName];
 }
 
-function Property$_setter(property: Property, obj: Entity, val: any, additionalArgs: any = null, skipTypeCheck: boolean = false) {
+export function Property$_setter(property: Property, obj: Entity, val: any, additionalArgs: any = null, skipTypeCheck: boolean = false) {
 
     // Ensure that the property has an initial (possibly default) value
 	Property$_ensureInited(property, obj);

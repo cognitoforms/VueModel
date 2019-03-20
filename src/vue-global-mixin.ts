@@ -99,7 +99,7 @@ function restoreComponentEntityData(vm: Vue) {
 
     // The internal `observe()` method basically makes the given object observable,
     // (entities should already be at this point) but it also updates a `vmCount` counter
-    observeEntity(vm$private._entity, true);
+    observeEntity(vm$private._entity, true).ensureObservable();
 
     // Null out the field now that we've finished preparing the entity
     vm$private._entity = null;

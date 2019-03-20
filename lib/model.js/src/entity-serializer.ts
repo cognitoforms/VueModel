@@ -1,4 +1,5 @@
-import { Entity, isEntityType, Type } from ".";
+import { isEntityType, Type } from "./type";
+import { Entity } from "./entity";
 import { Property } from "./property";
 
 export interface PropertySerializationResult {
@@ -103,35 +104,13 @@ export class EntitySerializer {
 		return result;
 	}
 
-	deserialize(data: Object, entity: Entity): void {
-		for (const [key, value] of Object.entries(data)) {
-			const prop = entity.meta.type.getProperty(key);
-			if (prop) {
-				if (value instanceof Object && isEntityType(prop.propertyType)) {
-					let nestedEntity: Entity = prop.value(entity);
-					if (!nestedEntity) {
-						nestedEntity = new prop.propertyType();
-						prop.value(entity, nestedEntity);
-					}
-					nestedEntity.hydrate(value);
-				}
-				else
-					prop.value(entity, value);
-			}
-		}
-	}
-
 	private static defaultPropertyConverter(prop: Property, value: any): PropertySerializationResult {
 		let result = { key: prop.name, value };
 		if (value) {
-			if (isEntityType(prop.propertyType)) {
-				if (prop.isList)
-					result.value = value.map((ent: Entity) => ent.serialize());
-				else
-					result.value = value.serialize();
-			}
-			else if (prop.isList)
+			if (prop.isList)
 				result.value = value.slice();
+			if (isEntityType(prop.propertyType))
+				result.value = value.serialize();
 		}
 		return result;
 	}

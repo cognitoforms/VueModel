@@ -163,14 +163,14 @@ export function makeEntitiesVueObservable(model: Model): void {
     }
 
     model.entityRegistered.subscribe(function(args: EntityRegisteredEventArgs) {
-        observeEntity(args.entity);
+        observeEntity(args.entity).ensureObservable();
     });
 
     // Make existing entities observable
 	for (let typeName of Object.keys(model.types)) {
 		let type = model.types[typeName];
         type.known().forEach(function(entity: Entity) {
-            observeEntity(entity);
+            observeEntity(entity).ensureObservable();
         });
     }
 
