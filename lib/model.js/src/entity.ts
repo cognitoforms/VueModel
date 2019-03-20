@@ -3,7 +3,7 @@ import { Format } from "./format";
 import { Model } from "./model";
 import { Type, EntityType } from "./type";
 import { ObjectMeta } from "./object-meta";
-import { Property } from "./property";
+import { Property, Property$_init, Property$_setter } from "./property";
 
 export class Entity {
 	readonly meta: ObjectMeta;
@@ -40,8 +40,8 @@ export class Entity {
 				if (!prop)
 					throw new Error(`Could not find property '${name}' on type '${this.meta.type.fullName}'.`);
 
-				// Set the property
-				prop.value(this, properties[name]);
+				// Initialize the property
+				Property$_init(prop, this, value);
 			}
 		}
 	}
@@ -67,7 +67,8 @@ export class Entity {
 				if (!prop)
 					throw new Error(`Could not find property '${name}' on type '${this.meta.type.fullName}'.`);
 
-				prop.value(this, properties[name]);
+				// Set the property
+				Property$_setter(prop, this, value);
 			}
 		}
 	}
