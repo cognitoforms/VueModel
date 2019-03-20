@@ -64,7 +64,7 @@ export class VueModel extends Model {
 		VueModel._Vue = vue;
 
 		// Get access to Vue's internal types that we need
-		ensureVueInternalTypes(VueModel._VueInternals, VueModel._Vue);
+		ensureVueInternalTypes(VueModel._VueInternals, Vue);
 
 		// Install the Vue global mixin
 		return VueModel$installGlobalMixin(vue);

@@ -3,7 +3,7 @@ import { Format } from "./format";
 import { Model } from "./model";
 import { Type, EntityType } from "./type";
 import { ObjectMeta } from "./object-meta";
-import { Property, Property$_init, Property$_setter } from "./property";
+import { Property } from "./property";
 
 export class Entity {
 	readonly meta: ObjectMeta;
@@ -40,8 +40,8 @@ export class Entity {
 				if (!prop)
 					throw new Error(`Could not find property '${name}' on type '${this.meta.type.fullName}'.`);
 
-				// Initialize the property
-				Property$_init(prop, this, value);
+				// Set the property
+				prop.value(this, properties[name]);
 			}
 		}
 	}
@@ -67,8 +67,7 @@ export class Entity {
 				if (!prop)
 					throw new Error(`Could not find property '${name}' on type '${this.meta.type.fullName}'.`);
 
-				// Set the property
-				Property$_setter(prop, this, value);
+				prop.value(this, properties[name]);
 			}
 		}
 	}
@@ -100,6 +99,10 @@ export class Entity {
 	 */
 	serialize(): Object {
 		return this.meta.type.model.serializer.serialize(this);
+	}
+
+	hydrate(data: Object) {
+		this.meta.type.model.serializer.deserialize(data, this);
 	}
 }
 
