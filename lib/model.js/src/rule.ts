@@ -247,7 +247,6 @@ export class Rule {
 							// Defer change notification until the scope of work has completed
 							EventScope$onExit(() => {
 								rule.returnValues.forEach((returnValue) => {
-									// TODO: Implement observable?
 									(args.entity.changed as Event<Entity, EntityChangeEventArgs>).publish(args.entity, { entity: args.entity, property: returnValue });
 								});
 							});
@@ -255,11 +254,6 @@ export class Rule {
 					}
 				);
 			});
-		}
-
-		// allow rule subclasses to perform final initialization when registered
-		if ((rule as any).onRegister instanceof Function) {
-			(rule as any).onRegister();
 		}
 
 	}

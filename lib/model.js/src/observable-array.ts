@@ -160,10 +160,10 @@ export interface ArrayChangedEventArgs<ItemType> {
 }
 
 export enum ArrayChangeType {
-	remove = 0,
 	add = 1,
-	replace = 2,
-	reorder = 4,
+	remove = 2,
+	replace = 4,
+	reorder = 8,
 }
 
 export interface ArrayChange<ItemType> {

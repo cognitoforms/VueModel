@@ -4,6 +4,9 @@ import { Type } from "./type";
 import { Entity } from "./entity";
 import { Property } from "./property";
 
+/**
+ * A rule that validates that a property has a value
+ */
 export class RequiredRule extends ValidationRule {
 
 	/**
@@ -21,8 +24,12 @@ export class RequiredRule extends ValidationRule {
 
 		// create the validation function based on the rule options
 		options.isValid = function(this: Entity, prop: Property, val: any): boolean {
-			return !options.when || !options.when.call(this) || 
-				val !== undefined && val !== null && (val.constructor !== String || val.trim() !== "") && (!(val instanceof Array) || val.length > 0);
+			if (options.when && !options.when.call(this)) {
+				// Requiredness is not in effect
+				return true;
+			}
+
+			return val !== undefined && val !== null && (val.constructor !== String || val.trim() !== "") && (!(val instanceof Array) || val.length > 0);
 		}
 
 		// call the base type constructor

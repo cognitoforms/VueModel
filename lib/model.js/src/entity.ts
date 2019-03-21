@@ -1,6 +1,6 @@
-import { Event, EventObject } from "./events";
+import { Event, EventObject, EventSubscriber } from "./events";
 import { Format } from "./format";
-import { Type, EntityType, isEntityType } from "./type";
+import { Type, EntityType } from "./type";
 import { ObjectMeta } from "./object-meta";
 import { Property, Property$_init, Property$_setter } from "./property";
 import { ObjectLookup } from "./helpers";
@@ -11,19 +11,21 @@ export class Entity {
 
 	readonly meta: ObjectMeta;
 
-	readonly accessed: Event<Entity, EntityAccessEventArgs>;
-	readonly changed: Event<Entity, EntityChangeEventArgs>;
+	readonly accessed: EventSubscriber<Entity, EntityAccessEventArgs>;
+	readonly changed: EventSubscriber<Entity, EntityChangeEventArgs>;
 
-	constructor(); // Prototype assignment *** used internally
-	constructor(type: Type, id: string, properties?: ObjectLookup<any>); // Construct existing instance with state
-	constructor(type: Type, properties?: ObjectLookup<any>); // Construct new instance with state
+	constructor(); // Prototype assignment
+	constructor(type: Type, id: string, properties?: { [name: string]: any }); // Construct existing instance with state
+	constructor(type: Type, properties?: { [name: string]: any }); // Construct new instance with state
 	constructor(type?: Type, id?: string | ObjectLookup<any>, properties?: ObjectLookup<any>) {
 		if (arguments.length === 0) {
 			// TODO: Warn about direct call in dev build?
 		}
-		else if (Entity.ctorDepth === 0)
-			throw new Error("Entity constructor should not be called directly.");
 		else {
+			if (Entity.ctorDepth === 0) {
+				throw new Error("Entity constructor should not be called directly.");
+			}
+
 			this.accessed = new Event<Entity, EntityAccessEventArgs>();
 			this.changed = new Event<Entity, EntityChangeEventArgs>();
 
@@ -31,7 +33,8 @@ export class Entity {
 
 			if (typeof id === "string")
 				type.assertValidId(id);
-			else {
+			else
+			{
 				properties = id;
 				id = type.newId();
 				isNew = true;
@@ -48,7 +51,8 @@ export class Entity {
 			}
 
 			// Raise the initNew or initExisting event on this type and all base types
-			for (let t = type; t; t = t.baseType) {
+			for (let t = type; t; t = t.baseType)
+			{
 				if (isNew)
 					(t.initNew as Event<Type, EntityInitExistingEventArgs>).publish(t, { entity: this });
 				else
@@ -57,51 +61,41 @@ export class Entity {
 		}
 	}
 
-	private init(properties: ObjectLookup<any>): void;
+	private init(properties: { [name: string]: any }): void;
 	private init(property: string, value: any): void;
 	private init(property: any, value?: any): void {
 		if (Entity.ctorDepth === 0) {
 			throw new Error("Entity.init() should not be called directly.");
 		}
 
-		let properties: ObjectLookup<any>;
+		let properties: { [name: string]: any };
 
 		// Convert property/value pair to a property dictionary
 		if (typeof property == "string") {
 			properties = {};
 			properties[property] = value;
-		}
-		else {
+		} else {
 			properties = property;
 		}
 
 		// Initialize the specified properties
-		for (const [propName, state] of Object.entries(properties)) {
-			const prop = this.meta.type.getProperty(propName);
-			if (prop) {
-				let value;
-				if (isEntityType(prop.propertyType)) {
-					if (prop.isList && Array.isArray(state))
-						value = state.map(s => s instanceof prop.propertyType ? s : new prop.propertyType(s));
-					else if (state instanceof prop.propertyType)
-						value = state;
-					else if (state instanceof Object)
-						value = new prop.propertyType(state);
-				}
-				else if (prop.isList && Array.isArray(state))
-					value = state.map(i => this.meta.type.model.serializer.deserialize(i, prop));
-				else
-					value = this.meta.type.model.serializer.deserialize(state, prop);
+		for (let name in properties) {
+			if (properties.hasOwnProperty(name)) {
+				let prop = this.meta.type.getProperty(name);
 
+				if (!prop)
+					throw new Error(`Could not find property '${name}' on type '${this.meta.type.fullName}'.`);
+
+				// Initialize the property
 				Property$_init(prop, this, value);
 			}
 		}
 	}
 
-	set(properties: ObjectLookup<any>): void;
+	set(properties: { [name: string]: any }): void;
 	set(property: string, value: any): void;
 	set(property: any, value?: any): void {
-		let properties: ObjectLookup<any>;
+		let properties: { [name: string]: any };
 
 		// Convert property/value pair to a property dictionary
 		if (typeof property == "string") {
@@ -112,34 +106,15 @@ export class Entity {
 		}
 
 		// Set the specified properties
-		for (const [propName, state] of Object.entries(properties)) {
-			const prop = this.meta.type.getProperty(propName);
-			if (prop) {
-				let value;
-				const currentValue = prop.value(this);
-				if (isEntityType(prop.propertyType)) {
-					if (prop.isList && Array.isArray(state) && Array.isArray(currentValue)) {
-						state.forEach((s, idx) => {
-							if (idx < currentValue.length)
-								currentValue[idx].set(s);
-							else
-								currentValue.push(new prop.propertyType(s));
-						});
-					}
-					else if (state instanceof Object) {
-						if (currentValue)
-							currentValue.set(state);
-						else
-							value = new prop.propertyType(state);
-					}
-				}
-				else if (prop.isList && Array.isArray(state) && Array.isArray(currentValue))
-					currentValue.splice(0, currentValue.length, state.map(s => this.meta.type.model.serializer.deserialize(s, prop)));
-				else
-					value = this.meta.type.model.serializer.deserialize(state, prop);
+		for (let name in properties) {
+			if (properties.hasOwnProperty(name)) {
+				let prop = this.meta.type.getProperty(name);
 
-				if (value !== undefined)
-					Property$_setter(prop, this, value);
+				if (!prop)
+					throw new Error(`Could not find property '${name}' on type '${this.meta.type.fullName}'.`);
+
+				// Set the property
+				Property$_setter(prop, this, value);
 			}
 		}
 	}
@@ -176,9 +151,6 @@ export class Entity {
 
 export interface EntityConstructor {
 	new(): Entity;
-	new(id: string, properties?: ObjectLookup<any>): Entity; // Construct existing instance with state
-	new(properties?: ObjectLookup<any>): Entity; // Construct new instance with state
-	new(id?: string | ObjectLookup<any>, properties?: ObjectLookup<any>): Entity;
 }
 
 export interface EntityConstructorForType<TEntity extends Entity> extends EntityConstructor {

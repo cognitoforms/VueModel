@@ -73,7 +73,15 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	 */
 	get helptext(): string {
 		let helptext = this.overrides ? this.overrides.helptext : null;
-		return helptext === undefined || helptext === null ? this.property.helptext : helptext;
+		if (helptext === undefined || helptext === null) {
+			if (Format.hasTokens(this.property.helptext)) {
+				helptext = this.parent.value.toString(this.property.helptext);
+			}
+			else {
+				helptext = this.property.helptext;
+			}
+		}
+		return helptext;
 	}
 
 	/**

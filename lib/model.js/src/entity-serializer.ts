@@ -25,8 +25,7 @@ export interface PropertyConverter {
 	 * @param prop The current property being serialized.
 	 * @param value The value of the property on the entity currently being serialized.
 	 */
-	serialize(prop: Property, value: any): PropertySerializationResult;
-	deserialize(prop: Property, value: any): any;
+	convert(prop: Property, value: any): PropertySerializationResult;
 }
 
 export class EntitySerializer {
@@ -90,7 +89,7 @@ export class EntitySerializer {
 					let value = prop.value(entity);
 					let converter = this._propertyConverters.find(c => c.shouldConvert(prop));
 					if (converter)
-						return converter.serialize(prop, value);
+						return converter.convert(prop, value);
 					return EntitySerializer.defaultPropertyConverter(prop, value);
 				}))
 			.forEach(pair => {
@@ -105,24 +104,13 @@ export class EntitySerializer {
 		return result;
 	}
 
-	deserialize(data: any, property: Property): any {
-		const converter = this._propertyConverters.find(c => c.shouldConvert(property));
-		if (converter)
-			return converter.deserialize(property, data);
-		return data;
-	}
-
 	private static defaultPropertyConverter(prop: Property, value: any): PropertySerializationResult {
 		let result = { key: prop.name, value };
 		if (value) {
-			if (isEntityType(prop.propertyType)) {
-				if (prop.isList && Array.isArray(value))
-					result.value = value.map((ent: Entity) => ent.serialize());
-				else
-					result.value = value.serialize();
-			}
-			else if (prop.isList)
+			if (prop.isList)
 				result.value = value.slice();
+			if (isEntityType(prop.propertyType))
+				result.value = value.serialize();
 		}
 		return result;
 	}

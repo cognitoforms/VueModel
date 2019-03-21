@@ -250,7 +250,7 @@ export function merge<T>(obj1: T, ...objs: any[]): T {
 }
 
 export function getEventSubscriptions<TypeType, EventArgsType>(event: Event<TypeType, EventArgsType>): EventSubscription<TypeType, EventArgsType>[] {
-	let func = (event as any)._func as FunctorWith1Arg<EventArgsType, void>;
+	let func = (event as any).func as FunctorWith1Arg<EventArgsType, void>;
 	if (func) {
 		let funcs = (func as any)._funcs as FunctorItem[];
 		if (funcs.length > 0) {
