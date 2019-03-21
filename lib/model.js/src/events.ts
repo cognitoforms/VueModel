@@ -51,9 +51,7 @@ export class Event<This, EventArgsType> implements EventPublisher<This, EventArg
     private readonly subscriptionChanged: EventSubscriptionChanged<Event<This, EventArgsType>>;
 
     constructor(subscriptionChanged?: EventSubscriptionChanged<Event<This, EventArgsType>>) {
-        if (subscriptionChanged) {
-            this.subscriptionChanged = subscriptionChanged;
-        }
+        this.subscriptionChanged = subscriptionChanged;
     }
 
     publish(thisObject: This, args: EventArgsType): void {
@@ -89,7 +87,7 @@ export class Event<This, EventArgsType> implements EventPublisher<This, EventArg
         }
 
         let functorItems = ((this.func as any)._funcs) as FunctorItem[];
-        return handler ? functorItems.some(function(i) { return i.fn === handler; }) : functorItems.length > 0;
+        return functorItems.some(function(i) { return i.fn === handler; });
     }
 
     unsubscribe(handler: EventHandler<This, EventArgsType>): void {

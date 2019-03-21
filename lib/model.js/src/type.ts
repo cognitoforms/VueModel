@@ -242,58 +242,44 @@ export class Type {
 	/** Gets and array of {Property} or {PropertyChain} instances for the specified complex graph path {string}. */
 	getPaths(path: string): PropertyPath[] {
 
-		let start = 0;
-		let paths = [];
+		var stack: string[] = [];
+		var parent: string;
+		var start = 0;
+		var len = path.length;
+		var paths = [];
 
-		// Process the path
-		if (/{|,|}/g.test(path)) {
-			let stack: string[] = [];
-			let parent: string;
+		for (var i = 0; i < len; ++i) {
+			var c = path.charAt(i);
 
-			for (let i = 0, len = path.length; i < len; ++i) {
-				let c = path.charAt(i);
+			if (c === '{' || c === ',' || c === '}') {
+				var seg = path.substring(start, i).trim();
+				start = i + 1;
 
-				if (c === '{' || c === ',' || c === '}') {
-					let seg = path.substring(start, i).trim();
-					start = i + 1;
-
-					if (c === '{') {
-						if (parent) {
-							stack.push(parent);
-							parent += "." + seg;
-						}
-						else {
-							parent = seg;
-						}
+				if (c === '{') {
+					if (parent) {
+						stack.push(parent);
+						parent += "." + seg;
 					}
-					else {   // ',' or '}'
-						if (seg.length > 0) {
-							paths.push(this.getPath(parent ? parent + "." + seg : seg));
-						}
-
-						if (c === '}') {
-							parent = (stack.length === 0) ? undefined : stack.pop();
-						}
+					else {
+						parent = seg;
 					}
 				}
-			}
+				else {   // ',' or '}'
+					if (seg.length > 0) {
+						paths.push(this.getPath(parent ? parent + "." + seg : seg));
+					}
 
-			if (stack.length > 0 || parent) {
-				throw new Error("Unclosed '{' in path: " + path);
-			}
-
-			if (start < path.length) {
-				let seg = path.substring(start).trim();
-				if (seg.length > 0) {
-					paths.push(this.getPath(seg));
+					if (c === '}') {
+						parent = (stack.length === 0) ? undefined : stack.pop();
+					}
 				}
-
-				// Set start to past the end of the list to indicate that the entire string was processed
-				start = path.length;
 			}
 		}
 
-		// If the input is a simple property or path, then add the single property or chain
+		if (stack.length > 0) {
+			throw new Error("Unclosed '{' in path: " + path);
+		}
+
 		if (start === 0) {
 			paths.push(this.getPath(path.trim()));
 		}

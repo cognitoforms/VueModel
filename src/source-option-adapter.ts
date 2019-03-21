@@ -21,6 +21,7 @@ export class SourceOptionAdapter<TValue> extends Vue {
     }
 
     get label(): string {
+        // TODO: Make observable if label is dynamic
         return this.parent.label;
     }
     
