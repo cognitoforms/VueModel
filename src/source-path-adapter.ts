@@ -135,13 +135,16 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		var formatter;
 		if (this.property.format != null) {
 			formatter = this.property.format;
-		} else {
+		} else if (this.property.propertyType !== String) {
 			// Try to use the general format by default
 			formatter = this.property.containingType.model.getFormat(this.property.propertyType, "G");
 		}
 
 		if (formatter) {
 			newValue = formatter.convertBack(text);
+		} else if (this.property.propertyType == String && typeof text === "string" && text.length === 0) {
+			// Convert blank string to null
+			newValue = null;
 		} else {
 			newValue = text;
 		}
