@@ -1,4 +1,4 @@
-import { Event, EventObject } from "./events";
+import { Event, EventObject, EventSubscriber } from "./events";
 import { Format } from "./format";
 import { Type, EntityType } from "./type";
 import { ObjectMeta } from "./object-meta";
@@ -11,8 +11,8 @@ export class Entity {
 
 	readonly meta: ObjectMeta;
 
-	readonly accessed: Event<Entity, EntityAccessEventArgs>;
-	readonly changed: Event<Entity, EntityChangeEventArgs>;
+	readonly accessed: EventSubscriber<Entity, EntityAccessEventArgs>;
+	readonly changed: EventSubscriber<Entity, EntityChangeEventArgs>;
 
 	constructor(); // Prototype assignment
 	constructor(type: Type, id: string, properties?: { [name: string]: any }); // Construct existing instance with state
