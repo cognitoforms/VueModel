@@ -123,7 +123,30 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	}
 
 	set displayValue(text: string) {
-		this.value = this.property.format != null ? this.property.format.convertBack(text) : text;
+		if (isEntityType(this.property.propertyType)) {
+			throw new Error("Cannot set displayValue property of Adapters for entity types.");
+		}
+
+		//// TODO: Implement auto-reformat?
+		//var initialValue = text;
+
+		var newValue;
+
+		var formatter;
+		if (this.property.format != null) {
+			formatter = this.property.format;
+		} else {
+			// Try to use the general format by default
+			formatter = this.property.containingType.model.getFormat(this.property.propertyType, "G");
+		}
+
+		if (formatter) {
+			newValue = formatter.convertBack(text);
+		} else {
+			newValue = text;
+		}
+
+		this.value = newValue;
 	}
 
 	get allowedValuesRule(): AllowedValuesRule {

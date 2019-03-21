@@ -497,6 +497,16 @@ export function createFormat<T>(type: any, format: string): Format<T> {
 				}
 			}
 		}) as any;
+	} else if (type === String && (!format || format === "G" || format === "g")) {
+		return new CustomFormat<string>({
+			specifier: format,
+			convert: function (val: string): string {
+				return val;
+			},
+			convertBack: function (str: string): string {
+				return str;
+			}
+		}) as any;
 	} else {
 		console.log("WARN: Unable to create format for type '" + getConstructorName(type) + "'.");
 	}
