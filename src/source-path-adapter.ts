@@ -11,7 +11,7 @@ import { PropertyChain } from "../lib/model.js/src/property-chain";
 import { ObservableArray, updateArray } from "../lib/model.js/src/observable-array";
 import { PropertyPath } from '../lib/model.js/src/property-path';
 import { SourceItemAdapter } from './source-item-adapter';
-import { isEntityType } from '../lib/model.js/src/type';
+import { isEntityType, isValueType } from '../lib/model.js/src/type';
 
 export type SourcePathOverrides = {
 	label?: string,
@@ -135,7 +135,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		var formatter;
 		if (this.property.format != null) {
 			formatter = this.property.format;
-		} else if (this.property.propertyType !== String) {
+		} else if (isValueType(this.property.propertyType) && this.property.propertyType !== String) {
 			// Try to use the general format by default
 			formatter = this.property.containingType.model.getFormat(this.property.propertyType, "G");
 		}
