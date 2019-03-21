@@ -256,11 +256,6 @@ export class Rule {
 			});
 		}
 
-		// allow rule subclasses to perform final initialization when registered
-		if ((rule as any).onRegister instanceof Function) {
-			(rule as any).onRegister();
-		}
-
 	}
 }
 
