@@ -291,7 +291,6 @@ export class Property implements PropertyPath {
 
 			// Required
 			if (options.required) {
-
 				// Always Required
 				if (typeof (options.required) === "boolean") {
 					this.containingType.model.ready(() => {
@@ -301,8 +300,14 @@ export class Property implements PropertyPath {
 				}
 				// Conditionally Required
 				else {
-					console.warn("Conditionally required rule is not yet implemented.");
-					// required if
+					let requiredOptions = options.required;
+					this.containingType.model.ready(() => {
+						(new RequiredRule(this.containingType, {
+							property: this,
+							when: requiredOptions.function,
+							onChangeOf: resolveDependsOn(this, "required", requiredOptions.dependsOn),
+						})).register();
+					});
 				}
 			}
 
