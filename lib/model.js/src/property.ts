@@ -630,7 +630,7 @@ export function Property$_generateOwnProperty(property: Property, obj: Entity) {
 }
 
 // TODO: Get rid of `Property$_generateOwnPropertyWithClosure`...
-export function Property$_generateOwnPropertyWithClosure(property: Property, obj: Entity & Entity) {
+export function Property$_generateOwnPropertyWithClosure(property: Property, obj: Entity) {
 
 	let val: any = null;
 
@@ -772,7 +772,6 @@ export function Property$_init(property: Property, obj: Entity, val: any) {
 		Property$_subArrayEvents(obj, property, val as ObservableArray<any>);
 	}
 
-	// TODO: Implement observable?
 	(obj.changed as Event<Entity, EntityChangeEventArgs>).publish(obj, { entity: obj, property });
 }
 
