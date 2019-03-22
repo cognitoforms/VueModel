@@ -24,8 +24,6 @@ export class PropertyChain implements PropertyPath {
 
 	constructor(rootType: Type, path: string) {
 
-		this.rootType = rootType;
-
 		// replace "." in type casts so that they do not interfere with splitting path
 		path = path.replace(/<[^>]*>/ig, function (e) { return e.replace(/\./ig, function () { return "$_$"; }); });
 
@@ -62,11 +60,12 @@ export class PropertyChain implements PropertyPath {
 
 		// create the accessed event and automatically subscribe to property accesses along the path when the event is used
 		this.accessed = new Event<Entity, PropertyAccessEventArgs>((event) => {
+			
 			if (event.hasSubscribers() && !this.stepAccessed) {
 				this.stepAccessed = [];
-				this.properties.forEach((property, index, props) => {
+				let priorProp: Property;
+				this.properties.forEach((property, index) => {
 					let handler: PropertyAccessEventHandler;
-					let priorProp: Property = index > 0 ? props[index - 1] : null;
 					handler = args => { 
 						this.rootType.known().forEach(known => {
 							if (this.testConnection(known, args.entity, priorProp)) {
@@ -78,6 +77,7 @@ export class PropertyChain implements PropertyPath {
 							}
 						});
 					};
+					priorProp = property;
 					this.stepAccessed[index] = handler;
 					property.accessed.subscribe(handler);
 				});
@@ -90,11 +90,12 @@ export class PropertyChain implements PropertyPath {
 
 		// create the changed event and automatically subscribe to property changes along the path when the event is used
 		this.changed = new Event<Entity, PropertyChangeEventArgs>((event) => {
+			
 			if (event.hasSubscribers() && !this.stepChanged) {
 				this.stepChanged = [];
-				this.properties.forEach((property, index, props) => {
+				let priorProp: Property;
+				this.properties.forEach((property, index) => {
 					let handler: PropertyChangeEventHandler;
-					let priorProp: Property = index > 0 ? props[index - 1] : null;
 					handler = args => { 
 						this.rootType.known().forEach(known => {
 							if (this.testConnection(known, args.entity, priorProp)) {
@@ -107,6 +108,7 @@ export class PropertyChain implements PropertyPath {
 							}
 						});
 					};
+					priorProp = property;
 					this.stepChanged[index] = handler;
 					property.changed.subscribe(handler);
 				});
