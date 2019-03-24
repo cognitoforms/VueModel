@@ -9,7 +9,8 @@
   "scripts": {
     "build": "tsc -p .",
     "dist": "tsc -p . & rollup -c",
-    "test": "jest"
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "devDependencies": {
     "@babel/core": "^7.3.4",

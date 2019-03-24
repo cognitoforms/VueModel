@@ -1,21 +1,25 @@
 import { Model } from "./model";
 import { Entity } from "./entity";
+let Types: any;
+function resetModel() {
+	Types = {};
+	return new Model({
+		$namespace: Types,
+		Person: {
+			FirstName: String,
+			LastName: String
+		},
+		Movie: {
+			Title: String,
+			Director: "Person",
+			ReleaseDate: Date
+		}
+	});
+}
 
 describe("Entity", () => {
-	let Types: any = {};
 	beforeAll(() => {
-		new Model({
-			$namespace: Types,
-			Person: {
-				FirstName: String,
-				LastName: String
-			},
-			Movie: {
-				Title: String,
-				Director: "Person",
-				ReleaseDate: Date
-			}
-		})
+		resetModel();
 	});
 
 	it("can be extended and constructed", () => {
@@ -28,60 +32,86 @@ describe("Entity", () => {
 		expect(movie).toHaveProperty("ReleaseDate");
 	});
 
-	it("can be constructed with initial state", () => {
-		const state = {
-			Title: "Ace in the Hole",
-			Director: { FirstName: "Billy", LastName: "Wilder" }
-		};
-		const movie = new Types.Movie(state);
-
-		expect(movie.Title).toBe(state.Title);
-		expect(movie.Director.FirstName).toBe(state.Director.FirstName);
-		expect(movie.Director.LastName).toBe(state.Director.LastName);
-	});
-
 	const Alien = {
 		Title: "Alien",
 		Director: { FirstName: "Ridley", LastName: "Scott" }
 	};
 
-	it("can be deserialized", () => {
+	it("can be constructed with provided state", () => {
+		const movie = new Types.Movie(Alien);
+
+		expect(movie.Title).toBe(Alien.Title);
+		expect(movie.Director.FirstName).toBe(Alien.Director.FirstName);
+		expect(movie.Director.LastName).toBe(Alien.Director.LastName);
+	});
+
+	it("can be serialized", () => {
 		const movie = new Types.Movie(Alien);
 
 		expect(movie.serialize()).toEqual(Alien);
 	});
 
 	describe("default value", () => {
-		const defaultTitle = "Untitled";
-		const defaultDirector = { FirstName: "John", LastName: "Doe" };
-		beforeAll(() => {
-			Types.Person.meta.extend({
-				FirstName: { default: () => defaultDirector.FirstName },
-				LastName: { default: () => defaultDirector.LastName }
+		const _default = {
+			Title: "Untitled",
+			Director: { FirstName: "John", LastName: "Doe" }
+		};
+
+		describe("static", () => {
+			beforeAll(() => {
+				resetModel();
+
+				Types.Person.meta.extend({
+					FirstName: { default: _default.Director.FirstName },
+					LastName: { default: _default.Director.LastName }
+				});
+
+				Types.Movie.meta.extend({
+					Title: { default: _default.Title }
+				});
 			});
 
-			Types.Movie.meta.extend({
-				Title: { default: () => defaultTitle },
-				Director: { default: () => new Types.Person() }
+			it("does not overwrite provided state of new entity", () => {
+				const movie = new Types.Movie(Alien);
+
+				expect(movie.serialize()).toEqual(Alien);
+			});
+
+			it("does not overwrite provided state of existing entity", () => {
+				const movie = new Types.Movie("1", Alien);
+
+				expect(movie.serialize()).toEqual(Alien);
 			});
 		});
 
-		it("overwrites initial state of new entity", () => {
-			const movie = new Types.Movie(Alien);
+		describe("rule", () => {
+			beforeAll(() => {
+				resetModel();
 
-			expect(movie.Title).toBe(defaultTitle);
+				Types.Person.meta.extend({
+					FirstName: { default: () => _default.Director.FirstName },
+					LastName: { default: () => _default.Director.LastName }
+				});
 
-			expect(movie.Director.FirstName).toBe(defaultDirector.FirstName);
-			expect(movie.Director.LastName).toBe(defaultDirector.LastName);
-		});
+				Types.Movie.meta.extend({
+					Title: { default: () => _default.Title },
+					Director: { default: () => new Types.Person() }
+				});
+			});
 
-		it("does not overwrite initial state of existing entity", () => {
-			const movie = new Types.Movie("1", Alien);
+			it("does not overwrite initial state of new entity", () => {
+				const movie = new Types.Movie(Alien);
 
-			expect(movie.Title).toBe(Alien.Title);
+				expect(movie.serialize()).toEqual(Alien);
+			});
 
-			expect(movie.Director.FirstName).toBe(Alien.Director.FirstName);
-			expect(movie.Director.LastName).toBe(Alien.Director.LastName);
+			it("does not overwrite initial state of existing entity", () => {
+				const movie = new Types.Movie("1", Alien);
+
+				expect(movie.Title).toBe(Alien.Title);
+				expect(movie.Director.FirstName).toBe(Alien.Director.FirstName);
+				expect(movie.Director.LastName).toBe(Alien.Director.LastName);
+			});
 		});
 	});
 });

@@ -32,20 +32,21 @@ export class Entity {
 			if (typeof id === "string")
 				type.assertValidId(id);
 			else {
-				properties = id;
+				// Was id provided as undefined, or not provided at all?
+				if (arguments.length === 2)
+					properties = id;
 				id = type.newId();
 				isNew = true;
 			}
 
 			this.meta = new ObjectMeta(type, this, id, isNew);
 
-			// Register the newly constructed existing instance.
+			// Register the newly constructed instance
 			type.register(this);
 
-			// Initialize properties if provided.
-			if (properties) {
+			// Initialize existing entity with provided property values
+			if (!isNew && properties)
 				this.init(properties);
-			}
 
 			// Raise the initNew or initExisting event on this type and all base types
 			for (let t = type; t; t = t.baseType) {
@@ -54,6 +55,10 @@ export class Entity {
 				else
 					(t.initExisting as Event<Type, EntityInitExistingEventArgs>).publish(t, { entity: this });
 			}
+
+			// Set values of new entity for provided properties
+			if (isNew && properties)
+				this.set(properties);
 		}
 	}
 
@@ -81,12 +86,13 @@ export class Entity {
 			if (prop) {
 				let value;
 				if (isEntityType(prop.propertyType)) {
+					const ChildEntity = prop.propertyType;
 					if (prop.isList && Array.isArray(state))
-						value = state.map(s => s instanceof prop.propertyType ? s : new prop.propertyType(s));
-					else if (state instanceof prop.propertyType)
+						value = state.map(s => s instanceof ChildEntity ? s : new ChildEntity(s.$id, s));
+					else if (state instanceof ChildEntity)
 						value = state;
 					else if (state instanceof Object)
-						value = new prop.propertyType(state);
+						value = new ChildEntity(state.$id, state);
 				}
 				else if (prop.isList && Array.isArray(state))
 					value = state.map(i => this.meta.type.model.serializer.deserialize(i, prop));
