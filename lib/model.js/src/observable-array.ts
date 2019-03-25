@@ -147,7 +147,7 @@ export class ObservableArray<ItemType> {
 	 * Creates a new observable array
 	 * @param items The initial array items
 	 */
-	public static create<ItemType>(items: ItemType[] = null): ObservableArray<ItemType> & Array<ItemType> {
+	public static create<ItemType>(items: ItemType[] = []): ObservableArray<ItemType> & Array<ItemType> {
 		let array: ObservableArray<ItemType>;
 		if (items instanceof ObservableArray)
 			array = items;
