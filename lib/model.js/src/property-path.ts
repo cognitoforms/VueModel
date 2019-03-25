@@ -22,7 +22,8 @@ export interface PropertyPath {
 
     readonly changed: EventSubscriber<Entity, PropertyChangeEventArgs>;
 	readonly accessed: EventSubscriber<Entity, PropertyAccessEventArgs>;
-	
+
+	getLastTarget(obj: Entity): Entity;
 	value(obj: Entity, val?: any, additionalArgs?: any): any;
 	equals(prop: PropertyPath): boolean;
 	each(obj: Entity, callback: (obj: any, prop: Property) => any, filter?: Property): void;

@@ -72,6 +72,10 @@ export class Property implements PropertyPath {
 		return this;
 	}
 
+	getLastTarget(obj: Entity): Entity {
+		return obj;
+	}
+
 	get defaultValue() {
 		if (Object.prototype.hasOwnProperty.call(this, '_defaultValue')) {
 			// clone array and date defaults since they are mutable javascript types
