@@ -12,48 +12,53 @@ function resetModel() {
 		Movie: {
 			Title: String,
 			Director: "Person",
-			ReleaseDate: Date
+			ReleaseDate: Date,
+			Genres: "String[]"
 		}
 	});
 }
+
+const Alien = {
+	Title: "Alien",
+	Director: { FirstName: "Ridley", LastName: "Scott" },
+	Genres: ["science fiction", "action"]
+};
 
 describe("Entity", () => {
 	beforeAll(() => {
 		resetModel();
 	});
 
-	it("can be extended and constructed", () => {
-		const movie = new Types.Movie();
+	describe("construction", () => {
+		it("can be extended and constructed", () => {
+			const movie = new Types.Movie();
 
-		expect(movie).toBeInstanceOf(Entity);
+			expect(movie).toBeInstanceOf(Entity);
 
-		expect(movie).toHaveProperty("Title");
-		expect(movie).toHaveProperty("Director");
-		expect(movie).toHaveProperty("ReleaseDate");
-	});
-
-	const Alien = {
-		Title: "Alien",
-		Director: { FirstName: "Ridley", LastName: "Scott" }
-	};
-
-	it("can be constructed with provided state", () => {
-		const movie = new Types.Movie(Alien);
-
-		expect(movie.Title).toBe(Alien.Title);
-		expect(movie.Director.FirstName).toBe(Alien.Director.FirstName);
-		expect(movie.Director.LastName).toBe(Alien.Director.LastName);
-	});
-
-	it("can be constructed with prebuilt child entities", () => {
-		const state = Object.assign({}, Alien, {
-			Director: new Types.Person(Alien.Director)
+			expect(movie).toHaveProperty("Title");
+			expect(movie).toHaveProperty("Director");
+			expect(movie).toHaveProperty("ReleaseDate");
 		});
-		const movie = new Types.Movie(state);
 
-		expect(movie.Title).toBe(Alien.Title);
-		expect(movie.Director.FirstName).toBe(Alien.Director.FirstName);
-		expect(movie.Director.LastName).toBe(Alien.Director.LastName);
+		it("can be constructed with provided state", () => {
+			const movie = new Types.Movie(Alien);
+
+			expect(movie.Title).toBe(Alien.Title);
+			expect(movie.Director.FirstName).toBe(Alien.Director.FirstName);
+			expect(movie.Director.LastName).toBe(Alien.Director.LastName);
+			// call slice to get rid of observable overrides
+			expect(movie.Genres.slice()).toEqual(Alien.Genres);
+		});
+
+		it("can be constructed with prebuilt child entities", () => {
+			const state = Object.assign({}, Alien, {
+				// Instead of a literal object representing the desired state, pass a Person instance
+				Director: new Types.Person(Alien.Director)
+			});
+			const movie = new Types.Movie(state);
+
+			expect(movie.serialize()).toEqual(Alien);
+		});
 	});
 
 	it("can be serialized", () => {
@@ -65,7 +70,8 @@ describe("Entity", () => {
 	describe("default value", () => {
 		const _default = {
 			Title: "Untitled",
-			Director: { FirstName: "John", LastName: "Doe" }
+			Director: { FirstName: "John", LastName: "Doe" },
+			Genres: new Array<string>()
 		};
 
 		describe("static", () => {
@@ -119,9 +125,7 @@ describe("Entity", () => {
 			it("does not overwrite initial state of existing entity", () => {
 				const movie = new Types.Movie("1", Alien);
 
-				expect(movie.Title).toBe(Alien.Title);
-				expect(movie.Director.FirstName).toBe(Alien.Director.FirstName);
-				expect(movie.Director.LastName).toBe(Alien.Director.LastName);
+				expect(movie.serialize()).toBe(Alien);
 			});
 		});
 	});

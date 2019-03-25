@@ -124,19 +124,29 @@ export class Entity {
 				let value;
 				const currentValue = prop.value(this);
 				if (isEntityType(prop.propertyType)) {
+					const ChildEntity = prop.propertyType;
 					if (prop.isList && Array.isArray(state) && Array.isArray(currentValue)) {
 						state.forEach((s, idx) => {
-							if (idx < currentValue.length)
-								currentValue[idx].set(s);
+							// Modifying/replacing existing list item
+							if (idx < currentValue.length) {
+								if (s instanceof ChildEntity)
+									state.splice(idx, 1, s);
+								else
+									currentValue[idx].set(s);
+							}
+							// Add a list item
 							else
-								currentValue.push(new prop.propertyType(s));
+								currentValue.push(s instanceof ChildEntity ? s : new ChildEntity(s.$id, s));
 						});
 					}
+					else if (state instanceof ChildEntity)
+						value = state;
 					else if (state instanceof Object) {
+						// Update the entity's state
 						if (currentValue)
 							currentValue.set(state);
 						else
-							value = new prop.propertyType(state);
+							value = new ChildEntity(state.$id, state);
 					}
 				}
 				else if (prop.isList && Array.isArray(state) && Array.isArray(currentValue))
