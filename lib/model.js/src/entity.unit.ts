@@ -45,6 +45,17 @@ describe("Entity", () => {
 		expect(movie.Director.LastName).toBe(Alien.Director.LastName);
 	});
 
+	it("can be constructed with prebuilt child entities", () => {
+		const state = Object.assign({}, Alien, {
+			Director: new Types.Person(Alien.Director)
+		});
+		const movie = new Types.Movie(state);
+
+		expect(movie.Title).toBe(Alien.Title);
+		expect(movie.Director.FirstName).toBe(Alien.Director.FirstName);
+		expect(movie.Director.LastName).toBe(Alien.Director.LastName);
+	});
+
 	it("can be serialized", () => {
 		const movie = new Types.Movie(Alien);
 
