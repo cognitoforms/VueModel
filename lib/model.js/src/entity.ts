@@ -140,7 +140,7 @@ export class Entity {
 					}
 				}
 				else if (prop.isList && Array.isArray(state) && Array.isArray(currentValue))
-					currentValue.splice(0, currentValue.length, state.map(s => this.meta.type.model.serializer.deserialize(s, prop)));
+					currentValue.splice(0, currentValue.length, ...state.map(s => this.meta.type.model.serializer.deserialize(s, prop)));
 				else
 					value = this.meta.type.model.serializer.deserialize(state, prop);
 
