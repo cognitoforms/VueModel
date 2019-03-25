@@ -1,12 +1,8 @@
-import { Condition, ConditionsChangedEventArgs } from "./condition";
+import { Condition } from "./condition";
 import { ConditionTypeSet } from "./condition-type-set";
 import { ObservableArray } from "./observable-array";
-import { Event, EventSubscriber } from "./events";
 import { Entity } from "./entity";
-import { Property } from "./property";
-import { PropertyChain } from "./property-chain";
 import { PropertyPath } from "./property-path";
-
 
 const allConditionTypes: { [id: string]: ConditionType } = {};
 
@@ -16,8 +12,7 @@ export class ConditionType {
 	readonly category: string;
 	readonly message: string;
 	readonly conditions: ObservableArray<Condition>;
-	readonly sets: ConditionTypeSet[];
-	readonly conditionsChanged: EventSubscriber<ConditionType, ConditionsChangedEventArgs>;
+	readonly sets: ObservableArray<ConditionTypeSet>;
 
 	/**
 	* Creates a unique type of model condition.
@@ -37,9 +32,7 @@ export class ConditionType {
 		this.message = message;
 		// this.rules = [];
 		this.conditions = ObservableArray.create<Condition>();
-		this.sets = sets || [];
-
-		this.conditionsChanged = new Event<ConditionType, ConditionsChangedEventArgs>();
+		this.sets = ObservableArray.ensureObservable(sets || []);
 
 		// Register with the static dictionary of all condition types
 		allConditionTypes[code] = this;

@@ -13,6 +13,8 @@ import { PropertyPath } from '../lib/model.js/src/property-path';
 import { SourceItemAdapter } from './source-item-adapter';
 import { isEntityType, isValueType } from '../lib/model.js/src/type';
 import { Condition } from '../lib/model.js/src/condition';
+import { ConditionTarget } from '../lib/model.js/src/condition-target';
+import { FormatError } from '../lib/model.js/src/format-error';
 
 export type SourcePathOverrides = {
 	label?: string,
@@ -28,6 +30,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 	@Prop(Object)
 	overrides: SourcePathOverrides;
+
+	viewState: { formatError: ConditionTarget } = { formatError: null };
 
 	get parent(): SourceAdapter<TEntity> {
 		for (let parentVm: Vue = this.$parent.$parent, parentLevel = 1; parentVm != null; parentVm = parentVm.$parent, parentLevel += 1) {
@@ -118,14 +122,79 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		}
 	}
 
+	get conditions(): ConditionTarget[] {
+
+		let vs = this.viewState;
+		if (!vs) {
+			this.viewState = Vue.observable({ formatError: null });
+		}
+
+		let meta = this.parent.value.meta;
+		let metaOb = getObjectMetaObserver(meta);
+		let conditionsList = meta.conditions;
+		metaOb.onPropertyAccess("conditions", conditionsList);
+
+		let formatError: ConditionTarget = vs.formatError;
+
+		return (formatError ? [formatError] : []).concat(conditionsList);
+	}
+
+	get formatError(): FormatError {
+
+		let vs = this.viewState;
+		if (!vs) {
+			this.viewState = Vue.observable({ formatError: null });
+		}
+
+		var formatErrorConditionTarget = vs.formatError;
+		if (formatErrorConditionTarget) {
+			var formatErrorCondition = formatErrorConditionTarget.condition;
+			if (formatErrorCondition) {
+				return (formatErrorCondition as any)['formatError'] as FormatError;
+			}
+		}
+	}
+
+	set formatError(err: FormatError) {
+
+		let vs = this.viewState;
+		if (!vs) {
+			this.viewState = Vue.observable({ formatError: null });
+		}
+
+		if (err) {
+			var formatErrorCondition = err.createCondition(this.property.getLastTarget(this.parent.value), this.property.lastProperty);
+
+			(formatErrorCondition as any)['formatError'] = err;
+
+			formatErrorCondition.targets.forEach(formatErrorConditionTarget => {
+				(formatErrorConditionTarget as any)['formatError'] = err;
+				vs.formatError = formatErrorConditionTarget;
+				(err as any)['conditionTarget'] = formatErrorConditionTarget;
+			});
+		} else {
+			vs.formatError = null;
+		}
+
+	}
+
+	get invalidValue(): string {
+		if (this.formatError) {
+			return this.formatError.invalidValue;
+		}
+	}
+
 	get firstError(): Condition {
+		if (this.formatError) {
+			let formatErrorConditionTarget = (this.formatError as any)['conditionTarget'] as ConditionTarget;
+			if (formatErrorConditionTarget) {
+				return formatErrorConditionTarget.condition;
+			}
+		}
+
 		var property = this.property instanceof Property ? this.property : this.property instanceof PropertyChain ? this.property.lastProperty : null;
 		if (property) {
-			var meta = this.parent.value.meta;
-			var metaOb = getObjectMetaObserver(meta);
-			var conditions = meta.conditions;
-			metaOb.onPropertyAccess("conditions", conditions);
-			var conditions = conditions.filter(c => c.condition.type.category === "Error");
+			var conditions = this.conditions.filter(c => c.condition.type.category === "Error");
 			var thisPathConditions = conditions.filter(c => c.properties.indexOf(property) >= 0);
 			if (thisPathConditions.length) {
 				return thisPathConditions[0].condition;
@@ -134,6 +203,9 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	}
 
 	get displayValue(): string {
+		if (this.formatError) {
+			return this.formatError.invalidValue;
+		}
 		let value = this.ensureObservable(this.property.value(this.parent.value));
 		return formatDisplayValue(this, value);
 	}
@@ -156,8 +228,18 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 			formatter = this.property.containingType.model.getFormat(this.property.propertyType, "G");
 		}
 
+		if (this.formatError) {
+			this.parent.value.meta.clearCondition(FormatError.ConditionType); // TODO: This shouldn't do anything...
+			this.formatError = null;
+		}
+
 		if (formatter) {
 			newValue = formatter.convertBack(text);
+
+			if (newValue instanceof FormatError) {
+				this.formatError = newValue;
+				return;
+			}
 		} else if (this.property.propertyType == String && typeof text === "string" && text.length === 0) {
 			// Convert blank string to null
 			newValue = null;

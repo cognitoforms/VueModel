@@ -1,103 +1,69 @@
-import { Event, EventSubscriber } from "./events";
-import { FormatError$getConditionType } from "./format-error";
+import { Event } from "./events";
 import { Type } from "./type";
 import { Entity, EntityDestroyEventArgs } from "./entity";
-import { ConditionTarget, ConditionTargetsChangedEventArgs } from "./condition-target";
+import { ConditionTarget } from "./condition-target";
 import { ConditionType, PermissionConditionType } from "./condition-type";
-import { hasOwnProperty } from "./helpers";
+import { ObservableArray } from "./observable-array";
+import { FormatError } from "./format-error";
 
 export class ObjectMeta {
 
-	// Public read-only properties: aspects of the object that cannot be
-	// changed without fundamentally changing what it represents
 	readonly type: Type;
-	// TODO: Is this needed? Technically you can look it up by id if needed...
 	readonly entity: Entity;
 	
-	// Backing fields for properties that are settable and also derived from
-	// other data, calculated in some way, or cannot simply be changed
-	private _id: string;
-	private _isNew: boolean;
-	private _legacyId: string;
-	private _conditions: { [code: string]: ConditionTarget };
+	id: string;
+	isNew: boolean;
+	legacyId: string;
 
-	readonly conditionsChanged: EventSubscriber<ObjectMeta, ConditionTargetsChangedEventArgs>;
+	conditions: ObservableArray<ConditionTarget>;
 
 	constructor(type: Type, entity: Entity, id: string, isNew: boolean) {
-		// Public read-only properties
-		Object.defineProperty(this, "type", { enumerable: true, value: type });
-		Object.defineProperty(this, "entity", { enumerable: true, value: entity });
-
-		// Public settable properties that are simple values with no side-effects or logic
-		Object.defineProperty(this, "_id", { enumerable: false, value: id, writable: true });
-		Object.defineProperty(this, "_isNew", { enumerable: false, value: isNew, writable: true });
-		Object.defineProperty(this, "_conditions", { enumerable: false, value: {}, writable: true });
-
-		this.conditionsChanged = new Event<ObjectMeta, ConditionTargetsChangedEventArgs>();
+		this.type = type;
+		this.entity = entity;
+		this.id = id;
+		this.isNew = isNew;
+		this.conditions = ObservableArray.create<ConditionTarget>();
 	}
 
-	get id(): string {
-		// TODO: Obfuscate backing field name?
-		return this._id;
+	/**
+	 * Gets the condition target with the specified condition type
+	 * @param conditionType The type of condition to retrieve
+	 */
+	getCondition(conditionType: ConditionType): ConditionTarget {
+		return this.conditions.filter(c => c.condition.type === conditionType)[0];
 	}
 
-	set id(value) {
-		// TODO: Implement logic to change object ID?
-		this._id = value;
+	/**
+	 * Stores the condition target for the current instance
+	 * @param conditionTarget The condition target to store
+	 */
+	setCondition(conditionTarget: ConditionTarget) {
+		if (conditionTarget.condition.type != FormatError.ConditionType) {
+			this.conditions.push(conditionTarget);
+		}
 	}
 
-	get isNew(): boolean {
-		// TODO: Obfuscate backing field name?
-		// TODO: Implement logic to mark object as no longer new?
-		return this._isNew;
-	}
-
-	get legacyId(): string {
-		// TODO: Obfuscate backing field name?
-		return this._legacyId;
-	}
-
-	set legacyId(value) {
-		// TODO: Don't allow setting legacy ID if already set
-		this._legacyId = value;
-	}
-
-	get conditions(): ConditionTarget[] {
-		var conditions = [];
-		for (var code in this._conditions) {
-			if (hasOwnProperty(this._conditions, code)) {
-				conditions.push(this._conditions[code]);
+	/**
+	 * Clears the condition for the current instance with the specified condition type
+	 * @param conditionType The type of condition to clear
+	 */
+	clearCondition(conditionType: ConditionType): void {
+		for (var i = 0; i < this.conditions.length; i++) {
+			let conditionTarget = this.conditions[i];
+			if (conditionTarget.condition.type === conditionType) {
+				this.conditions.splice(i--, 1);
 			}
 		}
-		return conditions;
 	}
 
-	// gets the condition target with the specified condition type
-	getCondition(conditionType: ConditionType): ConditionTarget {
-		return this._conditions[conditionType.code];
-	}
-
-	// stores the condition target for the current instance
-	setCondition(conditionTarget: ConditionTarget) {
-			this._conditions[conditionTarget.condition.type.code] = conditionTarget;
-		if (conditionTarget.condition.type != FormatError.ConditionType) {
-		}
-	}
-
-	// clears the condition for the current instance with the specified condition type
-	clearCondition(conditionType: ConditionType): void {
-		delete this._conditions[conditionType.code];
-	}
-
-	// determines if the set of permissions are allowed for the current instance
-	isAllowed(/*codes*/) {
-		if (arguments.length === 0) {
-			return undefined;
-		}
-
+	/**
+	 * Determines if the set of permissions are allowed for the current instance
+	 * @param codes The permission condition type code(s)
+	 */
+	isAllowed(...codes: string[]): boolean {
 		// ensure each condition type is allowed for the current instance
-		for (var c = arguments.length - 1; c >= 0; c--) {
-			var code = arguments[c];
+		for (var c = codes.length - 1; c >= 0; c--) {
+			var code = codes[c];
 			var conditionType = ConditionType.get(code);
 
 			// return undefined if the condition type does not exist
@@ -111,7 +77,7 @@ export class ObjectMeta {
 			}
 
 			// return false if a condition of the current type exists and is a deny permission or does not exist and is a grant permission
-			if (this._conditions[conditionType.code] ? !conditionType.isAllowed : conditionType.isAllowed) {
+			if (this.getCondition(conditionType) ? !conditionType.isAllowed : conditionType.isAllowed) {
 				return false;
 			}
 		}

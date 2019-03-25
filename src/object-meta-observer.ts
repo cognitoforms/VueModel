@@ -13,7 +13,7 @@ export class ObjectMetaObserver extends CustomObserver<ObjectMeta> implements Ex
 			return;
 		}
 
-		this.value.conditionsChanged.subscribe(this._onConditionsChanged.bind(this));
+		this.value.conditions.changed.subscribe(this._onConditionsChanged.bind(this));
 
 		(this as any)._observable = true;
 	}

@@ -40,7 +40,7 @@ export class Type {
 	readonly initNew: EventSubscriber<Type, EntityInitNewEventArgs>;
 	readonly initExisting: EventSubscriber<Type, EntityInitExistingEventArgs>;
 	readonly destroy: EventSubscriber<Type, EntityDestroyEventArgs>;
-	readonly conditionsChanged: EventSubscriber<Type, ConditionTargetsChangedEventArgs>;
+	// readonly conditionsChanged: EventSubscriber<Type, ConditionTargetsChangedEventArgs>;
 
 	constructor(model: Model, fullName: string, baseType: Type = null, options?: TypeOptions) {
 
@@ -59,7 +59,7 @@ export class Type {
 		this.initNew = new Event<Type, EntityInitNewEventArgs>();
 		this.initExisting = new Event<Type, EntityInitExistingEventArgs>();
 		this.destroy = new Event<Type, EntityDestroyEventArgs>();
-		this.conditionsChanged = new Event<Type, ConditionTargetsChangedEventArgs>();
+		// this.conditionsChanged = new Event<Type, ConditionTargetsChangedEventArgs>();
 
 		// Apply type options
 		if (options)

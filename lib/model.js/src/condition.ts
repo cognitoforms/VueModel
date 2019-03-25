@@ -1,19 +1,16 @@
 import { FormatError } from "./format-error";
 import { Entity } from "./entity";
 import { ConditionType } from "./condition-type";
-import { ConditionTarget, ConditionTargetsChangedEventArgs } from "./condition-target";
+import { ConditionTarget } from "./condition-target";
 import { PropertyPath } from "./property-path";
-import { Type } from "./type";
-import { Event } from "./events";
-import { ConditionTypeSet } from "./condition-type-set";
-import { ObjectMeta } from "./object-meta";
+import { ObservableArray } from "./observable-array";
 
 export class Condition {
 
 	type: ConditionType;
 	message: string;
 	origin: string;
-	targets: ConditionTarget[];
+	targets: ObservableArray<ConditionTarget>;
 
 	/**
 		* Creates a condition of a specific type associated with one or more entities in a model.
@@ -26,7 +23,8 @@ export class Condition {
 
 		this.type = type;
 		this.message = message || (type ? type.message : undefined);
-		let targets: ConditionTarget[] = [];
+
+		let targets = this.targets = ObservableArray.create<ConditionTarget>();
 
 		// create targets if a root was specified
 		if (target) {
@@ -62,9 +60,6 @@ export class Condition {
 			}
 		}
 
-		// store the condition targets
-		Object.defineProperty(this, "targets", { value: targets });
-
 		// raise events for the new condition
 		if (type !== FormatError.ConditionType) {
 
@@ -73,27 +68,20 @@ export class Condition {
 			// raise events on condition targets
 			for (var t = targets.length - 1; t >= 0; t--) {
 				let conditionTarget = targets[t];
-				let objectMeta = conditionTarget.target.meta;
-
-				// instance events
-				(objectMeta.conditionsChanged as Event<ObjectMeta, ConditionTargetsChangedEventArgs>).publish(objectMeta, { conditionTarget: conditionTarget, add: true });
 
 				// type events
 				for (var objectType = conditionTarget.target.meta.type; objectType != null; objectType = objectType.baseType) {
-					(objectType.conditionsChanged as Event<Type, ConditionTargetsChangedEventArgs>).publish(objectType, { conditionTarget: conditionTarget, add: true });
+				 	// (objectType.conditionsChanged as Event<Type, ConditionTargetsChangedEventArgs>).publish(objectType, { conditionTarget: conditionTarget, add: true });
 				}
 			}
 
 			// Add the condition to the corresponding condition type
 			conditionType.conditions.push(this);
-			(conditionType.conditionsChanged as Event<ConditionType, ConditionsChangedEventArgs>).publish(this.type, { condition: this, add: true });
 
 			// Add the condition to relevant condition type sets
 			if (this.type.sets) {
 				for (var s = this.type.sets.length - 1; s >= 0; s--) {
-					var set = this.type.sets[s];
-					set.conditions.push(this);
-					(set.conditionsChanged as Event<ConditionTypeSet, ConditionsChangedEventArgs>).publish(set, { condition: this, add: true });
+					this.type.sets[s].conditions.push(this);
 				}
 			}
 		}
@@ -125,12 +113,9 @@ export class Condition {
 
 			objectMeta.clearCondition(conditionTarget.condition.type);
 
-			// instance events
-			(objectMeta.conditionsChanged as Event<ObjectMeta, ConditionTargetsChangedEventArgs>).publish(conditionTarget.target.meta, { conditionTarget: conditionTarget, remove: true });
-
 			// type events
 			for (var objectType = conditionTarget.target.meta.type; objectType != null; objectType = objectType.baseType) {
-				(objectType.conditionsChanged as Event<Type, ConditionTargetsChangedEventArgs>).publish(objectType, { conditionTarget: conditionTarget, add: false, remove: true });
+				// (objectType.conditionsChanged as Event<Type, ConditionTargetsChangedEventArgs>).publish(objectType, { conditionTarget: conditionTarget, add: false, remove: true });
 			}
 		}
 

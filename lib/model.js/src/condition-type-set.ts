@@ -1,7 +1,6 @@
-import { Event, EventSubscriber } from "./events";
 import { ObservableArray } from "./observable-array";
 import { ConditionType } from "./condition-type";
-import { Condition, ConditionsChangedEventArgs } from "./condition";
+import { Condition } from "./condition";
 
 const allConditionTypeSets: { [id: string]: ConditionTypeSet; } = {};
 
@@ -9,9 +8,8 @@ const allConditionTypeSets: { [id: string]: ConditionTypeSet; } = {};
 export class ConditionTypeSet {
 
 	readonly name: string;
-	readonly types: ConditionType[];
+	readonly types: ObservableArray<ConditionType>;
 	readonly conditions: ObservableArray<Condition>;
-	readonly conditionsChanged: EventSubscriber<ConditionTypeSet, ConditionsChangedEventArgs>
 
 	/**
 	* Creates a set of condition types.
@@ -23,9 +21,8 @@ export class ConditionTypeSet {
 			throw new Error(`A set with the name '${name}' has already been created.`);
 
 		this.name = name;
-		this.types = [];
+		this.types = ObservableArray.create<ConditionType>();
 		this.conditions = ObservableArray.create<Condition>();
-		this.conditionsChanged = new Event<ConditionTypeSet, ConditionsChangedEventArgs>();
 
 		allConditionTypeSets[name] = this;
 	}
