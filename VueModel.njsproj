@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{84111aa3-88c8-479d-81ee-308d0b9f5225}</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <ProjectView>ProjectFiles</ProjectView>
+    <ProjectView>ShowAllFiles</ProjectView>
     <StartupFile />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -58,6 +58,7 @@
     <TypeScriptCompile Include="lib\model.js\src\object-meta.ts" />
     <TypeScriptCompile Include="lib\model.js\src\observable-array.ts" />
     <TypeScriptCompile Include="lib\model.js\src\property-chain.ts" />
+    <TypeScriptCompile Include="lib\model.js\src\property-path.ts" />
     <TypeScriptCompile Include="lib\model.js\src\property.ts" />
     <TypeScriptCompile Include="lib\model.js\src\range-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\required-rule.ts" />
