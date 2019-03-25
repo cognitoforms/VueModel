@@ -1,36 +1,30 @@
-import { ErrorConditionType } from "./condition-type";
+import { ConditionType, ErrorConditionType } from "./condition-type";
 import { Entity } from "./entity";
 import { Property } from "./property";
 import { Condition } from "./condition";
 
 export class FormatError {
 
-	readonly message: string;
+	readonly messageTemplate: string;
 	readonly invalidValue: any;
 
-	static _conditionType: ErrorConditionType;
+	static ConditionType: ErrorConditionType;
 
 	constructor(message: string, invalidValue: any) {
-		Object.defineProperty(this, "message", { value: message });
-		Object.defineProperty(this, "invalidValue", { value: invalidValue });
+		
+		if (FormatError.ConditionType === null) {
+			FormatError.ConditionType = new ErrorConditionType("FormatError", "The value is not properly formatted.");
+		}
+
+		this.messageTemplate = message;
+		this.invalidValue = invalidValue;
 	}
 
-	createCondition(target: Entity, prop: Property) {
-		return new Condition(FormatError$getConditionType(),
-			this.message.replace("{property}", prop.label),
-			target,
-			[prop]);
+	createCondition(target: Entity, prop: Property): Condition {
+		return new Condition(FormatError.ConditionType, this.messageTemplate.replace("{property}", prop.label), target, [prop]);
 	}
 
 	toString() {
 		return this.invalidValue;
 	}
-}
-
-export function FormatError$getConditionType(): ErrorConditionType {
-	if (!FormatError._conditionType) {
-		FormatError._conditionType = new ErrorConditionType("FormatError", "The value is not properly formatted.", []);
-	}
-
-	return FormatError._conditionType;
 }

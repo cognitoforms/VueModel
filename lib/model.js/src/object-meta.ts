@@ -79,8 +79,8 @@ export class ObjectMeta {
 
 	// stores the condition target for the current instance
 	setCondition(conditionTarget: ConditionTarget) {
-		if (conditionTarget.condition.type != FormatError$getConditionType()) {
 			this._conditions[conditionTarget.condition.type.code] = conditionTarget;
+		if (conditionTarget.condition.type != FormatError.ConditionType) {
 		}
 	}
 

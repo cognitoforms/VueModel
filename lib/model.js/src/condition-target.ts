@@ -1,6 +1,7 @@
 import { Condition } from "./condition";
 import { Entity } from "./entity";
 import { Property } from "./property";
+import { FormatError } from "./format-error";
 
 /** Represents the association of a condition to a specific target entity. */
 export class ConditionTarget {
@@ -27,7 +28,9 @@ export class ConditionTarget {
 		this.properties = properties;
 
 		// Attach the condition target to the target entity.
-		target.meta.setCondition(this);
+		if (this.condition.type !== FormatError.ConditionType) {
+			target.meta.setCondition(this);
+		}
 	}
 
 }

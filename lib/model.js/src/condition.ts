@@ -1,4 +1,4 @@
-import { FormatError$getConditionType } from "./format-error";
+import { FormatError } from "./format-error";
 import { Entity } from "./entity";
 import { ConditionType } from "./condition-type";
 import { ConditionTarget, ConditionTargetsChangedEventArgs } from "./condition-target";
@@ -66,7 +66,7 @@ export class Condition {
 		Object.defineProperty(this, "targets", { value: targets });
 
 		// raise events for the new condition
-		if (type != FormatError$getConditionType()) {
+		if (type !== FormatError.ConditionType) {
 
 			let conditionType = type;
 
