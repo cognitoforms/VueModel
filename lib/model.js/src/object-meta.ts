@@ -4,6 +4,7 @@ import { Type } from "./type";
 import { Entity, EntityDestroyEventArgs } from "./entity";
 import { ConditionTarget, ConditionTargetsChangedEventArgs } from "./condition-target";
 import { ConditionType, PermissionConditionType } from "./condition-type";
+import { hasOwnProperty } from "./helpers";
 
 export class ObjectMeta {
 
@@ -59,6 +60,16 @@ export class ObjectMeta {
 	set legacyId(value) {
 		// TODO: Don't allow setting legacy ID if already set
 		this._legacyId = value;
+	}
+
+	get conditions(): ConditionTarget[] {
+		var conditions = [];
+		for (var code in this._conditions) {
+			if (hasOwnProperty(this._conditions, code)) {
+				conditions.push(this._conditions[code]);
+			}
+		}
+		return conditions;
 	}
 
 	// gets the condition target with the specified condition type

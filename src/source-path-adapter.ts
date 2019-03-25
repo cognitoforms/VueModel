@@ -6,12 +6,13 @@ import { Format } from "../lib/model.js/src/format";
 import { SourceAdapter, SourcePropertyAdapter, isSourceAdapter } from "./source-adapter";
 import { SourceOptionAdapter } from "./source-option-adapter";
 import { AllowedValuesRule } from "../lib/model.js/src/allowed-values-rule";
-import { observeEntity, observeArray } from "./vue-model-observability";
+import { observeEntity, observeArray, getObjectMetaObserver, ObjectMetaObserverConstructor } from "./vue-model-observability";
 import { PropertyChain } from "../lib/model.js/src/property-chain";
 import { ObservableArray, updateArray } from "../lib/model.js/src/observable-array";
 import { PropertyPath } from '../lib/model.js/src/property-path';
 import { SourceItemAdapter } from './source-item-adapter';
 import { isEntityType, isValueType } from '../lib/model.js/src/type';
+import { Condition } from '../lib/model.js/src/condition';
 
 export type SourcePathOverrides = {
 	label?: string,
@@ -114,6 +115,21 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 			observableArray.batchUpdate(() => updateArray(observableArray, valueArray));
 		} else {
 			this.property.value(this.parent.value, this.ensureObservable(value));
+		}
+	}
+
+	get firstError(): Condition {
+		var property = this.property instanceof Property ? this.property : this.property instanceof PropertyChain ? this.property.lastProperty : null;
+		if (property) {
+			var meta = this.parent.value.meta;
+			var metaOb = getObjectMetaObserver(meta);
+			var conditions = meta.conditions;
+			metaOb.onPropertyAccess("conditions", conditions);
+			var conditions = conditions.filter(c => c.condition.type.category === "Error");
+			var thisPathConditions = conditions.filter(c => c.properties.indexOf(property) >= 0);
+			if (thisPathConditions.length) {
+				return thisPathConditions[0].condition;
+			}
 		}
 	}
 

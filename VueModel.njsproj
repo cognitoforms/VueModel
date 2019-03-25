@@ -73,6 +73,9 @@
     </TypeScriptCompile>
     <TypeScriptCompile Include="src\array-observer.ts" />
     <TypeScriptCompile Include="src\custom-observer.ts" />
+    <TypeScriptCompile Include="src\object-meta-observer.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
     <TypeScriptCompile Include="src\entity-observer.ts" />
     <TypeScriptCompile Include="src\source-adapter.ts" />
     <TypeScriptCompile Include="src\helpers.ts" />
