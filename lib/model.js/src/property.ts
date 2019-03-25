@@ -768,7 +768,7 @@ export function Property$_init(property: Property, obj: Entity, val: any) {
 	Object.defineProperty(target, property.fieldName, { value: val, writable: true });
 
 	if (Array.isArray(val)) {
-		Property$_subArrayEvents(obj, property, val as ObservableArray<any>);
+		Property$_subArrayEvents(obj, property, ObservableArray.create(val));
 	}
 
 	obj.changed.publish(obj, { entity: obj, property });

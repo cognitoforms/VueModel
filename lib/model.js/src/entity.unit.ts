@@ -38,6 +38,7 @@ describe("Entity", () => {
 			expect(movie).toHaveProperty("Title");
 			expect(movie).toHaveProperty("Director");
 			expect(movie).toHaveProperty("ReleaseDate");
+			expect(movie).toHaveProperty("Genres");
 		});
 
 		it("can be constructed with provided state", () => {
@@ -94,7 +95,7 @@ describe("Entity", () => {
 				expect(movie.serialize()).toEqual(Alien);
 			});
 
-			it("does not overwrite provided state of existing entity", () => {
+			it.only("does not overwrite provided state of existing entity", () => {
 				const movie = new Types.Movie("1", Alien);
 
 				expect(movie.serialize()).toEqual(Alien);
