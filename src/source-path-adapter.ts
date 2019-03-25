@@ -11,7 +11,7 @@ import { PropertyChain } from "../lib/model.js/src/property-chain";
 import { ObservableArray, updateArray } from "../lib/model.js/src/observable-array";
 import { PropertyPath } from '../lib/model.js/src/property-path';
 import { SourceItemAdapter } from './source-item-adapter';
-import { isEntityType } from '../lib/model.js/src/type';
+import { isEntityType, isValueType } from '../lib/model.js/src/type';
 
 export type SourcePathOverrides = {
 	label?: string,
@@ -73,7 +73,15 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	 */
 	get helptext(): string {
 		let helptext = this.overrides ? this.overrides.helptext : null;
-		return helptext === undefined || helptext === null ? this.property.helptext : helptext;
+		if (helptext === undefined || helptext === null) {
+			if (Format.hasTokens(this.property.helptext)) {
+				helptext = this.parent.value.toString(this.property.helptext);
+			}
+			else {
+				helptext = this.property.helptext;
+			}
+		}
+		return helptext;
 	}
 
 	/**
@@ -115,7 +123,33 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	}
 
 	set displayValue(text: string) {
-		this.value = this.property.format != null ? this.property.format.convertBack(text) : text;
+		if (isEntityType(this.property.propertyType)) {
+			throw new Error("Cannot set displayValue property of Adapters for entity types.");
+		}
+
+		//// TODO: Implement auto-reformat?
+		//var initialValue = text;
+
+		var newValue;
+
+		var formatter;
+		if (this.property.format != null) {
+			formatter = this.property.format;
+		} else if (isValueType(this.property.propertyType) && this.property.propertyType !== String) {
+			// Try to use the general format by default
+			formatter = this.property.containingType.model.getFormat(this.property.propertyType, "G");
+		}
+
+		if (formatter) {
+			newValue = formatter.convertBack(text);
+		} else if (this.property.propertyType == String && typeof text === "string" && text.length === 0) {
+			// Convert blank string to null
+			newValue = null;
+		} else {
+			newValue = text;
+		}
+
+		this.value = newValue;
 	}
 
 	get allowedValuesRule(): AllowedValuesRule {

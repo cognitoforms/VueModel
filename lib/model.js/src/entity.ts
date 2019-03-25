@@ -1,4 +1,4 @@
-import { Event, EventObject } from "./events";
+import { Event, EventObject, EventSubscriber } from "./events";
 import { Format } from "./format";
 import { Type, EntityType, isEntityType } from "./type";
 import { ObjectMeta } from "./object-meta";
@@ -11,8 +11,8 @@ export class Entity {
 
 	readonly meta: ObjectMeta;
 
-	readonly accessed: Event<Entity, EntityAccessEventArgs>;
-	readonly changed: Event<Entity, EntityChangeEventArgs>;
+	readonly accessed: EventSubscriber<Entity, EntityAccessEventArgs>;
+	readonly changed: EventSubscriber<Entity, EntityChangeEventArgs>;
 
 	constructor(); // Prototype assignment *** used internally
 	constructor(type: Type, id: string, properties?: ObjectLookup<any>); // Construct existing instance with state
@@ -22,7 +22,7 @@ export class Entity {
 			// TODO: Warn about direct call in dev build?
 		}
 		else if (Entity.ctorDepth === 0)
-			throw new Error("Entity constructor should not be called directly.");
+				throw new Error("Entity constructor should not be called directly.");
 		else {
 			this.accessed = new Event<Entity, EntityAccessEventArgs>();
 			this.changed = new Event<Entity, EntityChangeEventArgs>();
@@ -34,7 +34,7 @@ export class Entity {
 			else {
 				// Was id provided as undefined, or not provided at all?
 				if (arguments.length === 2)
-					properties = id;
+				properties = id;
 				id = type.newId();
 				isNew = true;
 			}
@@ -155,7 +155,7 @@ export class Entity {
 					value = this.meta.type.model.serializer.deserialize(state, prop);
 
 				if (value !== undefined)
-					Property$_setter(prop, this, value);
+				Property$_setter(prop, this, value);
 			}
 		}
 	}

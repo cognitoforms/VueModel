@@ -95,7 +95,7 @@ describe("Entity", () => {
 				expect(movie.serialize()).toEqual(Alien);
 			});
 
-			it.only("does not overwrite provided state of existing entity", () => {
+			it("does not overwrite provided state of existing entity", () => {
 				const movie = new Types.Movie("1", Alien);
 
 				expect(movie.serialize()).toEqual(Alien);
@@ -126,7 +126,7 @@ describe("Entity", () => {
 			it("does not overwrite initial state of existing entity", () => {
 				const movie = new Types.Movie("1", Alien);
 
-				expect(movie.serialize()).toBe(Alien);
+				expect(movie.serialize()).toEqual(Alien);
 			});
 		});
 	});
