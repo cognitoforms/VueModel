@@ -53,6 +53,11 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		return property;
 	}
 
+	get lastTarget(): Entity {
+		let property = this.property;
+		return property.getLastTarget(this.parent.value);
+	}
+
 	/**
 	 *  Gets the label for the source property.
 	 *

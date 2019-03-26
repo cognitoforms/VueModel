@@ -15,6 +15,7 @@ export interface SourcePropertyAdapter<TValue> extends SourceAdapter<TValue> {
     readonly label: string;
 	readonly helptext: string;
 	readonly property: PropertyPath;
+	readonly lastTarget: Entity;
     readonly options: SourceOptionAdapter<TValue>[];
 }
 
