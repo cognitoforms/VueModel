@@ -141,7 +141,14 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 		let formatError: ConditionTarget = vs.formatError;
 
-		return (formatError ? [formatError] : []).concat(conditionsList);
+		let thisPathConditions: ConditionTarget[] = null;
+
+		var property = this.property instanceof Property ? this.property : this.property instanceof PropertyChain ? this.property.lastProperty : null;
+		if (property) {
+			thisPathConditions = conditionsList.filter(c => c.properties.indexOf(property) >= 0);
+		}
+
+		return (formatError ? [formatError] : []).concat(thisPathConditions || []);
 	}
 
 	get formatError(): FormatError {
