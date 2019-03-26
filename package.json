@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@babel/polyfill": "^7.2.5",
-    "vue": "^2.6.8",
+    "vue": "^2.6.10",
     "vue-class-component": "^7.0.1",
     "vue-property-decorator": "^7.3.0"
   }

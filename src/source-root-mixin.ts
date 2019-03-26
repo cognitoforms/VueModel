@@ -33,7 +33,7 @@ export class SourceRootMixin extends Vue {
 
 		observeEntity(entity).ensureObservable();
 
-		return new SourceRootAdapter<Entity>({ propsData: { entity: entity } });
+		return new SourceRootAdapter<Entity>({ parent: this, propsData: { entity: entity } });
 	}
 
 }
