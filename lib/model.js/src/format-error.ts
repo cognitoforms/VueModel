@@ -1,4 +1,4 @@
-import { ConditionType, ErrorConditionType } from "./condition-type";
+import { ErrorConditionType } from "./condition-type";
 import { Entity } from "./entity";
 import { Property } from "./property";
 import { Condition } from "./condition";
@@ -8,7 +8,7 @@ export class FormatError {
 	readonly messageTemplate: string;
 	readonly invalidValue: any;
 
-	static ConditionType: ErrorConditionType;
+	static ConditionType: ErrorConditionType = null;
 
 	constructor(message: string, invalidValue: any) {
 		
