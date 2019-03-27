@@ -7,7 +7,6 @@ import { ObservableArray } from "./observable-array";
 import { FormatError } from "./format-error";
 
 export class ObjectMeta {
-
 	readonly type: Type;
 	readonly entity: Entity;
 	
@@ -37,8 +36,8 @@ export class ObjectMeta {
 	 * Stores the condition target for the current instance
 	 * @param conditionTarget The condition target to store
 	 */
-	setCondition(conditionTarget: ConditionTarget): void {
-		if (conditionTarget.condition.type != FormatError.ConditionType) {
+	setCondition(conditionTarget: ConditionTarget) {
+		if (conditionTarget.condition.type !== FormatError.ConditionType) {
 			this.conditions.push(conditionTarget);
 		}
 	}
@@ -86,7 +85,7 @@ export class ObjectMeta {
 	}
 
 	// TODO: Should this be a method on the entity itself, or a static method on Entity?
-	destroy(): void {
+	destroy() {
 		this.type.unregister(this.entity);
 
 		// Raise the destroy event on this type and all base types

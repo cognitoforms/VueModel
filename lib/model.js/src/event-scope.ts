@@ -8,7 +8,7 @@ export let EventScope$current: EventScope = null;
 // to its parent while the parent scope is exiting. A large number indicates that
 // rules are not reaching steady-state. Technically something other than rules could
 // cause this scenario, but in practice they are the primary use-case for event scope. 
-const nonExitingScopeNestingCount = 100;
+const nonExitingScopeNestingCount: number = 100;
 
 interface EventScopeExitEventArgs {
 }
@@ -18,7 +18,6 @@ interface EventScopeAbortEventArgs {
 }
 
 export class EventScope {
-
 	parent: EventScope;
 
 	isActive: boolean;
@@ -30,7 +29,6 @@ export class EventScope {
 	readonly onAbort: EventSubscriber<EventScope, EventScopeAbortEventArgs>;
 
 	constructor() {
-
 		// If there is a current event scope
 		// then it will be the parent of the new event scope
 		this.parent = EventScope$current;
@@ -42,7 +40,7 @@ export class EventScope {
 		EventScope$current = this;
 	}
 
-	abort(maxNestingExceeded: boolean = false): void {
+	abort(maxNestingExceeded: boolean = false) {
 		if (!this.isActive) {
 			throw new Error("The event scope cannot be aborted because it is not active.");
 		}
@@ -68,7 +66,7 @@ export class EventScope {
 		}
 	}
 
-	exit(): void {
+	exit() {
 		if (!this.isActive) {
 			throw new Error("The event scope cannot be exited because it is not active.");
 		}
@@ -76,10 +74,8 @@ export class EventScope {
 		try {
 			var exitSubscriptions = getEventSubscriptions(this.onExit as Event<EventScope, EventScopeExitEventArgs>);
 			if (exitSubscriptions && exitSubscriptions.length > 0) {
-
 				// If there is no parent scope, then go ahead and execute the 'exit' event
 				if (this.parent === null || !this.parent.isActive) {
-
 					// Record the initial version and initial number of subscribers
 					this._exitEventVersion = 0;
 					this._exitEventHandlerCount = exitSubscriptions.length;
@@ -90,7 +86,6 @@ export class EventScope {
 					// Delete the fields to indicate that raising the exit event suceeded
 					delete this._exitEventHandlerCount;
 					delete this._exitEventVersion;
-
 				}
 				else {
 					// if (typeof ...config.nonExitingScopeNestingCount === "number") { ...
@@ -133,7 +128,7 @@ export class EventScope {
 	}
 }
 
-export function EventScope$onExit(callback: Function, thisPtr: any = null): void {
+export function EventScope$onExit(callback: Function, thisPtr: any = null) {
 	if (EventScope$current === null) {
 		// Immediately invoke the callback
 		if (thisPtr) {
@@ -152,7 +147,7 @@ export function EventScope$onExit(callback: Function, thisPtr: any = null): void
 	}
 }
 
-export function EventScope$onAbort(callback: Function, thisPtr: any = null): void {
+export function EventScope$onAbort(callback: Function, thisPtr: any = null) {
 	if (EventScope$current !== null) {
 		if (!EventScope$current.isActive) {
 			throw new Error("The current event scope cannot be inactive.");
@@ -163,7 +158,7 @@ export function EventScope$onAbort(callback: Function, thisPtr: any = null): voi
 	}
 }
 
-export function EventScope$perform(callback: Function, thisPtr: any = null): void {
+export function EventScope$perform(callback: Function, thisPtr: any = null) {
 	// Create an event scope
 	var scope = new EventScope();
 	try {

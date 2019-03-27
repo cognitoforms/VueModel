@@ -2,7 +2,6 @@ import { isEntityType, Type } from "./type";
 import { Entity } from "./entity";
 import { Property } from "./property";
 
-
 export interface PropertySerializationResult {
 	key: string;
 	value: any;
@@ -38,7 +37,7 @@ export class EntitySerializer {
 	 * Property converters should be registered in order of increasing specificity.
 	 * If two converters would convert a property, only the one registered last will apply.
 	 */
-	registerPropertyConverter(converter: PropertyConverter): void {
+	registerPropertyConverter(converter: PropertyConverter) {
 		this._propertyConverters.unshift(converter);
 	}
 
@@ -49,7 +48,7 @@ export class EntitySerializer {
 	 * @param type Either a Type or the fullName of a Type
 	 * @param injector 
 	 */
-	registerPropertyInjector(type: Type | string, injector: PropertyInjector): void {
+	registerPropertyInjector(type: Type | string, injector: PropertyInjector) {
 		let injectors = this._propertyInjectors.get(type) || [];
 		injectors.push(injector);
 		this._propertyInjectors.set(type, injectors);
@@ -59,7 +58,7 @@ export class EntitySerializer {
 	 * Returns the property injectors registered for a specific type, including name-based registrations.
 	 * @param type 
 	 */
-	private getInjectorsOrDefault(type: Type): PropertyInjector[] {
+	private getInjectorsOrDefault(type: Type) {
 		return (this._propertyInjectors.get(type) || []).concat(this._propertyInjectors.get(type.fullName) || []);
 	}
 
@@ -68,7 +67,6 @@ export class EntitySerializer {
 	 * @param type 
 	 */
 	private getPropertyInjectors(type: Type): PropertyInjector[] {
-
 		let injectors = [];
 		do {
 			injectors.push(...this.getInjectorsOrDefault(type));
@@ -81,8 +79,8 @@ export class EntitySerializer {
 	 * Produces a JSON-valid object representation of the entity.
 	 * @param entity
 	 */
-	serialize(entity: Entity, serializeNull: boolean = false): object {
-		let result: object = {};
+	serialize(entity: Entity, serializeNull: boolean = false): Object {
+		let result: Object = {};
 		const type = entity.meta.type;
 		this.getPropertyInjectors(type).flatMap(i => i.inject(entity))
 			.concat(type.properties

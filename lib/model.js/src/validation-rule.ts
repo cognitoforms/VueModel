@@ -5,7 +5,6 @@ import { Type } from "./type";
 import { Format } from "./format";
 
 export class ValidationRule extends ConditionRule implements PropertyRule {
-
 	property: Property;
 
 	constructor(rootType: Type, options: ValidationRuleOptions) {
@@ -13,7 +12,7 @@ export class ValidationRule extends ConditionRule implements PropertyRule {
 		options.name = options.name || "ValidatedProperty";
 
 		// store the property being validated
-		var property = options.property;
+		var property = typeof options.property === "string" ? rootType.getProperty(options.property) as Property : options.property as Property;
 
 		// ensure the properties and predicates to include the target property
 		if (!options.properties) {
@@ -37,16 +36,14 @@ export class ValidationRule extends ConditionRule implements PropertyRule {
 
 		// replace the property label token in the validation message if present
 		if (options.message && typeof (options.message) !== "function" && options.message.indexOf("{property}") >= 0) {
-
 			// Property label with dynamic format tokens
 			if (Format.hasTokens(property.label)) {
-
 				// convert the property label into a model format
 				let format = Format.fromTemplate(rootType, property.label);
 
 				// create a function to apply the format to the property label when generating the message
 				let message = options.message;
-				options.message = function () { return message.replace('{property}', format.convert(this)); }
+				options.message = function () { return message.replace("{property}", format.convert(this)); };
 
 				// ensure tokens included in the format trigger rule execution
 				Array.prototype.push.apply(options.properties, format.paths);
@@ -54,14 +51,14 @@ export class ValidationRule extends ConditionRule implements PropertyRule {
 
 			// Static property label
 			else {
-				options.message = options.message.replace('{property}', property.label);
+				options.message = options.message.replace("{property}", property.label);
 			}
 		}
 
 		options.assert = function(this: Entity): boolean {
 			var isValid = options.isValid.call(this, options.property as Property, options.property.value(this));
 			return isValid === undefined ? isValid : !isValid;
-		}
+		};
 
 		// call the base rule constructor
 		super(rootType, options);
@@ -82,5 +79,5 @@ export interface ValidationRuleOptions extends PropertyRuleOptions {
 }
 
 export interface ValidationRuleConstructor {
-	new(rootType: Type, options: ValidationRuleOptions): ValidationRule;
+	new(rootType: Type, options: ValidationRuleOptions) : ValidationRule;
 }

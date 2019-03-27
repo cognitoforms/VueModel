@@ -4,7 +4,7 @@ import { Format } from "./format";
 import { Type, PropertyType, isEntityType, Value, isValue } from "./type";
 import { PropertyChain } from "./property-chain";
 import { getTypeName, getDefaultValue, parseFunctionName, ObjectLookup, merge, getConstructorName, isType } from "./helpers";
-import { ObservableArray, updateArray } from "./observable-array";
+import { updateArray, ObservableArray } from "./observable-array";
 import { Rule } from "./rule";
 import { CalculatedPropertyRule } from "./calculated-property-rule";
 import { StringFormatRule } from "./string-format-rule";
@@ -15,7 +15,6 @@ import { RequiredRule } from "./required-rule";
 import { PropertyPath, PropertyAccessEventArgs, PropertyChangeEventArgs } from "./property-path";
 
 export class Property implements PropertyPath {
-
 	readonly containingType: Type;
 	readonly name: string;
 	readonly propertyType: PropertyType;
@@ -38,7 +37,6 @@ export class Property implements PropertyPath {
 	readonly accessed: EventSubscriber<Entity, PropertyAccessEventArgs>;
 
 	constructor(containingType: Type, name: string, propertyType: PropertyType, isList: boolean, isStatic: boolean, options?: PropertyOptions) {
-
 		this.containingType = containingType;
 		this.name = name;
 		this.propertyType = propertyType;
@@ -53,7 +51,6 @@ export class Property implements PropertyPath {
 		// Apply property options
 		if (options)
 			this.extend(options);
-
 	}
 
 	get fieldName(): string {
@@ -76,8 +73,8 @@ export class Property implements PropertyPath {
 		return obj;
 	}
 
-	get defaultValue(): any {
-		if (Object.prototype.hasOwnProperty.call(this, '_defaultValue')) {
+	get defaultValue() {
+		if (Object.prototype.hasOwnProperty.call(this, "_defaultValue")) {
 			// clone array and date defaults since they are mutable javascript types
 			return this._defaultValue instanceof Array ? this._defaultValue.slice() :
 				this._defaultValue instanceof Date ? new Date(+this._defaultValue) :
@@ -94,13 +91,12 @@ export class Property implements PropertyPath {
 		return isType<TOptions>(obj, d => getTypeName(d) === "object");
 	}
 
-	extend(options: PropertyOptions, targetType?: Type): void {
+	extend(options: PropertyOptions, targetType?: Type) {
 		if (!targetType)
 			targetType = this.containingType;
 
 		// Utility function to convert a path string into a resolved array of Property and PropertyChain instances
 		function resolveDependsOn(property: Property, rule: string, dependsOn: string): PropertyPath[] {
-			
 			// return an empty dependency array if no path was specified
 			if (!dependsOn)
 				return [];
@@ -115,7 +111,6 @@ export class Property implements PropertyPath {
 
 		// Use prepare() to defer property path resolution while the model is being extended
 		targetType.model.prepare(() => {
-
 			// Label
 			if (options.label)
 				this.label = options.label;
@@ -127,7 +122,6 @@ export class Property implements PropertyPath {
 
 			// Format
 			if (options.format) {
-
 				// Specifier
 				if (typeof (options.format) === "string") {
 					let format = options.format;
@@ -144,18 +138,16 @@ export class Property implements PropertyPath {
 				
 				// String Format
 				else if (isType<PropertyFormatOptions>(options.format, (f: any) => getTypeName(f) === "object" && f.expression)) {
-
 					let format = options.format;
 					targetType.model.ready(() => {
 						new StringFormatRule(targetType, {
 							property: this,
 							description: format.description,
 							expression: format.expression,
-							reformat: format.reformat,
+							reformat: format.reformat
 						})
-						.register();
+							.register();
 					});
-
 				} 
 				
 				// Error
@@ -178,15 +170,13 @@ export class Property implements PropertyPath {
 					}
 
 					targetType.model.ready(() => {
-
 						new CalculatedPropertyRule(targetType, null, {
 							property: this,
 							calculate: getOptions.function,
 							onChangeOf: resolveDependsOn(this, "get", getOptions.dependsOn)
 						})
-						.register();
+							.register();
 					});
-
 				} 
 				else {
 					throw new Error(`Invalid property 'get' option of type '${getTypeName(options.get)}'.`);
@@ -250,14 +240,13 @@ export class Property implements PropertyPath {
 					}
 
 					targetType.model.ready(() => {
-
 						new CalculatedPropertyRule(targetType, null, {
 							property: this,
 							calculate: ruleCalculateFn,
 							onChangeOf: resolveDependsOn(this, "default", defaultOptions.dependsOn),
 							isDefaultValue: true
 						})
-						.register();
+							.register();
 					});
 				}
 				else if (typeof defaultConstant === "undefined") {
@@ -269,7 +258,7 @@ export class Property implements PropertyPath {
 			if (options.allowedValues) {
 				if (typeof (options.allowedValues) === "function") {
 					let originalAllowedValues = options.allowedValues;
-					let allowedValuesFunction = function (this: Entity): any[] { return originalAllowedValues.call(this) };
+					let allowedValuesFunction = function (this: Entity) { return originalAllowedValues.call(this); };
 					options.get = { function: allowedValuesFunction, dependsOn: "" };
 				}
 
@@ -281,11 +270,11 @@ export class Property implements PropertyPath {
 					}
 
 					targetType.model.ready(() => {
-						(new AllowedValuesRule(targetType, {
+						new AllowedValuesRule(targetType, {
 							property: this,
 							source: allowedValuesOptions.function,
 							onChangeOf: resolveDependsOn(this, "allowedValues", allowedValuesOptions.dependsOn)
-						})).register();
+						}).register();
 					});
 				}
 				else {
@@ -309,7 +298,7 @@ export class Property implements PropertyPath {
 						(new RequiredRule(this.containingType, {
 							property: this,
 							when: requiredOptions.function,
-							onChangeOf: resolveDependsOn(this, "required", requiredOptions.dependsOn),
+							onChangeOf: resolveDependsOn(this, "required", requiredOptions.dependsOn)
 						})).register();
 					});
 				}
@@ -317,7 +306,6 @@ export class Property implements PropertyPath {
 
 			// Error
 			if (options.error) {
-
 				let isValid = options.error.function;
 				let message = options.error.message;
 
@@ -326,7 +314,6 @@ export class Property implements PropertyPath {
 				}
 
 				this.containingType.model.ready(() => {
-
 					new ValidationRule(this.containingType, {
 						property: this,
 						isValid: function () {
@@ -335,15 +322,13 @@ export class Property implements PropertyPath {
 						onChangeOf: resolveDependsOn(this, "allowedValues", options.error.dependsOn),
 						message: message
 					})
-					.register();
+						.register();
 				});
 			}
-
 		});
 	}
 
 	equals(prop: PropertyPath): boolean {
-
 		if (prop === null || prop === undefined) {
 			return;
 		}
@@ -357,7 +342,7 @@ export class Property implements PropertyPath {
 		}
 	}
 
-	each(obj: Entity, callback: (obj: any, property: Property) => any, filter: Property = null): void {
+	each(obj: Entity, callback: (obj: any, property: Property) => any, filter: Property = null) {
 		if (!filter || filter === this)
 			callback(obj, this);
 	}
@@ -396,11 +381,11 @@ export class Property implements PropertyPath {
 			return false;
 		}
 
-		//Data types
+		// Data types
 		else {
 			var valObjectType = val.constructor;
 
-			//"Normalize" data type in case it came from another frame as well as ensure that the types are the same
+			// "Normalize" data type in case it came from another frame as well as ensure that the types are the same
 			switch (getTypeName(val)) {
 				case "string":
 					valObjectType = String;
@@ -438,7 +423,7 @@ export class Property implements PropertyPath {
 					else {
 						var itemObjectType = child.constructor;
 
-						//"Normalize" data type in case it came from another frame as well as ensure that the types are the same
+						// "Normalize" data type in case it came from another frame as well as ensure that the types are the same
 						switch (getTypeName(child)) {
 							case "string":
 								itemObjectType = String;
@@ -467,7 +452,7 @@ export class Property implements PropertyPath {
 		var target = (this.isStatic ? this.containingType.jstype : obj);
 
 		if (target === undefined || target === null) {
-			throw new Error(`Cannot ${(arguments.length > 1 ? "set" : "get")} value for ${(this.isStatic ? "" : "non-")}static property \"${this.name}\" on type \"${this.containingType}\": target is null or undefined.`)
+			throw new Error(`Cannot ${(arguments.length > 1 ? "set" : "get")} value for ${(this.isStatic ? "" : "non-")}static property "${this.name}" on type "${this.containingType}": target is null or undefined.`);
 		}
 
 		if (arguments.length > 1) {
@@ -488,40 +473,40 @@ export class Property implements PropertyPath {
 export interface PropertyOptions {
 
 	/** The name or Javascript type of the property */
-	type?: string | PropertyType;
+	type?: string | PropertyType,
 
 	/** True if the property is static, or type level. */
-	static?: boolean;
+	static?: boolean
 
 	/**
 	*  The optional label for the property.
 	*  The property name will be used as the label when not specified.
 	*/
-	label?: string;
+	label?: string,
 
 	/** The optional helptext for the property */
-	helptext?: string;
+	helptext?: string,
 
 	/** The optional format specifier for the property. */
-	format?: string | Format<PropertyType> | PropertyFormatOptions;
+	format?: string | Format<PropertyType> | PropertyFormatOptions,
 
 	/** An optional function or dependency function object that calculates the value of this property. */
-	get?: PropertyValueFunction | PropertyValueFunctionAndDependencies;
+	get?: PropertyValueFunction | PropertyValueFunctionAndDependencies,
 
 	/** An optional function to call when this property is updated. */
-	set?: (this: Entity, value: any) => void;
+	set?: (this: Entity, value: any) => void,
 
 	/** An optional constant default value, or a function or dependency function object that calculates the default value of this property. */
-	default?: PropertyValueFunction | PropertyDefaultValueFunctionAndOptions | Value;
+	default?: PropertyValueFunction | PropertyDefaultValueFunctionAndOptions | Value,
 
 	/** An optional constant default value, or a function or dependency function object that calculates the default value of this property. */
-	allowedValues?: PropertyValueFunction | PropertyValueFunctionAndDependencies | Value[];
+	allowedValues?: PropertyValueFunction | PropertyValueFunctionAndDependencies | Value[],
 
 	/** True if the property is always required, or a dependency function object for conditionally required properties. */
-	required?: boolean | { function: (this: Entity) => boolean; dependsOn: string };
+	required?: boolean | { function: (this: Entity) => boolean, dependsOn: string },
 
 	/** An optional dependency function object that adds an error with the specified message when true. */
-	error?: { function: (this: Entity) => boolean; dependsOn: string; message: string | ((this: Entity) => string) };
+	error?: { function: (this: Entity) => boolean, dependsOn: string, message: string | ((this: Entity) => string) }
 }
 
 export interface PropertyFormatOptions {
@@ -596,7 +581,7 @@ export function Property$format(prop: Property, val: any): string {
 
 // }
 
-export function Property$generateShortcuts(property: Property, target: any, overwrite: boolean = null): void {
+export function Property$generateShortcuts(property: Property, target: any, overwrite: boolean = null) {
 	var shortcutName = "$" + property.name;
 
 	if (!(Object.prototype.hasOwnProperty.call(target, shortcutName)) || overwrite) {
@@ -604,47 +589,40 @@ export function Property$generateShortcuts(property: Property, target: any, over
 	}
 }
 
-export function Property$generateStaticProperty(property: Property, target: any): void {
-
+export function Property$generateStaticProperty(property: Property, target: any) {
 	Object.defineProperty(target, property.name, {
 		configurable: false,
 		enumerable: true,
 		get: property.getter,
 		set: property.setter
 	});
-
 }
 
-export function Property$generatePrototypeProperty(property: Property, target: any): void {
-
+export function Property$generatePrototypeProperty(property: Property, target: any) {
 	Object.defineProperty(target, property.name, {
 		configurable: false,
 		enumerable: true,
 		get: property.getter,
 		set: property.setter
 	});
-
 }
 
-export function Property$generateOwnProperty(property: Property, obj: Entity): void {
-
+export function Property$generateOwnProperty(property: Property, obj: Entity) {
 	Object.defineProperty(obj, property.name, {
 		configurable: false,
 		enumerable: true,
 		get: property.getter,
 		set: property.setter
 	});
-
 }
 
 // TODO: Get rid of `Property$_generateOwnPropertyWithClosure`...
-export function Property$generateOwnPropertyWithClosure(property: Property, obj: Entity): void {
-
+export function Property$generateOwnPropertyWithClosure(property: Property, obj: Entity) {
 	let val: any = null;
 
-	let isInitialized = false;
+	let isInitialized: boolean = false;
 
-	var _ensureInited = function (): void {
+	var _ensureInited = function () {
 		if (!isInitialized) {
 			// Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.  
 			if (!property.isCalculated) {
@@ -682,7 +660,6 @@ export function Property$generateOwnPropertyWithClosure(property: Property, obj:
 			_ensureInited();
 
 			if (Property$shouldSetValue(property, obj, val, newVal)) {
-
 				// Update lists as batch remove/add operations
 				if (property.isList) {
 					let currentArray = val as ObservableArray<any>;
@@ -704,7 +681,6 @@ export function Property$generateOwnPropertyWithClosure(property: Property, obj:
 			}	
 		}
 	});
-
 }
 
 export function Property$pendingInit(obj: Entity | EntityConstructorForType<Entity>, prop: Property, value: boolean = null): boolean | void {
@@ -740,8 +716,7 @@ export function Property$pendingInit(obj: Entity | EntityConstructorForType<Enti
 	}
 }
 
-function Property$subArrayEvents(obj: Entity, property: Property, array: ObservableArray<any>): void {
-
+function Property$subArrayEvents(obj: Entity, property: Property, array: ObservableArray<any>) {
 	array.changed.subscribe(function (args) {
 		// NOTE: property change should be broadcast before rules are run so that if 
 		// any rule causes a roundtrip to the server these changes will be available
@@ -751,20 +726,19 @@ function Property$subArrayEvents(obj: Entity, property: Property, array: Observa
 		// NOTE: oldValue is not currently implemented for lists
 		var eventArgs: PropertyChangeEventArgs = { entity: obj, property, newValue: array };
 
-		(eventArgs as any)['changes'] = args.changes;
-		(eventArgs as any)['collectionChanged'] = true;
+		(eventArgs as any)["changes"] = args.changes;
+		(eventArgs as any)["collectionChanged"] = true;
 
 		(property.changed as EventPublisher<Entity, PropertyChangeEventArgs>).publish(obj, eventArgs);
 		(obj.changed as Event<Entity, EntityChangeEventArgs>).publish(obj, { entity: obj, property });
 	});
-
 }
 
-function Property$getInitialValue(property: Property): any {
+function Property$getInitialValue(property: Property) {
 	var val = property.defaultValue;
 
-    if (Array.isArray(val)) {
-		val = ObservableArray.ensureObservable(val as any[]);
+	if (Array.isArray(val)) {
+		val = ObservableArray.ensureObservable(val as Array<any>);
 
 		// Override the default toString on arrays so that we get a comma-delimited list
 		// TODO: Implement toString on observable list?
@@ -774,7 +748,7 @@ function Property$getInitialValue(property: Property): any {
 	return val;
 }
 
-export function Property$init(property: Property, obj: Entity, val: any): void {
+export function Property$init(property: Property, obj: Entity, val: any) {
 	var target = (property.isStatic ? property.containingType.jstype : obj);
 
 	Property$pendingInit(target, property, false);
@@ -789,76 +763,69 @@ export function Property$init(property: Property, obj: Entity, val: any): void {
 	(obj.changed as Event<Entity, EntityChangeEventArgs>).publish(obj, { entity: obj, property });
 }
 
-function Property$ensureInited(property: Property, obj: Entity): void {
+function Property$ensureInited(property: Property, obj: Entity) {
 	var target = (property.isStatic ? property.containingType.jstype : obj);
 
-    // Determine if the property has been initialized with a value
-    // and initialize the property if necessary
-    if (!target.hasOwnProperty(property.fieldName)) {
-
+	// Determine if the property has been initialized with a value
+	// and initialize the property if necessary
+	if (!target.hasOwnProperty(property.fieldName)) {
 		// Mark the property as pending initialization
 		Property$pendingInit(target, property, true);
 
-        // Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.  
-        if (!property.isCalculated) {
+		// Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.  
+		if (!property.isCalculated) {
 			Property$init(property, obj, Property$getInitialValue(property));
 		}
-    }
+	}
 }
 
-function Property$getter(property: Property, obj: Entity): any {
-
-    // Ensure that the property has an initial (possibly default) value
+function Property$getter(property: Property, obj: Entity) {
+	// Ensure that the property has an initial (possibly default) value
 	Property$ensureInited(property, obj);
 
 	// Raise access events
 	(property.accessed as EventPublisher<Entity, PropertyAccessEventArgs>).publish(obj, { entity: obj, property, value: (obj as any)[property.fieldName] });
 	(obj.accessed as Event<Entity, EntityAccessEventArgs>).publish(obj, { entity: obj, property });
 
-    // Return the property value
-    return (obj as any)[property.fieldName];
+	// Return the property value
+	return (obj as any)[property.fieldName];
 }
 
-export function Property$setter(property: Property, obj: Entity, val: any, additionalArgs: any = null): void {
-
-    // Ensure that the property has an initial (possibly default) value
+export function Property$setter(property: Property, obj: Entity, val: any, additionalArgs: any = null) {
+	// Ensure that the property has an initial (possibly default) value
 	Property$ensureInited(property, obj);
 
-    var old = (obj as any)[property.fieldName];
+	var old = (obj as any)[property.fieldName];
 
 	if (Property$shouldSetValue(property, obj, old, val)) {
 		Property$setValue(property, obj, old, val, additionalArgs);
 	}
-
 }
 
-function Property$shouldSetValue(property: Property, obj: Entity, old: any, val: any): boolean {
+function Property$shouldSetValue(property: Property, obj: Entity, old: any, val: any) {
+	if (!property.canSetValue(obj, val)) {
+		throw new Error("Cannot set " + property.name + "=" + (val === undefined ? "<undefined>" : val) + " for instance " + obj.meta.type.fullName + "|" + obj.meta.id + ": a value of type " + (isEntityType(property.propertyType) ? property.propertyType.meta.fullName : parseFunctionName(property.propertyType)) + " was expected.");
+	}
 
-    if (!property.canSetValue(obj, val)) {
-        throw new Error("Cannot set " + property.name + "=" + (val === undefined ? "<undefined>" : val) + " for instance " + obj.meta.type.fullName + "|" + obj.meta.id + ": a value of type " + (isEntityType(property.propertyType) ? property.propertyType.meta.fullName : parseFunctionName(property.propertyType)) + " was expected.");
-    }
-
-    // Update lists as batch remove/add operations
-    if (property.isList) {
-        throw new Error("Property set on lists is not permitted.");
+	// Update lists as batch remove/add operations
+	if (property.isList) {
+		throw new Error("Property set on lists is not permitted.");
 	}
 	else {
+		// compare values so that this check is accurate for primitives
+		var oldValue = (old === undefined || old === null) ? old : old.valueOf();
+		var newValue = (val === undefined || val === null) ? val : val.valueOf();
 
-        // compare values so that this check is accurate for primitives
-        var oldValue = (old === undefined || old === null) ? old : old.valueOf();
-        var newValue = (val === undefined || val === null) ? val : val.valueOf();
-
-        // Do nothing if the new value is the same as the old value. Account for NaN numbers, which are
-        // not equivalent (even to themselves). Although isNaN returns true for non-Number values, we won't
-        // get this far for Number properties unless the value is actually of type Number (a number or NaN).
-        return (oldValue !== newValue && !(property.propertyType === Number && isNaN(oldValue) && isNaN(newValue)));
+		// Do nothing if the new value is the same as the old value. Account for NaN numbers, which are
+		// not equivalent (even to themselves). Although isNaN returns true for non-Number values, we won't
+		// get this far for Number properties unless the value is actually of type Number (a number or NaN).
+		return (oldValue !== newValue && !(property.propertyType === Number && isNaN(oldValue) && isNaN(newValue)));
 	}
-
 }
 
-function Property$setValue(property: Property, obj: Entity, currentValue: any, newValue: any, additionalArgs: any = null): void {
-    // Update lists as batch remove/add operations
-    if (property.isList) {
+function Property$setValue(property: Property, obj: Entity, currentValue: any, newValue: any, additionalArgs: any = null) {
+	// Update lists as batch remove/add operations
+	if (property.isList) {
 		let currentArray = currentValue as ObservableArray<any>;
 		currentArray.batchUpdate((array) => {
 			updateArray(array, newValue);
@@ -883,21 +850,21 @@ function Property$setValue(property: Property, obj: Entity, currentValue: any, n
 			(property.changed as EventPublisher<Entity, PropertyChangeEventArgs>).publish(obj, additionalArgs ? merge(eventArgs, additionalArgs) : eventArgs);
 			(obj.changed as Event<Entity, EntityChangeEventArgs>).publish(obj, { entity: obj, property });
 		}
-    }
+	}
 }
 
-function Property$makeGetter(property: Property, getter: PropertyGetMethod): (args?: any) => any {
-    return function (additionalArgs: any = null) {
-        // ensure the property is initialized
-        return getter(property, this, additionalArgs);
-    };
+function Property$makeGetter(property: Property, getter: PropertyGetMethod) {
+	return function (additionalArgs: any = null) {
+		// ensure the property is initialized
+		return getter(property, this, additionalArgs);
+	};
 }
 
-function Property$makeSetter(prop: Property, setter: PropertySetMethod, skipTypeCheck: boolean = false): (value: any, args?: any) => void {
-    // TODO: Is setter "__notifies" needed?
-    // setter.__notifies = true;
+function Property$makeSetter(prop: Property, setter: PropertySetMethod, skipTypeCheck: boolean = false) {
+	// TODO: Is setter "__notifies" needed?
+	// setter.__notifies = true;
 
-    return function (val: any, additionalArgs: any = null) {
-        setter(prop, this, val, additionalArgs, skipTypeCheck);
-    };
+	return function (val: any, additionalArgs: any = null) {
+		setter(prop, this, val, additionalArgs, skipTypeCheck);
+	};
 }

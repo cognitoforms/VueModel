@@ -1,20 +1,20 @@
-import Vue from 'vue';
-import { Component, Prop } from 'vue-property-decorator'
+import Vue from "vue";
+import { Component, Prop } from "vue-property-decorator";
 import { Entity } from "../lib/model.js/src/entity";
 import { Property } from "../lib/model.js/src/property";
 import { Format } from "../lib/model.js/src/format";
 import { SourceAdapter, SourcePropertyAdapter, isSourceAdapter } from "./source-adapter";
 import { SourceOptionAdapter } from "./source-option-adapter";
 import { AllowedValuesRule } from "../lib/model.js/src/allowed-values-rule";
-import { observeEntity, observeArray, getObjectMetaObserver, ObjectMetaObserverConstructor } from "./vue-model-observability";
+import { observeEntity, observeArray, getObjectMetaObserver } from "./vue-model-observability";
 import { PropertyChain } from "../lib/model.js/src/property-chain";
 import { ObservableArray, updateArray } from "../lib/model.js/src/observable-array";
-import { PropertyPath } from '../lib/model.js/src/property-path';
-import { SourceItemAdapter } from './source-item-adapter';
-import { isEntityType, isValueType } from '../lib/model.js/src/type';
-import { Condition } from '../lib/model.js/src/condition';
-import { ConditionTarget } from '../lib/model.js/src/condition-target';
-import { FormatError } from '../lib/model.js/src/format-error';
+import { PropertyPath } from "../lib/model.js/src/property-path";
+import { SourceItemAdapter } from "./source-item-adapter";
+import { isEntityType, isValueType } from "../lib/model.js/src/type";
+import { Condition } from "../lib/model.js/src/condition";
+import { ConditionTarget } from "../lib/model.js/src/condition-target";
+import { FormatError } from "../lib/model.js/src/format-error";
 
 export type SourcePathOverrides = {
 	label?: string,
@@ -24,12 +24,11 @@ export type SourcePathOverrides = {
 
 @Component
 export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue implements SourcePropertyAdapter<TValue>, SourceAdapter<TValue> {
-
 	@Prop(String)
-	source: string;
+	source!: string;
 
 	@Prop(Object)
-	overrides: SourcePathOverrides;
+	overrides!: SourcePathOverrides;
 
 	viewState: { formatError: ConditionTarget } = { formatError: null };
 
@@ -100,7 +99,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	 *  @returns True if either the parent source or the source override is read only, otherwise false
 	 */
 	get readonly(): boolean {
-		return this.parent.readonly || (this.overrides ? this.overrides.readonly : false);
+		return this.parent.readonly || (this.overrides ? !!this.overrides.readonly : false);
 	}
 
 	/**
@@ -122,13 +121,13 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 			let valueArray = (value as any) as any[];
 			let observableArray = this.property.value(this.parent.value) as ObservableArray<any>;
 			observableArray.batchUpdate(() => updateArray(observableArray, valueArray));
-		} else {
+		}
+		else {
 			this.property.value(this.parent.value, this.ensureObservable(value));
 		}
 	}
 
 	get conditions(): ConditionTarget[] {
-
 		let vs = this.viewState;
 		if (!vs) {
 			this.viewState = Vue.observable({ formatError: null });
@@ -152,7 +151,6 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	}
 
 	get formatError(): FormatError {
-
 		let vs = this.viewState;
 		if (!vs) {
 			this.viewState = Vue.observable({ formatError: null });
@@ -162,13 +160,12 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		if (formatErrorConditionTarget) {
 			var formatErrorCondition = formatErrorConditionTarget.condition;
 			if (formatErrorCondition) {
-				return (formatErrorCondition as any)['formatError'] as FormatError;
+				return (formatErrorCondition as any)["formatError"] as FormatError;
 			}
 		}
 	}
 
 	set formatError(err: FormatError) {
-
 		let vs = this.viewState;
 		if (!vs) {
 			this.viewState = Vue.observable({ formatError: null });
@@ -177,17 +174,17 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		if (err) {
 			var formatErrorCondition = err.createCondition(this.property.getLastTarget(this.parent.value), this.property.lastProperty);
 
-			(formatErrorCondition as any)['formatError'] = err;
+			(formatErrorCondition as any)["formatError"] = err;
 
 			formatErrorCondition.targets.forEach(formatErrorConditionTarget => {
-				(formatErrorConditionTarget as any)['formatError'] = err;
+				(formatErrorConditionTarget as any)["formatError"] = err;
 				vs.formatError = formatErrorConditionTarget;
-				(err as any)['conditionTarget'] = formatErrorConditionTarget;
+				(err as any)["conditionTarget"] = formatErrorConditionTarget;
 			});
-		} else {
+		}
+		else {
 			vs.formatError = null;
 		}
-
 	}
 
 	get invalidValue(): string {
@@ -198,7 +195,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 	get firstError(): Condition {
 		if (this.formatError) {
-			let formatErrorConditionTarget = (this.formatError as any)['conditionTarget'] as ConditionTarget;
+			let formatErrorConditionTarget = (this.formatError as any)["conditionTarget"] as ConditionTarget;
 			if (formatErrorConditionTarget) {
 				return formatErrorConditionTarget.condition;
 			}
@@ -227,15 +224,16 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 			throw new Error("Cannot set displayValue property of Adapters for entity types.");
 		}
 
-		//// TODO: Implement auto-reformat?
-		//var initialValue = text;
+		/// / TODO: Implement auto-reformat?
+		// var initialValue = text;
 
 		var newValue;
 
 		var formatter;
 		if (this.property.format != null) {
 			formatter = this.property.format;
-		} else if (isValueType(this.property.propertyType) && this.property.propertyType !== String) {
+		}
+		else if (isValueType(this.property.propertyType) && this.property.propertyType !== String) {
 			// Try to use the general format by default
 			formatter = this.property.containingType.model.getFormat(this.property.propertyType, "G");
 		}
@@ -252,10 +250,12 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 				this.formatError = newValue;
 				return;
 			}
-		} else if (this.property.propertyType == String && typeof text === "string" && text.length === 0) {
+		}
+		else if (this.property.propertyType === String && typeof text === "string" && text.length === 0) {
 			// Convert blank string to null
 			newValue = null;
-		} else {
+		}
+		else {
 			newValue = text;
 		}
 
@@ -267,14 +267,13 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		if (this.property instanceof PropertyChain) {
 			property = this.property.lastProperty;
 		} 
-		else if (this.property instanceof Property){
+		else if (this.property instanceof Property) {
 			property = this.property;
 		}
 		return property.rules.filter(r => r instanceof AllowedValuesRule)[0] as AllowedValuesRule;
 	}
 
 	get allowedValues(): TValue[] {
-
 		var allowedValuesRule = this.allowedValuesRule;
 		
 		if (!allowedValuesRule) {
@@ -285,7 +284,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		let targetObj: Entity;
 		if (this.property instanceof PropertyChain) {
 			targetObj = this.property.getLastTarget(this.parent.value);
-		} else {
+		}
+		else {
 			targetObj = this.parent.value;
 		}
 
@@ -296,17 +296,16 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 			if (!allowedValuesRule.ignoreValidation) {
 				this.clearInvalidOptions(allowedValuesFromRule);
 			}
-		} else if (!allowedValuesRule.ignoreValidation) {
+		}
+		else if (!allowedValuesRule.ignoreValidation) {
 			// Clear out values since the property doesn't currently have any allowed values
 			this.clearInvalidOptions(null);
 		}
 
 		return allowedValuesFromRule;
-	
 	}
 
 	get options(): SourceOptionAdapter<TValue>[] {
-
 		// Destroy existing option components
 		let optionsToDestroy = this.$children.filter(function(c) { return c instanceof SourceOptionAdapter; });
 		optionsToDestroy.forEach(c => c.$destroy());
@@ -326,11 +325,9 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 		// Map the allowed values to option adapters
 		return allowedValues.map(v => new SourceOptionAdapter<any>({ parent: this, propsData: { value: v } }));
-
 	}
 
 	get items(): SourceItemAdapter<TEntity, any>[] {
-
 		let items: SourceItemAdapter<TEntity, any>[] = [];
 
 		// Collect existing option components to potentially be destroyed
@@ -340,7 +337,6 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 		if (Array.isArray(value)) {
 			if (isEntityType(this.property.propertyType)) {
-
 				let existingItemsMap: { [key: string]: SourceItemAdapter<TEntity, Entity> } = {};
 				existingItemsToDestroy.forEach(function(c) {
 					let adapter = c as SourceItemAdapter<TEntity, Entity>;
@@ -373,7 +369,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 						// Include the existing item in the return value
 						items.push(existingItem);
-					} else {
+					}
+					else {
 						// Create a new item adapter
 						let newItem = new SourceItemAdapter<TEntity, any>({ parent: this, propsData: { index: i, parentSource: this } });
 
@@ -390,7 +387,6 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		existingItemsToDestroy.forEach(c => c.$destroy());
 
 		return items;
-
 	}
 
 	clearInvalidOptions(allowedValues: any[]): void {
@@ -409,18 +405,20 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 						}
 					}
 				});
-			} else if (value !== null && allowedValues.indexOf(value) < 0) {
+			}
+			else if (value !== null && allowedValues.indexOf(value) < 0) {
 				property.value(this.parent.value, null);
 			}
-		} else if (value instanceof Array) {
+		}
+		else if (value instanceof Array) {
 			value.splice(0, value.length);
-		} else if (value !== null) {
+		}
+		else if (value !== null) {
 			property.value(this.parent.value, null);
 		}
 	}
 
 	ensureObservable(value: TValue) {
-
 		if (Array.isArray(value)) {
 			if (ObservableArray.isObservableArray(value)) {
 				observeArray(value).ensureObservable();
@@ -431,7 +429,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 					observeEntity(item).ensureObservable();
 				}
 			}
-		} else if (value instanceof Entity) {
+		}
+		else if (value instanceof Entity) {
 			observeEntity(value).ensureObservable();
 		}
 
@@ -441,41 +440,43 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	toString(): string {
 		return "Source['" + this.source + "']";
 	}
-
 }
 
 export function formatDisplayValue<TValue>(adapter: SourcePropertyAdapter<TValue>, value: any): string {
-
 	let displayValue: string | Array<string>;
 
 	let property = adapter.property;
 
 	if (value === null || value === undefined) {
 		displayValue = "";
-	} else if (property.format != null) {
+	}
+	else if (property.format != null) {
 		// Use a markup or property format if available
 		if (Array.isArray(value)) {
 			let array = value as Array<any>;
 			displayValue = array.map((item: TValue) => property.format.convert(item));
-		} else {
+		}
+		else {
 			displayValue = property.format.convert(value);
 		}
-	} else if (Array.isArray(value)) {
+	}
+	else if (Array.isArray(value)) {
 		// If no format exists, then fall back to toString
 		let array = value as Array<any>;
 		displayValue = array.map((item: TValue) => {
 			if (value === null || value === undefined) {
 				return "";
-			} else {
+			}
+			else {
 				return item.toString();
 			}
 		});
-	} else {
+	}
+	else {
 		displayValue = value.toString();
 	}
 
 	displayValue = Array.isArray(displayValue) ? displayValue.join(", ") : displayValue;
 
 	return displayValue;
-
 }

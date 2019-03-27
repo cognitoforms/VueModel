@@ -2,11 +2,10 @@ import { ObservableArray } from "./observable-array";
 import { ConditionType } from "./condition-type";
 import { Condition } from "./condition";
 
-const allConditionTypeSets: { [id: string]: ConditionTypeSet } = {};
+const allConditionTypeSets: { [id: string]: ConditionTypeSet; } = {};
 
 /** Groups condition types into a set in order to be notified conditions for these types change. */
 export class ConditionTypeSet {
-
 	readonly name: string;
 	readonly types: ObservableArray<ConditionType>;
 	readonly conditions: ObservableArray<Condition>;
@@ -16,7 +15,6 @@ export class ConditionTypeSet {
 	* @param name The name of the set
 	*/
 	constructor(name: string) {
-
 		if (allConditionTypeSets[name])
 			throw new Error(`A set with the name '${name}' has already been created.`);
 
@@ -31,8 +29,7 @@ export class ConditionTypeSet {
 	* Gets all condition type sets that have been created.
 	* @returns Array of all condition type sets.
 	* */
-	static all(): ConditionTypeSet[] {
-
+	static all() {
 		let all: ConditionTypeSet[] = [];
 
 		for (let type in allConditionTypeSets.keys) {
@@ -49,5 +46,4 @@ export class ConditionTypeSet {
 	static get(name: string): ConditionTypeSet {
 		return allConditionTypeSets[name];
 	}
-
 }

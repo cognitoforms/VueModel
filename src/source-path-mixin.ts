@@ -1,40 +1,39 @@
-import Vue from 'vue';
-import { Component, Prop, Watch } from 'vue-property-decorator'
+import Vue from "vue";
+import { Component, Prop, Watch } from "vue-property-decorator";
 import { SourceAdapter, isSourceAdapter, isSourcePropertyAdapter } from "./source-adapter";
 import { Entity } from "../lib/model.js/src/entity";
 import { SourcePathAdapter } from "./source-path-adapter";
 
 @Component
 export class SourcePathMixin extends Vue {
-
 	@Prop({ type: [String, Object] })
 	source: string | SourceAdapter<any>;
 
 	@Prop(String)
 	label: string;
 
-	@Watch('label')
-	onLabelChanged(label: string): void {
+	@Watch("label")
+	onLabelChanged(label: String) {
 		this.onOverrideValueChanged(label, String);
 	}
 
 	@Prop(String)
 	helptext: string;
 
-	@Watch('helptext')
-	onHelptextChanged(helptext: string): void {
+	@Watch("helptext")
+	onHelptextChanged(helptext: String) {
 		this.onOverrideValueChanged(helptext, String);
 	}
 
 	@Prop({ type: Boolean, default: null })
 	readonly: boolean;
 
-	@Watch('readonly')
-	onReadonlyChanged(readonly: boolean): void {
+	@Watch("readonly")
+	onReadonlyChanged(readonly: Boolean) {
 		this.onOverrideValueChanged(readonly, Boolean);
 	}
 
-	get $source(): SourceAdapter<any> {
+	get $source() : SourceAdapter<any> {
 		// If the source is an adapter, then potentially apply overrides, and return it
 		if (isSourceAdapter(this.source)) {
 			let hasOverrides = hasOverrideValue(this.label, String) || hasOverrideValue(this.helptext, String) || hasOverrideValue(this.readonly, Boolean);
@@ -62,12 +61,11 @@ export class SourcePathMixin extends Vue {
 		return new SourcePathAdapter<Entity, any>({ parent: this, propsData: { source: this.source, overrides: this } });
 	}
 
-	onOverrideValueChanged(value: string | boolean, type: StringConstructor | BooleanConstructor): void {
+	onOverrideValueChanged(value: String | Boolean, type: StringConstructor | BooleanConstructor) {
 		if (isSourceAdapter(this.source) && hasOverrideValue(value, type)) {
 			throw new Error("Cannot apply overrides to source of type '" + this.source.constructor.name + "'.");
 		}
 	}
-
 }
 
 function hasOverrideValue(value: any, type: StringConstructor | BooleanConstructor): boolean {

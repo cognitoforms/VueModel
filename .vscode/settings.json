@@ -1,22 +1,29 @@
 {
-	"files.exclude": {
-		"**/.git": true,
-		"**/.DS_Store": true,
-		 "**/node_modules": true,
-		"lib/model.js/node_modules": true,
-		"**/bin": true,
-		"**/obj": true,
-		// "**/out/lib": true,
-		// "**/out/src": true,
-		// "**/out/**/*.js": true,
-		// "**/out/**/*.js.map": true,
-		"Properties": true,
-	},
-	"jest.pathToConfig": "./jest.config.js",
-	"jest.pathToJest": "./node_modules/.bin/jest",
+    "files.exclude": {
+        "**/.git": true,
+        "**/.DS_Store": true,
+        "**/node_modules": true,
+        "**/bin": true,
+        "**/obj": true,
+        // "**/out/lib": true,
+        // "**/out/src": true,
+        // "**/out/**/*.js": true,
+        // "**/out/**/*.js.map": true,
+        "Properties": true,
+    },
+    "jest.pathToConfig": "./jest.config.js",
+    "jest.pathToJest": "./node_modules/.bin/jest",
+    "editor.formatOnSave": false,
 	"eslint.autoFixOnSave": true,
 	"eslint.validate": [
-		"javascript",
-		{ "language": "typescript", "autoFix": true },
+		{
+			"language": "javascript",
+			"autoFix": true
+		},
+		{
+			"language": "typescript",
+			"autoFix": true
+		}
 	],
+	"javascript.validate.enable": false,
 }

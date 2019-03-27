@@ -72,7 +72,7 @@ describe("Entity", () => {
 		const _default = {
 			Title: "Untitled",
 			Director: { FirstName: "John", LastName: "Doe" },
-			Genres: new Array<string>()
+			Genres: [] as string[]
 		};
 
 		describe("static", () => {
