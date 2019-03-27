@@ -58,10 +58,8 @@ export class ConditionRule extends Rule {
 			this.message.call(entity);
 
 		// create or remove the condition if necessary
-		if (assert !== undefined) {
-			this.conditionType.when(assert, entity,
-				this.properties,
-				message);
+		if (typeof assert !== "undefined") {
+			this.conditionType.when(assert, entity, this.properties, message);
 		}
 	}
 

@@ -25,7 +25,7 @@ export class RequiredRule extends ValidationRule {
 		// create the validation function based on the rule options
 		options.isValid = function(this: Entity, prop: Property, val: any): boolean {
 			if (options.when && !options.when.call(this)) {
-				// Requiredness is not in effect
+				// Valid whether or not there is a value, since requiredness is not in effect
 				return true;
 			}
 
