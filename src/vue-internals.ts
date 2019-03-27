@@ -12,14 +12,14 @@ export interface DepConstructor {
     target: any;
 }
 
-export interface Observer<T> {
-    value: T;
+export interface Observer {
+    value: any;
     dep: Dep;
     vmCount: number;
 }
 
 export interface ObserverConstructor {
-    new<T>(value: T): Observer<T>;
+    new(value: any): Observer;
 }
 
 export interface VueInternals {
@@ -28,30 +28,32 @@ export interface VueInternals {
 }
 
 export function ensureVueInternalTypes(target: VueInternals, Vue: VueConstructor): void {
-	// Exit early if Observer or Dep are already defined
-	if (target.Observer || target.Dep) {
-		return;
-	}
 
-	let observableData: any;
+    // Exit early if Observer or Dep are already defined
+    if (target.Observer || target.Dep) {
+        return;
+    }
 
-	if (Vue.observable) {
-		observableData = Vue.observable({});
-	}
-	else {
-		let component = new Vue({
-			data() {
-				return { };
-			}
-		});
+    let observableData: any;
 
-		observableData = component.$data;
-	}
+    if (Vue.observable) {
+        observableData = Vue.observable({});
+    }
+    else {
+        let component = new Vue({
+            data() {
+                return { };
+            },
+        });
 
-	let observer = (observableData as any).__ob__ as Observer<any>;
-	let observerCtor = (observer as any).constructor as ObserverConstructor;
+        observableData = component.$data;
+    }
+
+    let observer = (observableData as any).__ob__ as Observer;
+    let observerCtor = (observer as any).constructor as ObserverConstructor;
 	let depCtor = observer.dep.constructor as DepConstructor;
 
-	target.Observer = observerCtor;
+    target.Observer = observerCtor;
 	target.Dep = depCtor;
+
 }

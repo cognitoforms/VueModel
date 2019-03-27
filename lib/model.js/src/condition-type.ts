@@ -7,6 +7,7 @@ import { PropertyPath } from "./property-path";
 const allConditionTypes: { [id: string]: ConditionType } = {};
 
 export class ConditionType {
+
 	readonly code: string;
 	readonly category: string;
 	readonly message: string;
@@ -21,6 +22,7 @@ export class ConditionType {
 	* @param sets One or more sets the condition type belongs to.
 	*/
 	constructor(code: string, category: string, message: string, sets?: ConditionTypeSet[]) {
+
 		// Ensure unique condition type codes
 		if (allConditionTypes[code])
 			throw new Error("A condition type with the code \"" + code + "\" has already been created.");
@@ -44,11 +46,13 @@ export class ConditionType {
 	* @param message The condition message (or a function to generate the message)
 	*/
 	when(condition: boolean, target: Entity, properties: PropertyPath[], message: string | ((target: Entity) => string)): Condition | void {
+
 		// get the current condition if it exists
 		var conditionTarget = target.meta.getCondition(this);
 
 		// add the condition on the target if it does not exist yet
 		if (condition) {
+
 			// if the message is a function, invoke to get the actual message
 			message = message instanceof Function ? message(target) : message;
 
@@ -58,7 +62,8 @@ export class ConditionType {
 			}
 
 			// replace the condition if the message has changed
-			else if (message && message !== conditionTarget.condition.message) {
+			else if (message && message != conditionTarget.condition.message) {
+
 				// destroy the existing condition
 				conditionTarget.condition.destroy();
 
@@ -85,6 +90,7 @@ export class ConditionType {
 		* @returns Array of all condition types.
 		* */
 	static all(): ConditionType[] {
+
 		let all: ConditionType[] = [];
 
 		for (let type in allConditionTypes.keys) {
@@ -124,6 +130,7 @@ export interface WarningConditionTypeConstructor {
 }
 
 export class PermissionConditionType extends ConditionType {
+
 	isAllowed: boolean;
 
 	constructor(code: string, message: string, sets?: ConditionTypeSet[], isAllowed: boolean = true) {
@@ -135,4 +142,17 @@ export class PermissionConditionType extends ConditionType {
 
 export interface PermissionConditionTypeConstructor {
 	new(code: string, message: string, sets?: ConditionTypeSet[], isAllowed?: boolean): PermissionConditionType;
+}
+
+export namespace ConditionType {
+
+	export type Error = ErrorConditionType;
+	export const Error = ErrorConditionType;
+
+	export type Warning = WarningConditionType;
+	export const Warning  = WarningConditionType;
+
+	export type Permission = PermissionConditionType;
+	export const Permission  = PermissionConditionType;
+
 }

@@ -2,6 +2,7 @@ import { isEntityType, Type } from "./type";
 import { Entity } from "./entity";
 import { Property } from "./property";
 
+
 export interface PropertySerializationResult {
 	key: string;
 	value: any;
@@ -67,6 +68,7 @@ export class EntitySerializer {
 	 * @param type 
 	 */
 	private getPropertyInjectors(type: Type): PropertyInjector[] {
+
 		let injectors = [];
 		do {
 			injectors.push(...this.getInjectorsOrDefault(type));

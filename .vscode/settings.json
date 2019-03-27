@@ -14,17 +14,15 @@
 	},
 	"jest.pathToConfig": "./jest.config.js",
 	"jest.pathToJest": "./node_modules/.bin/jest",
-	"jest.enableCodeLens": true,
-	"jest.debugCodeLens.showWhenTestStateIn": [
-		"fail",
-		"unknown",
-		"pass"
-	],
-	"jest.autoEnable": false,
 	"eslint.autoFixOnSave": true,
 	"eslint.validate": [
+		"javascript",
 		{ "language": "typescript", "autoFix": true },
-		{ "language": "typescript", "autoFix": true }
 	],
-	"eslint.provideLintTask": true
+	"[javascript]":  {
+		"editor.formatOnSave":  false,
+	},
+	"[typescript]":  {
+		"editor.formatOnSave":  false,
+	},
 }
