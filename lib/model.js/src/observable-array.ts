@@ -5,7 +5,7 @@ export interface ObservableArray<ItemType> extends Array<ItemType> {
 
 	readonly __aob__: ArrayObserver<ItemType>;
 
-	readonly changed: EventSubscriber<Array<ItemType>, ArrayChangedEventArgs<ItemType>>;
+	readonly changed: EventSubscriber<ItemType[], ArrayChangedEventArgs<ItemType>>;
 
 	/**
 	 * Begin queueing changes to the array, make changes in the given callback function, then stop queueing and raise events
@@ -100,7 +100,7 @@ export class ObservableArray<ItemType> {
 	 * Returns a value indicating whether the given array is observable
 	 * @param array The array to check for observability
 	 */
-	public static isObservableArray<ItemType>(array: Array<ItemType> | ObservableArray<ItemType>): array is ObservableArray<ItemType> {
+	public static isObservableArray<ItemType>(array: ItemType[] | ObservableArray<ItemType>): array is ObservableArray<ItemType> {
 		return hasOwnProperty(array, "__aob__") && (array as any).__aob__.constructor === ArrayObserver;
 	}
 
@@ -108,7 +108,7 @@ export class ObservableArray<ItemType> {
 	 * Makes the given array observable, if not already
 	 * @param array The array to make observable
 	 */
-	public static ensureObservable<ItemType>(array: Array<ItemType> | ObservableArray<ItemType>): ObservableArray<ItemType> {
+	public static ensureObservable<ItemType>(array: ItemType[] | ObservableArray<ItemType>): ObservableArray<ItemType> {
 		
 		// Check to see if the array is already an observable list
 		if (ObservableArray.isObservableArray(array)) {
@@ -137,7 +137,7 @@ export class ObservableArray<ItemType> {
 
 		(array as any)["batchUpdate"] = ObservableArray$batchUpdate;
 
-		ObservableArray$_overrideNativeMethods.call(array);
+		ObservableArray$overrideNativeMethods.call(array);
 
 		return array as ObservableArray<ItemType>;
 
@@ -147,7 +147,7 @@ export class ObservableArray<ItemType> {
 	 * Creates a new observable array
 	 * @param items The initial array items
 	 */
-	public static create<ItemType>(items: ItemType[] = []): ObservableArray<ItemType> & Array<ItemType> {
+	public static create<ItemType>(items: ItemType[] = []): ObservableArray<ItemType> & ItemType[] {
 		let array: ObservableArray<ItemType>;
 		if (items instanceof ObservableArray)
 			array = items;
@@ -204,12 +204,12 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
 
 		if (this.constructor !== ObservableArrayImplementation) {
 			this["batchUpdate"] = (function (fn: (array: ObservableArray<ItemType>) => void) { ObservableArray$batchUpdate.call(this, fn); });
-			ObservableArray$_overrideNativeMethods.call(this);
+			ObservableArray$overrideNativeMethods.call(this);
 		}
 	}
 
 	/** Expose the changed event */
-	get changed(): EventSubscriber<Array<ItemType>, ArrayChangedEventArgs<ItemType>> {
+	get changed(): EventSubscriber<ItemType[], ArrayChangedEventArgs<ItemType>> {
 		return this.__aob__.changed;
 	}
 
@@ -228,6 +228,7 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
 	 * @param end Zero based index at which to end copying elements from. copyWithin copies up to but not including end. If negative, end will be counted from the end. If end is omitted, copyWithin will copy until the end (default to arr.length).
 	 * @returns The modified array.
 	 */
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	copyWithin(target: number, start?: number, end?: number): this {
 		return ObservableArray$copyWithin.apply(this, arguments);
 	}
@@ -240,6 +241,7 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
 	 * @param end End index, defaults to this.length.
 	 * @returns The modified array.
 	 */
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	fill(value: ItemType, start?: number, end?: number): this {
 		return ObservableArray$fill.apply(this, arguments);
 	}
@@ -259,6 +261,7 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
 	 * @param items The elements to add to the end of the array.
 	 * @returns The new length property of the object upon which the method was called.
 	 */
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	push(...elements: ItemType[]): number {
 		return ObservableArray$push.apply(this, arguments);
 	}
@@ -288,6 +291,7 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
 	 * @param compareFunction Specifies a function that defines the sort order. If omitted, the array is sorted according to each character's Unicode code point value, according to the string conversion of each element.
 	 * @returns The sorted array. Note that the array is sorted in place, and no copy is made.
 	 */
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	sort(compareFunction?: (a: ItemType, b: ItemType) => number): this {
 		return ObservableArray$sort.apply(this, arguments);
 	}
@@ -300,6 +304,7 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
 	 * @param items The elements to add to the array, beginning at the start index. If you don't specify any elements, splice() will only remove elements from the array.
 	 * @returns An array containing the deleted elements. If only one element is removed, an array of one element is returned. If no elements are removed, an empty array is returned.
 	 */
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	splice(start: number, deleteCount?: number, ...items: ItemType[]): ItemType[] {
 		return ObservableArray$splice.apply(this, arguments);
 	}
@@ -310,6 +315,7 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
 	 * @param items The elements to add to the front of the array.
 	 * @returns The new length property of the object upon which the method was called.
 	 */
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	unshift(...items: ItemType[]): number {
 		return ObservableArray$unshift.apply(this, arguments);
 	}
@@ -320,7 +326,7 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
  * Override's native Array methods that manipulate the array 
  * @param array The array to extend
  */
-export function ObservableArray$_overrideNativeMethods<ItemType>(this: Array<ItemType> | ObservableArrayImplementation<ItemType>): void {
+export function ObservableArray$overrideNativeMethods<ItemType>(this: ItemType[] | ObservableArrayImplementation<ItemType>): void {
 	(this as any)["copyWithin"] = ObservableArray$copyWithin;
 	(this as any)["fill"] = ObservableArray$fill;
 	(this as any)["pop"] = ObservableArray$pop;
@@ -340,7 +346,8 @@ export function ObservableArray$batchUpdate<ItemType>(this: ObservableArray<Item
 	try {
 		fn(this);
 		this.__aob__.stopQueueingChanges(true);
-	} finally {
+	}
+	finally {
 		if (this.__aob__._isQueuingChanges) {
 			this.__aob__.stopQueueingChanges(false);
 		}
@@ -445,8 +452,9 @@ export function ObservableArray$shift<ItemType>(this: ObservableArrayImplementat
  * @param compareFunction Specifies a function that defines the sort order. If omitted, the array is sorted according to each character's Unicode code point value, according to the string conversion of each element.
  * @returns The sorted array. Note that the array is sorted in place, and no copy is made.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function ObservableArray$sort<ItemType>(this: ObservableArrayImplementation<ItemType>, compareFunction?: (a: ItemType, b: ItemType) => number): ItemType[] {
-	let result: ItemType = Array.prototype.sort.apply(this, arguments);
+	Array.prototype.sort.apply(this, arguments);
 	// TODO: Warn about non-observable manipulation of observable array?
 	this.__aob__.raiseEvents({ type: ArrayChangeType.reorder, startIndex: 0, endIndex: this.length - 1 });
 	return this;
@@ -494,24 +502,24 @@ export function ObservableArray$unshift<ItemType>(this: ObservableArrayImplement
 
 export interface ObservableArrayConstructor<ItemType> {
 	new(items?: ItemType[]): ObservableArray<ItemType>;
-	isObservableArray(array: Array<ItemType>): boolean;
-	ensureObservable(array: Array<ItemType>): ObservableArray<ItemType>;
+	isObservableArray(array: ItemType[]): boolean;
+	ensureObservable(array: ItemType[]): ObservableArray<ItemType>;
 	create(items?: ItemType[]): ObservableArray<ItemType>;
 }
 
 export class ArrayObserver<ItemType> {
 
-	readonly array: Array<ItemType>;
+	readonly array: ItemType[];
 
-	readonly changed: Event<Array<ItemType>, ArrayChangedEventArgs<ItemType>>;
+	readonly changed: Event<ItemType[], ArrayChangedEventArgs<ItemType>>;
 
 	_queuedChanges: ArrayChange<ItemType>[];
 
 	_isQueuingChanges: boolean;
 
-	public constructor(array: Array<ItemType>) {
+	public constructor(array: ItemType[]) {
 		this.array = array;
-		this.changed = new Event<Array<ItemType>, ArrayChangedEventArgs<ItemType>>();
+		this.changed = new Event<ItemType[], ArrayChangedEventArgs<ItemType>>();
 		this._isQueuingChanges = false;
 	}
 
@@ -522,12 +530,15 @@ export class ArrayObserver<ItemType> {
 			}
 			if (Array.isArray(changes)) {
 				Array.prototype.push.apply(this._queuedChanges, changes);
-			} else {
+			}
+			else {
 				this._queuedChanges.push(changes);
 			}
-		} else if (Array.isArray(changes)) {
+		}
+		else if (Array.isArray(changes)) {
 			this.changed.publish(this.array, { changes: changes });
-		} else {
+		}
+		else {
 			this.changed.publish(this.array, { changes: [changes] });
 		}
 	}
@@ -549,7 +560,7 @@ export class ArrayObserver<ItemType> {
 
 }
 
-function observableSplice(arr: any[], events: any[], index: number, removeCount: number, addItems: any[]) {
+function observableSplice(arr: any[], events: any[], index: number, removeCount: number, addItems: any[]): void {
 	var removedItems;
 
 	let arr2 = arr as any;
@@ -557,9 +568,11 @@ function observableSplice(arr: any[], events: any[], index: number, removeCount:
 	if (removeCount) {
 		if (removeCount > 1 && arr2.removeRange) {
 			removedItems = arr2.removeRange(index, removeCount);
-		} else if (removeCount === 1 && arr2.remove) {
+		}
+		else if (removeCount === 1 && arr2.remove) {
 			removedItems = [arr2.removeAt(index)];
-		} else {
+		}
+		else {
 			removedItems = arr.splice(index, removeCount);
 		}
 	
@@ -577,9 +590,11 @@ function observableSplice(arr: any[], events: any[], index: number, removeCount:
 	if (addItems.length > 0) {
 		if (addItems.length > 1 && arr2.insertRange) {
 			arr2.insertRange(index, addItems);
-		} else if (addItems.length === 1 && arr2.insert) {
+		}
+		else if (addItems.length === 1 && arr2.insert) {
 			arr2.insert(index, addItems[0]);
-		} else {
+		}
+		else {
 			var addItemsArgs = addItems.slice();
 			addItemsArgs.splice(0, 0, index, 0);
 			arr.splice.apply(arr, addItemsArgs);
@@ -597,7 +612,7 @@ function observableSplice(arr: any[], events: any[], index: number, removeCount:
 	}
 }
 
-export function updateArray(array: any[], values: any[] /*, trackEvents */) {
+export function updateArray(array: any[], values: any[] /*, trackEvents */): any[] {
 	var trackEvents: boolean = arguments[2],
 		events: any[] = trackEvents ? [] : null,
 		pointer = 0,
@@ -609,18 +624,21 @@ export function updateArray(array: any[], values: any[] /*, trackEvents */) {
 			if (pointer === srcSeek && pointer === tgtSeek) {
 				// items match, so advance
 				pointer = srcSeek = tgtSeek = pointer + 1;
-			} else {
+			}
+			else {
 				// remove range from source and add range from target
 				observableSplice(array, events, pointer, srcSeek - pointer, values.slice(pointer, tgtSeek));
 
 				// reset to index follow target seek location since arrays match up to that point
 				pointer = srcSeek = tgtSeek = tgtSeek + 1;
 			}
-		} else if (tgtSeek >= values.length) {
+		}
+		else if (tgtSeek >= values.length) {
 			// reached the end of the target array, so advance the src pointer and test again
 			tgtSeek = pointer;
 			srcSeek += 1;
-		} else {
+		}
+		else {
 			// advance to the next target item to test
 			tgtSeek += 1;
 		}

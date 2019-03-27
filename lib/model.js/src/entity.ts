@@ -2,7 +2,7 @@ import { Event, EventObject, EventSubscriber } from "./events";
 import { Format } from "./format";
 import { Type, EntityType, isEntityType } from "./type";
 import { ObjectMeta } from "./object-meta";
-import { Property, Property$_init, Property$_setter } from "./property";
+import { Property, Property$init, Property$setter } from "./property";
 import { ObjectLookup } from "./helpers";
 
 export class Entity {
@@ -99,7 +99,7 @@ export class Entity {
 				else
 					value = this.meta.type.model.serializer.deserialize(state, prop);
 
-				Property$_init(prop, this, value);
+				Property$init(prop, this, value);
 			}
 		}
 	}
@@ -113,7 +113,8 @@ export class Entity {
 		if (typeof property == "string") {
 			properties = {};
 			properties[property] = value;
-		} else {
+		}
+		else {
 			properties = property;
 		}
 
@@ -155,7 +156,7 @@ export class Entity {
 					value = this.meta.type.model.serializer.deserialize(state, prop);
 
 				if (value !== undefined)
-				Property$_setter(prop, this, value);
+				Property$setter(prop, this, value);
 			}
 		}
 	}
@@ -169,14 +170,16 @@ export class Entity {
 		let formatter: Format<Entity> = null;
 		if (format) {
 			formatter = this.meta.type.model.getFormat<Entity>(this.constructor as EntityType, format);
-		} else {
+		}
+		else {
 			formatter = this.meta.type.format;
 		}
 
 		// Use the formatter, if available, to create the string representation
 		if (formatter) {
 			return formatter.convert(this);
-		} else {
+		}
+		else {
 			return `${this.meta.type.fullName}|${this.meta.id}`;
 		}
 	}
@@ -185,7 +188,7 @@ export class Entity {
 	 * Produces a JSON-valid object representation of the entity.
 	 * @param entity
 	 */
-	serialize(): Object {
+	serialize(): object {
 		return this.meta.type.model.serializer.serialize(this);
 	}
 }

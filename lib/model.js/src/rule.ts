@@ -1,7 +1,6 @@
 import { Entity, EntityConstructorForType, EntityChangeEventArgs } from "./entity";
-import { PropertyChangeEventArgs, PropertyAccessEventArgs, PropertyPath } from "./property-path";
+import { PropertyPath } from "./property-path";
 import { Property$pendingInit, Property } from "./property";
-import { PropertyChain } from "./property-chain";
 import { Event } from "./events";
 import { Type } from "./type";
 import { RuleInvocationType } from "./rule-invocation-type";
@@ -17,9 +16,9 @@ const detectRunawayRules = true;
 // to its parent while the parent scope is exiting. A large number indicates that
 // rules are not reaching steady-state. Technically something other than rules could
 // cause this scenario, but in practice they are the primary use-case for event scope. 
-const nonExitingScopeNestingCount: number = 100;
+const nonExitingScopeNestingCount = 100;
 
-let Rule$customRuleIndex: number = 0
+let Rule$customRuleIndex = 0
 
 export class Rule {
 
@@ -65,10 +64,11 @@ export class Rule {
 		}
 	}
 
-	execute(entity: Entity, ...args: any[]): void {
+	execute(entity: Entity): void {
 		if (this._execute) {
 			this._execute.call(entity);
-		} else {
+		}
+		else {
 			// TODO: Warn about execute function not implemented?
 		}
 	}
@@ -115,7 +115,7 @@ export class Rule {
 	 */
 	onChangeOf(predicates: PropertyPath[]): this
 	onChangeOf(...predicates: PropertyPath[]): this
-	onChangeOf(predicates: any) {
+	onChangeOf(predicates: any): this {
 
 		// ensure the rule has not already been registered
 		if (this._registered)
@@ -142,7 +142,7 @@ export class Rule {
 	 */
 	returns(properties: (string | Property)[]): this
 	returns(...properties: (string | Property)[]): this
-	returns(properties: any) {
+	returns(properties: any): this {
 
 		// Ensure the rule has not already been registered
 		if (this._registered)
@@ -166,7 +166,7 @@ export class Rule {
 	}
 
 	// registers the rule based on the configured invocation types, predicates, and return values
-	register() {
+	register(): void {
 
 		let rule = this;
 
@@ -179,12 +179,12 @@ export class Rule {
 
 		// register for init new
 		if (rule.invocationTypes & RuleInvocationType.InitNew) {
-			rule.rootType.initNew.subscribe(function (args) { executeRule(rule, args.entity, args) });
+			rule.rootType.initNew.subscribe(function (args) { executeRule(rule, args.entity) });
 		}
 
 		// register for init existing
 		if (rule.invocationTypes & RuleInvocationType.InitExisting) {
-			rule.rootType.initExisting.subscribe(function (args) { executeRule(rule, args.entity, args) });
+			rule.rootType.initExisting.subscribe(function (args) { executeRule(rule, args.entity) });
 		}
 
 		// register for property change
@@ -192,11 +192,11 @@ export class Rule {
 			rule.predicates.forEach(function (predicate) {
 				predicate.changed.subscribe(
 					function (args) {
-						if (canExecuteRule(rule, args.entity, args) && !pendingInvocation(args.entity.meta, rule)) {
+						if (canExecuteRule(rule, args.entity) && !pendingInvocation(args.entity.meta, rule)) {
 							pendingInvocation(args.entity.meta, rule, true);
 							EventScope$onExit(function () {
 								pendingInvocation(args.entity.meta, rule, false);
-								executeRule(rule, args.entity, args);
+								executeRule(rule, args.entity);
 							});
 							EventScope$onAbort(function () {
 								pendingInvocation(args.entity.meta, rule, false);
@@ -215,9 +215,9 @@ export class Rule {
 				returnValue.accessed.subscribe(
 					function (args) {
 						// run the rule to initialize the property if it is pending initialization
-						if (canExecuteRule(rule, args.entity, args) && Property$pendingInit(args.entity, returnValue)) {
+						if (canExecuteRule(rule, args.entity) && Property$pendingInit(args.entity, returnValue)) {
 							Property$pendingInit(args.entity, returnValue, false);
-							executeRule(rule, args.entity, args);
+							executeRule(rule, args.entity);
 						}
 					}
 				);
@@ -229,17 +229,18 @@ export class Rule {
 					function (args) {
 						if (rule.returnValues.some((returnValue) => returnValue.changed.hasSubscribers())) {
 							// Immediately execute the rule if there are explicit event subscriptions for the property
-							if (canExecuteRule(rule, args.entity, args) && !pendingInvocation(args.entity.meta, rule)) {
+							if (canExecuteRule(rule, args.entity) && !pendingInvocation(args.entity.meta, rule)) {
 								pendingInvocation(args.entity.meta, rule, true);
 								EventScope$onExit(() => {
 									pendingInvocation(args.entity.meta, rule, false);
-									executeRule(rule, args.entity, args);
+									executeRule(rule, args.entity);
 								});
 								EventScope$onAbort(() => {
 									pendingInvocation(args.entity.meta, rule, false);
 								});
 							}
-						} else {
+						}
+						else {
 							// Otherwise, just mark the property as pending initialization and raise property change for UI subscribers
 							rule.returnValues.forEach((returnValue) => {
 								Property$pendingInit(args.entity, returnValue, true);
@@ -296,7 +297,8 @@ function pendingInvocation(target: Type | ObjectMeta, rule: Rule, value: boolean
 
 	if (Object.prototype.hasOwnProperty.call(target, "_pendingInvocation")) {
 		pendingInvocation = (target as any)._pendingInvocation;
-	} else {
+	}
+	else {
 		Object.defineProperty(target, "_pendingInvocation", { enumerable: false, value: (pendingInvocation = []), writable: true });
 	}
 
@@ -308,19 +310,20 @@ function pendingInvocation(target: Type | ObjectMeta, rule: Rule, value: boolean
 		else if (!value && indexOfRule >= 0) {
 			pendingInvocation.splice(indexOfRule, 1);
 		}
-	} else {
+	}
+	else {
 		return indexOfRule >= 0;
 	}
 }
 
-function canExecuteRule(rule: Rule, obj: Entity, eventArgument: any): boolean {
+function canExecuteRule(rule: Rule, obj: Entity): boolean {
 	// ensure the rule target is a valid rule root type
 	return obj instanceof rule.rootType.jstype;
 }
 
-function executeRule(rule: Rule, obj: Entity, eventArgument: any): void {
+function executeRule(rule: Rule, obj: Entity): void {
 	// Ensure that the rule can be executed.
-	if (!canExecuteRule(rule, obj, eventArgument)) {
+	if (!canExecuteRule(rule, obj)) {
 		// TODO: Warn that rule can't be executed?
 		return;
 	}
@@ -335,7 +338,8 @@ function executeRule(rule: Rule, obj: Entity, eventArgument: any): void {
 					var maxNesting;
 					if (typeof nonExitingScopeNestingCount === "number") {
 						maxNesting = nonExitingScopeNestingCount - 1;
-					} else {
+					}
+					else {
 						maxNesting = 99;
 					}
 
@@ -366,9 +370,11 @@ export function Rule$ensureConditionType<DesiredConditionType = ErrorConditionTy
 
 	if (category === "Error") {
 		DesiredConditionType = ErrorConditionType;
-	} else if (category === "Warning") {
+	}
+	else if (category === "Warning") {
 		DesiredConditionType = WarningConditionType;
-	} else {
+	}
+	else {
 		throw new Error("Cannot create condition type for unsupported category '" + category + "'.");
 	}
 

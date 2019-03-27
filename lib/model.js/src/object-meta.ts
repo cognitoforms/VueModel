@@ -37,7 +37,7 @@ export class ObjectMeta {
 	 * Stores the condition target for the current instance
 	 * @param conditionTarget The condition target to store
 	 */
-	setCondition(conditionTarget: ConditionTarget) {
+	setCondition(conditionTarget: ConditionTarget): void {
 		if (conditionTarget.condition.type != FormatError.ConditionType) {
 			this.conditions.push(conditionTarget);
 		}
@@ -86,7 +86,7 @@ export class ObjectMeta {
 	}
 
 	// TODO: Should this be a method on the entity itself, or a static method on Entity?
-	destroy() {
+	destroy(): void {
 		this.type.unregister(this.entity);
 
 		// Raise the destroy event on this type and all base types

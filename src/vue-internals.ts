@@ -38,7 +38,8 @@ export function ensureVueInternalTypes(target: VueInternals, Vue: VueConstructor
 
     if (Vue.observable) {
         observableData = Vue.observable({});
-    } else {
+    }
+    else {
         let component = new Vue({
             data() {
                 return { };

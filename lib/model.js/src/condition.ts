@@ -87,7 +87,7 @@ export class Condition {
 		}
 	}
 
-	destroy() {
+	destroy(): void {
 		/// <summary>Removes the condition targets from all target instances and raises condition change events.</summary>
 
 		// raise events on condition type sets
@@ -123,7 +123,7 @@ export class Condition {
 		this.targets.splice(0);
 	}
 
-	toString() {
+	toString(): string {
 		return this.message;
 	}
 

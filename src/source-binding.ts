@@ -4,7 +4,7 @@ import { Entity } from "../lib/model.js/src/entity";
 import { SourceAdapter, isSourceAdapter, isSourcePropertyAdapter } from "./source-adapter";
 import { Vue$proxy } from "./vue-helpers";
 
-export function proxySourceAdapterPropertiesOntoComponentInstance(vm: Vue, rootKey: string, force: boolean = false, overwrite: boolean = false) {
+export function proxySourceAdapterPropertiesOntoComponentInstance(vm: Vue, rootKey: string, force: boolean = false, overwrite: boolean = false): void {
 
     let vm$private: any = vm as any;
 
@@ -48,7 +48,7 @@ export function proxySourceAdapterPropertiesOntoComponentInstance(vm: Vue, rootK
 
 }
 
-export function defineDollarSourceProperty(vm: Vue, sourceAdapter: SourceAdapter<any>) {
+export function defineDollarSourceProperty(vm: Vue, sourceAdapter: SourceAdapter<any>): void {
 
     let vm$private: any = vm as any;
 
@@ -85,10 +85,12 @@ export function getImplicitSource(vm: Vue, detect: boolean = false): Entity | So
         if (typeof source === "string") {
             // Source is explicit (but has not been established)
             return null;
-        } else if (source instanceof Entity) {
+        }
+        else if (source instanceof Entity) {
             // An entity was previously flagged as a potential implicit source
             return source as Entity;
-        } else if (isSourceAdapter(source)) {
+        }
+        else if (isSourceAdapter(source)) {
             // A source adapter was previously flagged as a potential implicit source
             return source as SourceAdapter<any>;
         }
@@ -104,7 +106,8 @@ export function getImplicitSource(vm: Vue, detect: boolean = false): Entity | So
                 debug("Found implicit source as data of type <" + (data as Entity).meta.type.fullName + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
                 vm$private._source = data;
                 return data;
-            } else if (isSourceAdapter(data)) {
+            }
+            else if (isSourceAdapter(data)) {
                 debug("Found implicit source as source adapter <" + data + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
                 vm$private._source = data;
                 return data;
@@ -138,15 +141,18 @@ export function getSourceBindingContainer(vm: Vue, detectImplicitSource: boolean
             // if (process.env.NODE_ENV === "development") {
             if (typeof parentSource === "string") {
                 debug("Found pending source on level " + parentLevel + " parent component of type <" + (parentVm$private.$options._componentTag || "???") + ">.");
-            } else if (isSourceAdapter(parentSource)) {
+            }
+            else if (isSourceAdapter(parentSource)) {
                 debug("Found established source on level " + parentLevel + " parent component of type <" + (parentVm$private.$options._componentTag || "???") + ">.");
-            } else {
+            }
+            else {
                 debug("Found unknown source on level " + parentLevel + " parent component of type <" + (parentVm$private.$options._componentTag || "???") + ">.");
             }
             // }
 
             return parentVm;
-        } else if (detectImplicitSource) {
+        }
+        else if (detectImplicitSource) {
             let implicitSource = getImplicitSource(parentVm, true);
             if (implicitSource !== undefined && !firstImplicitSourceVm) {
                 firstImplicitSourceVm = parentVm;

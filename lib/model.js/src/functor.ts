@@ -1,7 +1,7 @@
 export interface Functor {
 	add(fn: Function, filter?: () => boolean, once?: boolean): void;
 	remove(fn: Function): boolean;
-	isEmpty(args?: Array<any>): boolean;
+	isEmpty(args?: any[]): boolean;
 	clear(): void;
 }
 
@@ -26,8 +26,8 @@ export function Functor$create(returns: boolean = false): Functor & Function {
 
 	// TODO: Detect functor invocation resulting in continually adding subscribers
 
-	function Functor$fn() {
-		let returnsArray: Array<any>;
+	function Functor$fn(): any[] | void {
+		let returnsArray: any[];
 
 		if (returns) {
 			returnsArray = []
@@ -110,7 +110,7 @@ export function Functor$remove(fn: Function): boolean {
 	return false;
 }
 
-export function Functor$isEmpty(args: Array<any> = null): boolean {
+export function Functor$isEmpty(args: any[] = null): boolean {
 	return !this._funcs.some(function (item: FunctorItem) { return item.applied !== true && (!args || !item.filter || item.filter.apply(this, args)); }, this);
 }
 

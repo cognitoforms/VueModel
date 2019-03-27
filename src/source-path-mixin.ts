@@ -14,7 +14,7 @@ export class SourcePathMixin extends Vue {
 	label: string;
 
 	@Watch('label')
-	onLabelChanged(label: String) {
+	onLabelChanged(label: string): void {
 		this.onOverrideValueChanged(label, String);
 	}
 
@@ -22,7 +22,7 @@ export class SourcePathMixin extends Vue {
 	helptext: string;
 
 	@Watch('helptext')
-	onHelptextChanged(helptext: String) {
+	onHelptextChanged(helptext: string): void {
 		this.onOverrideValueChanged(helptext, String);
 	}
 
@@ -30,11 +30,11 @@ export class SourcePathMixin extends Vue {
 	readonly: boolean;
 
 	@Watch('readonly')
-	onReadonlyChanged(readonly: Boolean) {
+	onReadonlyChanged(readonly: boolean): void {
 		this.onOverrideValueChanged(readonly, Boolean);
 	}
 
-	get $source() : SourceAdapter<any> {
+	get $source(): SourceAdapter<any> {
 		// If the source is an adapter, then potentially apply overrides, and return it
 		if (isSourceAdapter(this.source)) {
 			let hasOverrides = hasOverrideValue(this.label, String) || hasOverrideValue(this.helptext, String) || hasOverrideValue(this.readonly, Boolean);
@@ -49,7 +49,8 @@ export class SourcePathMixin extends Vue {
 				}
 
 				return this.source;
-			} else {
+			}
+			else {
 				if (hasOverrides) {
 					throw new Error("Cannot apply overrides to source of type '" + this.source.constructor.name + "'.");
 				}
@@ -61,7 +62,7 @@ export class SourcePathMixin extends Vue {
 		return new SourcePathAdapter<Entity, any>({ parent: this, propsData: { source: this.source, overrides: this } });
 	}
 
-	onOverrideValueChanged(value: String | Boolean, type: StringConstructor | BooleanConstructor) {
+	onOverrideValueChanged(value: string | boolean, type: StringConstructor | BooleanConstructor): void {
 		if (isSourceAdapter(this.source) && hasOverrideValue(value, type)) {
 			throw new Error("Cannot apply overrides to source of type '" + this.source.constructor.name + "'.");
 		}
@@ -72,7 +73,8 @@ export class SourcePathMixin extends Vue {
 function hasOverrideValue(value: any, type: StringConstructor | BooleanConstructor): boolean {
 	if (type === String) {
 		return typeof value === "string" && value.length > 0;
-	} else if (type === Boolean) {
+	}
+	else if (type === Boolean) {
 		return typeof value === "boolean";
 	}
 }

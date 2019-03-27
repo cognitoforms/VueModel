@@ -80,7 +80,7 @@ export abstract class Format<T> {
 
 	}
 
-	toString() {
+	toString(): string {
 		return this.specifier;
 	}
 
@@ -233,7 +233,8 @@ export class ModelFormat<T extends Entity> extends Format<T> {
 								// Determine the default property format
 								if (property instanceof Property) {
 									propertyDefaultFormat = property.format;
-								} else if (property instanceof PropertyChain) {
+								}
+								else if (property instanceof PropertyChain) {
 									let lastProperty = property.lastProperty;
 									propertyDefaultFormat = lastProperty.format;
 								}
@@ -295,11 +296,13 @@ export class ModelFormat<T extends Entity> extends Format<T> {
 				var value = evalPath(obj, token.path);
 				if (value === undefined || value === null) {
 					value = "";
-				} else if (token.format) {
+				}
+				else if (token.format) {
 					let format: Format<any>
 					if (token.format instanceof Format) {
 						format = token.format;
-					} else if (typeof token.format === "string") {
+					}
+					else if (typeof token.format === "string") {
 						format = token.format = obj.meta.type.model.getFormat<any>(value.constructor, token.format);
 					}
 					value = format.convert(value);
@@ -310,7 +313,7 @@ export class ModelFormat<T extends Entity> extends Format<T> {
 		return result;
 	}
 
-	convertFromString(text: string): FormatError | T {
+	convertFromString(): FormatError | T {
 		throw new Error("Cannot convert from a format string back to an entity.");
 	}
 
@@ -359,10 +362,11 @@ interface CultureInfo {
 }
 
 interface DateTimeFormatInfo {
+
 }
 
 interface NumberFormatInfo {
-	CurrencyDecimalDigits: Number;
+	CurrencyDecimalDigits: number;
 	CurrencySymbol: string;
 	PercentSymbol: string;
 }
@@ -400,7 +404,8 @@ export function createFormat<T>(type: any, format: string): Format<T> {
 				return date;
 			}
 		}) as any;
-	} else if (type === Number) {
+	}
+	else if (type === Number) {
 		var isCurrencyFormat = format.match(/[$c]+/i);
 		var isPercentageFormat = format.match(/[%p]+/i);
 		var isIntegerFormat = format.match(/[dnfg]0/i);
@@ -412,7 +417,7 @@ export function createFormat<T>(type: any, format: string): Format<T> {
 		return new CustomFormat<number>({
 			specifier: format,
 			description: isCurrencyFormat ? Resource["format-currency"] : isPercentageFormat ? Resource["format-percentage"] : isIntegerFormat ? Resource["format-integer"] : Resource["format-decimal"],
-			convert: function (val: Number): string {
+			convert: function (val: number): string {
 				// Default to browser formatting for general format
 				if (format.toLowerCase() === "g")
 					return val.toString();
@@ -441,10 +446,12 @@ export function createFormat<T>(type: any, format: string): Format<T> {
 					if (resultStr.indexOf('.') > -1 && (resultStr.length - (resultStr.indexOf('.') + 1)) > currencyDecimalDigits) {
 						result = NaN;
 					}
-				} else if (isPercentageFormat) {
+				}
+				else if (isPercentageFormat) {
 					// Remove percentage symbols before parsing and divide by 100
 					result = Number.parseLocale(str.replace(Sys.CultureInfo.CurrentCulture.numberFormat.PercentSymbol, "")) / 100 * sign;
-				} else {
+				}
+				else {
 					var n = Number.parseLocale(str);
 
 					result = n * sign;
@@ -461,7 +468,8 @@ export function createFormat<T>(type: any, format: string): Format<T> {
 
 			}
 		}) as any;
-	} else if (type === Boolean) {
+	}
+	else if (type === Boolean) {
 		// Format strings used for true, false, and null (or undefined) values
 		let trueFormat: string, falseFormat: string, nullFormat: string;
 
@@ -469,7 +477,8 @@ export function createFormat<T>(type: any, format: string): Format<T> {
 			trueFormat = "True";
 			falseFormat = "False";
 			nullFormat = ""
-		} else {
+		}
+		else {
 			var formats = format.split(';');
 			trueFormat = formats.length > 0 ? formats[0] : "";
 			falseFormat = formats.length > 1 ? formats[1] : "";
@@ -481,23 +490,28 @@ export function createFormat<T>(type: any, format: string): Format<T> {
 			convert: function (val: boolean): string {
 				if (val === true) {
 					return trueFormat;
-				} else if (val === false) {
+				}
+				else if (val === false) {
 					return falseFormat;
-				} else {
+				}
+				else {
 					return nullFormat;
 				}
 			},
 			convertBack: function (str: string): boolean | FormatError {
 				if (str.toLowerCase() === trueFormat.toLowerCase()) {
 					return true;
-				} else if (str.toLowerCase() === falseFormat.toLowerCase()) {
+				}
+				else if (str.toLowerCase() === falseFormat.toLowerCase()) {
 					return false;
-				} else {
+				}
+				else {
 					return null;
 				}
 			}
 		}) as any;
-	} else {
+	}
+	else {
 		console.log("WARN: Unable to create format for type '" + getConstructorName(type) + "'.");
 	}
 }

@@ -37,11 +37,11 @@ export class RequiredRule extends ValidationRule {
 	}
 
 	// get the string representation of the rule
-	toString() {
+	toString(): string {
 		return `${this.property.containingType.fullName}.${this.property.name} is required`;
 	}
 }
 
 export interface RequiredRuleOptions extends ValidationRuleOptions {
-	when?: ((this: Entity) => boolean)
+	when?: ((this: Entity) => boolean);
 }

@@ -15,7 +15,7 @@ export class SourceRootMixin extends Vue {
 	readonly: boolean;
 
 	@Watch('readonly')
-	onReadonlyChanged(readonly: boolean) {
+	onReadonlyChanged(readonly: boolean): void {
 		this.$source.readonly = readonly;
 	}
 
@@ -24,7 +24,8 @@ export class SourceRootMixin extends Vue {
 
 		if (this.source instanceof Entity) {
 			entity = this.source;
-		} else {
+		}
+		else {
 			entity = (this as any)[this.source || "entity"];
 			if (!entity || !(entity instanceof Entity)) {
 				throw new Error("No entity data!");

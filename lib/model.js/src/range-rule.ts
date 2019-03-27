@@ -60,13 +60,14 @@ export class RangeRule extends ValidationRule {
 	}
 
 	// get the min and max range in effect for this rule for the specified instance
-	range(obj: Entity): { min?: any, max?: any } {
+	range(obj: Entity): { min?: any; max?: any } {
 
 		// convert string functions into compiled functions on first execution
 		if (this._min && !(this._min instanceof Function)) {
 			if (typeof this._min === "string") {
 				this._min = (new Function(this._min)) as (this: Entity) => any;
-			} else {
+			}
+			else {
 				// convert constant values into functions
 				let min = this._min;
 				this._min = function () { return min; };
@@ -75,7 +76,8 @@ export class RangeRule extends ValidationRule {
 		if (this._max && !(this._max instanceof Function)) {
 			if (typeof this._max === "string") {
 				this._max = (new Function(this._max)) as (this: Entity) => any;
-			} else {
+			}
+			else {
 				// convert constant values into functions
 				let max = this._max;
 				this._max = function () { return max; };
@@ -83,11 +85,15 @@ export class RangeRule extends ValidationRule {
 		}
 
 		// determine the min and max values based on the current state of the instance
-		var range: { min?: any, max?: any } = {};
-		if (this._min && this._min instanceof Function)
-			try { range.min = this._min.call(obj); } catch (e) { }
-		if (this._max && this._max instanceof Function)
-			try { range.max = this._max.call(obj); } catch (e) { }
+		var range: { min?: any; max?: any } = {};
+		if (this._min && this._min instanceof Function) {
+			try { range.min = this._min.call(obj); }
+			catch (e) { }
+		}
+		if (this._max && this._max instanceof Function) {
+			try { range.max = this._max.call(obj); }
+			catch (e) { }
+		}
 		range.min = range.min == null ? undefined : range.min;
 		range.max = range.max == null ? undefined : range.max;
 
@@ -95,7 +101,7 @@ export class RangeRule extends ValidationRule {
 	}
 
 	// returns true if the property is valid, otherwise false
-	isValid(obj: Entity, prop: Property, val: any) {
+	isValid(obj: Entity, prop: Property, val: any): boolean {
 		var range = this.range(obj);
 		return val === null || val === undefined || ((range.min === undefined || val >= range.min) && (range.max === undefined || val <= range.max));
 	}
@@ -119,7 +125,7 @@ export class RangeRule extends ValidationRule {
 	}
 
 	// get the string representation of the rule
-	toString() {
+	toString(): string {
 		return `${this.property.containingType.fullName}.${this.property.name} in range, min: , max: `;
 	}
 

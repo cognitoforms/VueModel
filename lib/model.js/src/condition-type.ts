@@ -89,7 +89,7 @@ export class ConditionType {
 		* Gets all condition types that have been created.
 		* @returns Array of all condition types.
 		* */
-	static all() {
+	static all(): ConditionType[] {
 
 		let all: ConditionType[] = [];
 
@@ -104,7 +104,7 @@ export class ConditionType {
 		* Returns the condition type with the given code, if it exists.
 		* @param code The unique code of the condition type to find.
 		*/
-	static get(code: string) {
+	static get(code: string): ConditionType {
 		return allConditionTypes[code];
 	};
 }

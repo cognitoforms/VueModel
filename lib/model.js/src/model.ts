@@ -38,7 +38,8 @@ export class Model {
 
 			try {
 				delete options.$namespace;
-			} catch {
+			}
+			catch {
 				// Ignore error, we'll ignore the property later
 			}
 
@@ -58,7 +59,7 @@ export class Model {
 	 * Extends the model with the specified type information.
 	 * @param options The set of model types to add and/or extend.
 	 */
-	extend(options: ModelOptions) {
+	extend(options: ModelOptions): void {
 
 		// Use prepare() to defer property path resolution while the model is being extended
 		this.prepare(() => {
@@ -68,7 +69,8 @@ export class Model {
 				let $namespace = options.$namespace as object;
 				if (!this.$namespace) {
 					Object.defineProperty(this, "$namespace", { configurable: false, enumerable: true, value: $namespace, writable: false });
-				} else if ($namespace !== this.$namespace) {
+				}
+				else if ($namespace !== this.$namespace) {
 					// TODO: Raise an error?
 					console.error("Cannot redefine namespace for model.");
 				}
@@ -108,7 +110,7 @@ export class Model {
 	 * ready state to allow use of the @ready promise to defer property path resolution.
 	 * @param extend The function extending the model
 	 */
-	prepare(extend: () => void) {
+	prepare(extend: () => void): void {
 
 		// Create a model initialization scope
 		if (!this._ready) {
@@ -129,7 +131,7 @@ export class Model {
 			extend();
 	}
 
-	ready(init: () => void) {
+	ready(init: () => void): void {
 		this._ready.push(init);
 	}
 
@@ -159,7 +161,8 @@ export class Model {
 		// Otherwise, create and cache the format
 		if (isEntityType(type)) {
 			return formats[format] = Format.fromTemplate(type.meta, format);
-		} else {
+		}
+		else {
 			// otherwise, call the format provider to create a new format
 			return formats[format] = createFormat(type, format);
 		}

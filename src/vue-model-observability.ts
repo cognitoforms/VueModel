@@ -49,7 +49,8 @@ export function observeEntity(entity: Entity, asRootData: boolean = false): Type
             ob.vmCount++;
         }
         return ob;
-    } else {
+    }
+    else {
         // TODO: Warn about attempting to observe non-entity?
     }
 }
@@ -63,9 +64,11 @@ export function getEntityObserver(entity: Entity, create: boolean = false): Type
     var EntityObserver = getEntityObserverConstructor();
     if (hasOwnProperty(entity, '__ob__') && getProp(entity, '__ob__') instanceof EntityObserver) {
         return getProp(entity, '__ob__');
-    } else if (create) {
+    }
+    else if (create) {
         return new EntityObserver(entity);
-    } else {
+    }
+    else {
         return null;
     }
 }
@@ -89,9 +92,11 @@ export function getObjectMetaObserver(meta: ObjectMeta, create: boolean = false)
 	var ObjectMetaObserver = getObjectMetaObserverConstructor();
 	if (hasOwnProperty(meta, '__ob__') && getProp(meta, '__ob__') instanceof ObjectMetaObserver) {
 		return getProp(meta, '__ob__');
-	} else if (create) {
+    }
+    else if (create) {
 		return new ObjectMetaObserver(meta);
-	} else {
+    }
+    else {
 		return null;
 	}
 }
@@ -120,10 +125,12 @@ export function observeArray<TItem>(array: ObservableArray<TItem>, asRootData: b
                 ob.vmCount++;
             }
             return ob;
-        } else {
+        }
+        else {
             // TODO: Warn about attempting to observe non-observable array?
         }
-    } else {
+    }
+    else {
         // TODO: Warn about attempting to observe non-array?
     }
 }
@@ -137,9 +144,11 @@ export function getArrayObserver<TItem>(array: ObservableArray<TItem>, create: b
     let ArrayObserver = getArrayObserverConstructor();
     if (hasOwnProperty(array, '__ob__') && getProp(array, '__ob__') instanceof ArrayObserver) {
         return getProp(array, '__ob__');
-    } else if (create) {
+    }
+    else if (create) {
         return new ArrayObserver(array);
-    } else {
+    }
+    else {
         return null;
     }
 }
@@ -162,9 +171,11 @@ export function dependChildArray(array: any[]): void {
                 let observer = getEntityObserver(e, true);
                 observer.ensureObservable();
                 observer.dep.depend();
-            } else if (hasOwnProperty(e, '__ob__')) {
+            }
+            else if (hasOwnProperty(e, '__ob__')) {
                 (e.__ob__.dep as Dep).depend();
             }
+
             if (Array.isArray(e)) {
                 dependChildArray(e);
             }

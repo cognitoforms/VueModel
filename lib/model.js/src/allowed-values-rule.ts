@@ -67,11 +67,11 @@ export class AllowedValuesRule extends ValidationRule {
 		this.ignoreValidation = !!options.ignoreValidation;
 	}
 
-	values(obj: Entity) {
+	values(obj: Entity): any[] {
 		return this.source.call(obj);
 	}
 
-	toString() {
+	toString(): string {
 		return `${this.property.containingType.fullName}.${this.property.name} allowed values`;
 	}
 

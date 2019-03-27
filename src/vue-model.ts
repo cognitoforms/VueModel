@@ -4,7 +4,6 @@ import { VueInternals, ensureVueInternalTypes } from "./vue-internals";
 import { VueModel$installGlobalMixin } from "./vue-global-mixin";
 import { SourcePathMixin } from "./source-path-mixin";
 import { SourceRootMixin } from "./source-root-mixin";
-import { SourceRootAdapter } from "./source-root-adapter";
 import { makeEntitiesVueObservable } from "./vue-model-observability";
 import { VMSource } from "./vm-source-component";
 
@@ -45,7 +44,7 @@ export class VueModel extends Model {
 	 * Implement the Vue plugin interface:
 	 * https://vuejs.org/v2/guide/plugins.html#Writing-a-Plugin
 	 */
-	static install(vue: typeof Vue, options?: any) {
+	static install(vue: typeof Vue): void {
 
 		// Detect if the plugin install has already been called
 		if (VueModel._Vue) {

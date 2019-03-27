@@ -82,5 +82,5 @@ export interface ValidationRuleOptions extends PropertyRuleOptions {
 }
 
 export interface ValidationRuleConstructor {
-	new(rootType: Type, options: ValidationRuleOptions) : ValidationRule;
+	new(rootType: Type, options: ValidationRuleOptions): ValidationRule;
 }

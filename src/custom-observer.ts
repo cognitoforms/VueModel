@@ -49,7 +49,8 @@ export class CustomObserver<TValue> extends Observer implements TypedObserver<TV
 
         if (hasOwnProperty(propertyDeps, propertyName) && propertyDeps[propertyName] instanceof Dep) {
             propertyDep = propertyDeps[propertyName];
-        } else if (create) {
+        }
+        else if (create) {
             propertyDep = new Dep();
             Object.defineProperty(propertyDeps, propertyName, {
                 configurable: true,

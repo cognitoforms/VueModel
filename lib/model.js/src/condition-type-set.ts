@@ -2,7 +2,7 @@ import { ObservableArray } from "./observable-array";
 import { ConditionType } from "./condition-type";
 import { Condition } from "./condition";
 
-const allConditionTypeSets: { [id: string]: ConditionTypeSet; } = {};
+const allConditionTypeSets: { [id: string]: ConditionTypeSet } = {};
 
 /** Groups condition types into a set in order to be notified conditions for these types change. */
 export class ConditionTypeSet {
@@ -31,7 +31,7 @@ export class ConditionTypeSet {
 	* Gets all condition type sets that have been created.
 	* @returns Array of all condition type sets.
 	* */
-	static all() {
+	static all(): ConditionTypeSet[] {
 
 		let all: ConditionTypeSet[] = [];
 

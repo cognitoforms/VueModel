@@ -1,14 +1,12 @@
 import { Model } from "./model";
-import { Entity, EntityConstructorForType, EntityDestroyEventArgs, EntityInitNewEventArgs, EntityInitExistingEventArgs, EntityConstructor } from "./entity";
-import { Property, Property$_generateStaticProperty, Property$_generatePrototypeProperty, Property$_generateOwnProperty, Property$_generateShortcuts, PropertyOptions } from "./property";
+import { Entity, EntityConstructorForType, EntityDestroyEventArgs, EntityInitNewEventArgs, EntityInitExistingEventArgs, EntityRegisteredEventArgs, EntityUnregisteredEventArgs, EntityConstructor } from "./entity";
+import { Property, PropertyOptions, Property$generateOwnProperty, Property$generatePrototypeProperty, Property$generateShortcuts, Property$generateStaticProperty } from "./property";
 import { navigateAttribute, getTypeName, parseFunctionName, ensureNamespace, getGlobalObject } from "./helpers";
-import { ObjectMeta } from "./object-meta";
 import { Event, EventSubscriber } from "./events";
 import { ObservableArray } from "./observable-array";
 import { RuleOptions, Rule } from "./rule";
 import { Format } from "./format";
-import { ConditionTargetsChangedEventArgs } from "./condition-target";
-import { PropertyChain, EntityRegisteredEventArgs, EntityUnregisteredEventArgs } from ".";
+import { PropertyChain } from "./property-chain";
 import { PropertyPath } from "./property-path";
 
 export const Type$newIdPrefix = "+c"
@@ -46,7 +44,7 @@ export class Type {
 
 		this.model =  model;
 		this.fullName = fullName;
-		this.jstype = Type$_generateConstructor(this, fullName, baseType, model.settings.useGlobalObject ? getGlobalObject() : null);
+		this.jstype = Type$generateConstructor(this, fullName, baseType, model.settings.useGlobalObject ? getGlobalObject() : null);
 		this.baseType = baseType;
 		this._lastId = 0;
 		this._pool = {};
@@ -67,7 +65,7 @@ export class Type {
 	}
 
 	/** Generates a unique id suitable for an instance in the current type hierarchy. */
-	newId() {
+	newId(): string {
 
 		for (var lastId, type: Type = this; type; type = type.baseType) {
 			lastId = Math.max(lastId || 0, type._lastId);
@@ -87,9 +85,11 @@ export class Type {
 	assertValidId(id: string): void {
 		if (id === null || id === undefined) {
 			throw new Error(`Id cannot be ${(id === null ? "null" : "undefined")} (entity = ${this.fullName}).`);
-		} else if (getTypeName(id) !== "string") {
+		}
+		else if (getTypeName(id) !== "string") {
 			throw new Error(`Id must be a string:  encountered id ${id} of type \"${parseFunctionName(id.constructor)}\" (entity = ${this.fullName}).`);
-		} else if (id === "") {
+		}
+		else if (id === "") {
 			throw new Error(`Id cannot be a blank string (entity = ${this.fullName}).`);
 		}
 	}
@@ -117,7 +117,7 @@ export class Type {
 				if (Object.prototype.hasOwnProperty.call(this._properties, prop)) {
 					let property = this._properties[prop];
 					if (!property.isStatic) {
-						Property$_generateOwnProperty(property, obj);
+						Property$generateOwnProperty(property, obj);
 					}
 				}
 			}
@@ -126,7 +126,7 @@ export class Type {
 		(this.model.entityRegistered as Event<Model, EntityRegisteredEventArgs>).publish(this.model, { entity: obj });
 	}
 
-	changeObjectId(oldId: string, newId: string) {
+	changeObjectId(oldId: string, newId: string): Entity | void {
 		this.assertValidId(oldId);
 		this.assertValidId(newId);
 
@@ -171,7 +171,7 @@ export class Type {
 		(this.model.entityUnregistered as Event<Model, EntityUnregisteredEventArgs>).publish(this.model, { entity: obj });
 	}
 
-	get(id: string, exactTypeOnly: boolean = false) {
+	get(id: string, exactTypeOnly: boolean = false): Entity {
 		if (!id) {
 			throw new Error(`Method "${this.fullName}.meta.get()" was called without a valid id argument.`);
 		}
@@ -194,7 +194,7 @@ export class Type {
 	known(): Entity[] {
 		var known = this._known;
 		if (!known) {
-			var list: Array<Entity> = [];
+			var list: Entity[] = [];
 
 			for (var id in this._pool) {
 				if (Object.prototype.hasOwnProperty.call(this._pool, id)) {
@@ -321,7 +321,8 @@ export class Type {
 			// The options are the function to execute
 			if (optionsOrFunction instanceof Function) {
 				options = { execute: optionsOrFunction };
-			} else {
+			}
+			else {
 				options = optionsOrFunction as RuleOptions;
 			}
 		}
@@ -354,7 +355,7 @@ export class Type {
 		return result;
 	}
 
-	toString() {
+	toString(): string {
 		return this.fullName;
 	}
 
@@ -362,7 +363,7 @@ export class Type {
 	 * Extends the current type with the specified format, properties and methods
 	 * @param options The options specifying how to extend the type
 	 */
-	extend(options: TypeOptions) {
+	extend(options: TypeOptions): void {
 
 		// Use prepare() to defer property path resolution while the model is being extended
 		this.model.prepare(() => {
@@ -436,14 +437,16 @@ export class Type {
 
 						this._properties[name] = property;
 
-						Property$_generateShortcuts(property, this.jstype);
+						Property$generateShortcuts(property, this.jstype);
 
 						if (property.isStatic) {
-							Property$_generateStaticProperty(property, this.jstype);
-						} else if (!this.model.settings.createOwnProperties) {
-							Property$_generatePrototypeProperty(property, this.jstype.prototype);
+							Property$generateStaticProperty(property, this.jstype);
 						}
-					} else {
+						else if (!this.model.settings.createOwnProperties) {
+							Property$generatePrototypeProperty(property, this.jstype.prototype);
+						}
+					}
+					else {
 
 						property.extend(member, this);
 					}
@@ -455,7 +458,7 @@ export class Type {
 	}
 }
 
-export type Value = String | Number | Date | Boolean;
+export type Value = string | number | Date | boolean;
 export type ValueType = StringConstructor | NumberConstructor | DateConstructor | BooleanConstructor;
 export type EntityType = EntityConstructorForType<Entity>;
 export type PropertyType = ValueType | EntityType;
@@ -490,9 +493,9 @@ export function isEntityType(type: any): type is EntityType {
 }
 
 // TODO: Get rid of disableConstruction?
-let disableConstruction: boolean = false;
+let disableConstruction = false;
 
-export function Type$_generateConstructor(type: Type, fullName: string, baseType: Type = null, global: any = null) {
+export function Type$generateConstructor(type: Type, fullName: string, baseType: Type = null, global: any = null): EntityConstructorForType<Entity> {
 
 	// Create namespaces as needed
 	let nameTokens: string[] = fullName.split("."),
@@ -518,22 +521,21 @@ export function Type$_generateConstructor(type: Type, fullName: string, baseType
 		// // TODO: Implement `inheritBaseTypePropShortcuts`
 		// // inherit all shortcut properties that have aleady been defined
 		// inheritBaseTypePropShortcuts(ctor, baseType);
-	} else {
+	}
+	else {
 		baseConstructor = Entity;
 	}
 
 	let ctorFactory = new Function("construct", "return function " + finalName + " () { construct.apply(this, arguments); }");
 
-	function construct(this: Entity) {
+	function construct(this: Entity): void {
 		if (!disableConstruction) {
-			try
-			{
+			try {
 				Entity.ctorDepth++;
 				let baseTypeArgs: ArrayLike<any> = (arguments.length > 0 && arguments[0] instanceof Type) ? arguments : [type].concat(Array.from(arguments));
 				baseConstructor.apply(this, baseTypeArgs);
 			}
-			finally
-			{
+			finally {
 				Entity.ctorDepth--;
 			}
 		}
@@ -543,7 +545,8 @@ export function Type$_generateConstructor(type: Type, fullName: string, baseType
 	// If the namespace already contains a type with this name, prepend a '$' to the name
 	if (!namespaceObj[finalName]) {
 		namespaceObj[finalName] = ctor;
-	} else {
+	}
+	else {
 		namespaceObj['$' + finalName] = ctor;
 	}
 
@@ -551,7 +554,8 @@ export function Type$_generateConstructor(type: Type, fullName: string, baseType
 		// If the global object already contains a type with this name, append a '$' to the name
 		if (!globalObj[finalName]) {
 			globalObj[finalName] = ctor;
-		} else {
+		}
+		else {
 			globalObj['$' + finalName] = ctor;
 		}
 	}

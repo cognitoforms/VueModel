@@ -8,7 +8,7 @@ import { makeEntitiesVueObservable, getEntityObserver, observeEntity } from "./v
  * Installs a global Vue mixin that hooks into component events to intercept model entities as component data and make necesary adjustments
  * @param Vue The Vue constructor/module object
  */
-export function VueModel$installGlobalMixin(Vue: VueConstructor) {
+export function VueModel$installGlobalMixin(Vue: VueConstructor): void {
 
     Vue.mixin({
         beforeCreate: function VueModel$Plugin$beforeCreate() {
@@ -49,7 +49,7 @@ export function VueModel$installGlobalMixin(Vue: VueConstructor) {
 
 }
 
-function replaceEntityData(vm: Vue, data: any){
+function replaceEntityData(vm: Vue, data: any): any {
 
     let vm$private = vm as any;
 
@@ -63,7 +63,7 @@ function replaceEntityData(vm: Vue, data: any){
 
 }
 
-function preprocessDataToInterceptEntities(vm: Vue){
+function preprocessDataToInterceptEntities(vm: Vue): void {
 
     if (!vm.$options.data) {
         return;
@@ -77,14 +77,15 @@ function preprocessDataToInterceptEntities(vm: Vue){
         vm.$options.data = function () {
             return replaceEntityData(vm, dataFn.apply(this, arguments));
         };
-    } else {
+    }
+    else {
         // Don't let Vue from getting an Entity prior to setting up Entity observability
         vm.$options.data = replaceEntityData(vm, vm.$options.data);
     }
 
 }
 
-function restoreComponentEntityData(vm: Vue) {
+function restoreComponentEntityData(vm: Vue): void {
 
     let vm$private: any = vm as any;
 
@@ -106,7 +107,7 @@ function restoreComponentEntityData(vm: Vue) {
 
 }
 
-function proxyEntityPropertiesOntoComponentInstance(vm: Vue, entity: Entity) {
+function proxyEntityPropertiesOntoComponentInstance(vm: Vue, entity: Entity): void {
     // TODO: add proxies onto the component instance
     // proxy data on instance
     var properties = entity.meta.type.properties;
@@ -117,9 +118,11 @@ function proxyEntityPropertiesOntoComponentInstance(vm: Vue, entity: Entity) {
 
         if (methods && hasOwnProperty(methods, property.name)) {
             debug("Property '" + property.name + "' is hidden by a component method with the same name.");
-        } else if (props && hasOwnProperty(props, property.name)) {
+        }
+        else if (props && hasOwnProperty(props, property.name)) {
             debug("Property '" + property.name + "' is hidden by a component prop with the same name.");
-        } else if (!Vue$isReserved(property.name)) {
+        }
+        else if (!Vue$isReserved(property.name)) {
             Vue$proxy(vm, '_data', property.name);
         }
     }

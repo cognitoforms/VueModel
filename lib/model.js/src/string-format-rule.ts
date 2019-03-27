@@ -1,10 +1,8 @@
 import { ValidationRule, ValidationRuleOptions } from "./validation-rule";
-import { ConditionRuleOptions } from "./condition-rule";
-import { Property, PropertyRuleOptions } from "./property";
+import { Property } from "./property";
 import { Entity } from "./entity";
 import { Type } from "./type";
 import { Resource } from "./resource";
-import { RuleOptions } from "./rule";
 
 export class StringFormatRule extends ValidationRule {
 
@@ -27,7 +25,8 @@ export class StringFormatRule extends ValidationRule {
 		if (typeof options.message === "string") {
 			if (Resource.get(options.message)) {
 				options.message = Resource.get(options.message);
-			} else {
+			}
+			else {
 				delete options.message;
 			}
 		}
@@ -68,7 +67,7 @@ export class StringFormatRule extends ValidationRule {
 	}
 
 	// get the string representation of the rule
-	toString() {
+	toString(): string {
 		return `${this.property.containingType.fullName}.${this.property.name} formatted as ${this.description}`;
 	}
 

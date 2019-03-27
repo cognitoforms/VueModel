@@ -1,5 +1,5 @@
 import { CustomObserver } from "./custom-observer";
-import { ObservableArray, ArrayChangedEventArgs } from "../lib/model.js/src/observable-array";
+import { ObservableArray } from "../lib/model.js/src/observable-array";
 import { ExtendedObserver } from "./vue-model-observability";
 
 /**
@@ -18,7 +18,7 @@ export class ArrayObserver<TItem> extends CustomObserver<ObservableArray<TItem>>
         (this as any)._observable = true;
     }
 
-    _onChange(args: ArrayChangedEventArgs<any>): void {
+    _onChange(): void {
         this.dep.notify();
     }
  

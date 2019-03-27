@@ -1,6 +1,6 @@
-import { Rule, RuleOptions, RuleInvocationOptions } from "./rule";
+import { Rule, RuleInvocationOptions } from "./rule";
 import { Type } from "./type";
-import { Property, PropertyRule, PropertyRuleOptions } from "./property";
+import { Property, PropertyRuleOptions } from "./property";
 import { Entity } from "./entity";
 import { ObservableArray, updateArray } from "./observable-array";
 import { RuleInvocationType } from "./rule-invocation-type";
@@ -71,7 +71,7 @@ export class CalculatedPropertyRule extends Rule {
 			this.property.isCalculated = true;
 	}
 
-	execute(obj: Entity) {
+	execute(obj: Entity): void {
 		let calculateFn: (this: Entity) => any;
 
 		// Convert string functions into compiled functions on first execution
@@ -80,7 +80,8 @@ export class CalculatedPropertyRule extends Rule {
 			let calculateExpr = this._calculateFn as string;
 			let calculateCompiledFn = new Function("return " + calculateExpr + ";");
 			calculateFn = this._calculateFn = calculateCompiledFn as (this: Entity) => any;
-		} else {
+		}
+		else {
 			calculateFn = this._calculateFn as (this: Entity) => any;
 		}
 
@@ -88,10 +89,12 @@ export class CalculatedPropertyRule extends Rule {
 		var newValue;
 		if (this.defaultIfError === undefined) {
 			newValue = calculateFn.call(obj);
-		} else {
+		}
+		else {
 			try {
 				newValue = calculateFn.call(obj);
-			} catch (e) {
+			}
+			catch (e) {
 				newValue = this.defaultIfError;
 			}
 		}
@@ -129,13 +132,14 @@ export class CalculatedPropertyRule extends Rule {
 			curList.batchUpdate((array) => {
 				updateArray(array, newList);
 			});
-		} else {
+		}
+		else {
 			// Otherwise, just set the property to the new value
 			this.property.value(obj, newValue, { calculated: true });
 		}
 	}
 
-	toString() {
+	toString(): string {
 		return "calculation of " + this.property.name;
 	}
 }

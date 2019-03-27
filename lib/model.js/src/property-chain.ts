@@ -1,4 +1,4 @@
-import { Type, isEntityType, EntityType } from "./type";
+import { Type, EntityType } from "./type";
 import { Property } from "./property";
 import { PropertyAccessEventArgs, PropertyChangeEventArgs, PropertyChangeEventHandler, PropertyAccessEventHandler } from "./property-path";
 import { Event, EventSubscriber, EventPublisher } from "./events";
@@ -155,7 +155,7 @@ export class PropertyChain implements PropertyPath {
 	 * @param callback The function to invoke at each iteration step.  May return a Boolean value to indicate whether or not to continue iterating.
 	 * @param filter An optional property filter, if specified, only iterates over the results of this property.
 	 */
-	each(obj: Entity, callback: (obj: any, property: Property) => any, filter: Property = null /*, target: IEntity, p: number, lastProp: IProperty */) {
+	each(obj: Entity, callback: (obj: any, property: Property) => any, filter: Property = null /*, target: IEntity, p: number, lastProp: IProperty */): boolean {
 		/// <summary>
 		/// </summary>
 	
@@ -166,7 +166,6 @@ export class PropertyChain implements PropertyPath {
 		// invoke callback on obj first
 		var target: Entity = arguments[3] || obj;
 		var lastProp: Property = arguments[5] || null;
-		var props = this.properties.slice(arguments[4] || 0);
 		for (var p: number = arguments[4] || 0; p < this.properties.length; p++) {
 			var prop = this.properties[p];
 			var isLastProperty = p === this.properties.length - 1;
@@ -303,7 +302,7 @@ export class PropertyChain implements PropertyPath {
 		return this.lastProperty.helptext;
 	}
 
-	get name() {
+	get name(): string {
 		return this.lastProperty.name;
 	}
 
@@ -313,12 +312,13 @@ export class PropertyChain implements PropertyPath {
 
 		if (arguments.length > 1) {
 			lastProp.value(lastTarget, val, additionalArgs);
-		} else if (lastTarget) {
+		}
+		else if (lastTarget) {
 			return lastProp.value(lastTarget);
 		}
 	}
 
-	toString() {
+	toString(): string {
 		var path = this.properties.map(function (e) { return e.name; }).join(".");
 		return `this<${this.rootType}>.${path}`;
 	}
@@ -329,7 +329,7 @@ export interface PropertyChainConstructor {
 	new(rootType: Type, properties: Property[], filters: ((obj: Entity) => boolean)[]): PropertyChain;
 }
 
-function getPropertyChainPathFromIndex(chain: PropertyChain, startIndex: number) {
+function getPropertyChainPathFromIndex(chain: PropertyChain, startIndex: number): string {
 
 	var steps: string[] = [];
 

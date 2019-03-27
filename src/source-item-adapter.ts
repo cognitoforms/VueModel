@@ -79,15 +79,18 @@ export class SourceItemAdapter<TEntity extends Entity, TValue> extends Vue imple
                     if (c.startIndex === index) {
                         index = -1;
                         isOrphaned = true;
-                    } else if (c.startIndex < index) {
+                    }
+                    else if (c.startIndex < index) {
                         if (c.items.length > index - c.startIndex) {
                             index = -1;
                             isOrphaned = true;
-                        } else {
+                        }
+                        else {
                             index -= c.items.length;
                         }
                     }
-                } else if (c.type === ArrayChangeType.add) {
+                }
+                else if (c.type === ArrayChangeType.add) {
                     if (c.startIndex >= 0) {
                         if (c.startIndex <= index) {
                             index += c.items.length;
@@ -117,12 +120,13 @@ export class SourceItemAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 		let value = list[this.internalIndex];
 
-        let displayValue: string | Array<string>;
+        let displayValue: string | string[];
 
         if (isSourcePropertyAdapter(this.parent) && this.parent.property.format != null) {
             // Use a markup or property format if available
             displayValue = this.parent.property.format.convert(value);
-        } else {
+        }
+        else {
             displayValue = value.toString();
         }
 

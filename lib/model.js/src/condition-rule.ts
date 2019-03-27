@@ -49,7 +49,7 @@ export class ConditionRule extends Rule {
 	}
 
 	// asserts the condition and adds or removes it from the model if necessary
-	execute(entity: Entity) {
+	execute(entity: Entity): void {
 
 		let assert = this.assert.call(entity);
 
@@ -64,7 +64,7 @@ export class ConditionRule extends Rule {
 	}
 
 	// gets the string representation of the condition rule
-	toString() {
+	toString(): string {
 		return typeof this.message === "string" ? this.message : this.conditionType.message;
 	}
 
