@@ -1,5 +1,6 @@
 import Vue, { VueConstructor, ComponentOptions, PluginObject } from "vue";
 import { Model, ModelOptions, ModelConfiguration } from "../lib/model.js/src/model";
+import { Entity } from "../lib/model.js/src/entity";
 import { VueInternals, ensureVueInternalTypes } from "./vue-internals";
 import { VueModel$installGlobalMixin } from "./vue-global-mixin";
 import { SourcePathMixin } from "./source-path-mixin";
@@ -39,6 +40,8 @@ export class VueModel extends Model {
 		SourceRoot: SourceRootMixin
 		//SourceRoot: function (source: string) { return new SourceRootMixin({ propsData: { source: source } }); }
 	};
+
+	static Entity = Entity;
 
 	/**
 	 * Implement the Vue plugin interface:
