@@ -3,7 +3,7 @@ import { Property } from "./property";
 import { PropertyChain } from "./property-chain";
 import { Entity } from "./entity";
 import { Type } from "./type";
-import { Resource } from "./resource";
+import { getResource } from "./resource";
 import { PropertyPath } from "./property-path";
 
 export class AllowedValuesRule extends ValidationRule {
@@ -22,9 +22,8 @@ export class AllowedValuesRule extends ValidationRule {
 		options.name = options.name || "AllowedValues";
 
 		// ensure the error message is specified
-		// options.message = options.message || Resource.get("allowed-values");
-		options.message = options.message || Resource.get("allowed-values");
-	
+		options.message = options.message || getResource("allowed-values", rootType.model.$locale);
+
 		// convert property path sources into a source function
 		let source: (this: Entity) => any[];
 		if (options.source instanceof Property || options.source instanceof PropertyChain) {

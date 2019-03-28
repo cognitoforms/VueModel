@@ -1,4 +1,4 @@
-import { Resource } from "./resource";
+import { getResource } from "./resource";
 import { FormatError } from "./format-error";
 import { Property } from "./property";
 import { PropertyChain } from "./property-chain";
@@ -120,8 +120,11 @@ export interface FormatToken<T> {
 
 export class CustomFormat<T> extends Format<T> {
 
+	private locale: string;
+
 	private customConvert: CustomFormatConvertFunction<T>;
 	private customConvertBack: CustomFormatConvertBackFunction<T>;
+
 	paths: string[];
 
 	constructor(options: CustomFormatOptions<T>) {
@@ -129,6 +132,7 @@ export class CustomFormat<T> extends Format<T> {
 
 		this.customConvert = options.convert;
 		this.customConvertBack = options.convertBack;
+		this.locale = options.locale;
 		this.paths = options.paths;
 	}
 
@@ -155,8 +159,8 @@ export class CustomFormat<T> extends Format<T> {
 			}
 
 			let formatError = new FormatError(this.description ?
-				Resource.get("format-with-description").replace('{description}', this.description) :
-				Resource.get("format-without-description"),
+				getResource("format-with-description", this.locale).replace('{description}', this.description) :
+				getResource("format-without-description", this.locale),
 				text);
 
 			return formatError as any;
@@ -172,6 +176,7 @@ export interface CustomFormatConstructor {
 export interface CustomFormatOptions<T> extends FormatOptions {
 	convert: CustomFormatConvertFunction<T>;
 	convertBack?: CustomFormatConvertBackFunction<T>;
+	locale?: string;
 	paths?: string[];
 }
 
@@ -371,7 +376,7 @@ interface NumberFormatInfo {
 	PercentSymbol: string;
 }
 
-export function createFormat<T>(type: any, format: string): Format<T> {
+export function createFormat<T>(type: any, format: string, locale?: string): Format<T> {
 	if (type === Date) {
 		// Add support for g and G that are not natively supported by the MSAJAX framework
 		if (format === "g")
@@ -382,6 +387,7 @@ export function createFormat<T>(type: any, format: string): Format<T> {
 		return Format.create<Date>({
 			specifier: format,
 			description: "",
+			locale: locale,
 			paths: [],
 			convert: function (value: Date): string {
 				return value.localeFormat(format);
@@ -414,9 +420,10 @@ export function createFormat<T>(type: any, format: string): Format<T> {
 
 		var integerExpr = /^-?[0-9]{1,10}$/;
 
-		return new CustomFormat<number>({
+		return Format.create<number>({
 			specifier: format,
-			description: isCurrencyFormat ? Resource["format-currency"] : isPercentageFormat ? Resource["format-percentage"] : isIntegerFormat ? Resource["format-integer"] : Resource["format-decimal"],
+			locale: locale,
+			description: isCurrencyFormat ? getResource("format-currency", locale) : isPercentageFormat ? getResource("format-percentage", locale) : isIntegerFormat ? getResource("format-integer", locale) : getResource("format-decimal", locale),
 			convert: function (val: number): string {
 				// Default to browser formatting for general format
 				if (format.toLowerCase() === "g")
@@ -485,8 +492,9 @@ export function createFormat<T>(type: any, format: string): Format<T> {
 			nullFormat = formats.length > 2 ? formats[2] : "";
 		}
 
-		return new CustomFormat<boolean>({
+		return Format.create<boolean>({
 			specifier: format,
+			locale: locale,
 			convert: function (val: boolean): string {
 				if (val === true) {
 					return trueFormat;

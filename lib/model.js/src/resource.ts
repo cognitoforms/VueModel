@@ -1,49 +1,114 @@
-export const Resource = {
-	"allowed-values":							"{property} is not in the list of allowed values.",
-	"compare-after":							"{property} must be after {compareSource}.",
-	"compare-before":							"{property} must be before {compareSource}.",
-	"compare-equal":							"{property} must be the same as {compareSource}.",
-	"compare-greater-than":						"{property} must be greater than {compareSource}.",
-	"compare-greater-than-or-equal":			"{property} must be greater than or equal to {compareSource}.",
-	"compare-less-than":						"{property} must be less than {compareSource}.",
-	"compare-less-than-or-equal":				"{property} must be less than or equal to {compareSource}.",
-	"compare-not-equal":						"{property} must be different from {compareSource}.",
-	"compare-on-or-after":						"{property} must be on or after {compareSource}.",
-	"compare-on-or-before":						"{property} must be on or before {compareSource}.",
-	"listlength-at-least":						"Please specify at least {min} {property}.",
-	"listlength-at-most":						"Please specify no more than {max} {property}.",
-	"listlength-between":						"Please specify between {min} and {max} {property}.",
-	"range-at-least":							"{property} must be at least {min}.",
-	"range-at-most":							"{property} must be at most {max}.",
-	"range-between":							"{property} must be between {min} and {max}.",
-	"range-on-or-after":						"{property} must be on or after {min}.",
-	"range-on-or-before":						"{property} must be on or before {max}.",
-	"required":									"{property} is required.",
-	"required-if-after":						"{property} is required when {compareSource} is after {compareValue}.",
-	"required-if-before":						"{property} is required when {compareSource} is before {compareValue}.",
-	"required-if-equal":						"{property} is required when {compareSource} is {compareValue}.",
-	"required-if-exists":						"{property} is required when {compareSource} is specified.",
-	"required-if-greater-than":					"{property} is required when {compareSource} is greater than {compareValue}.",
-	"required-if-greater-than-or-equal":		"{property} is required when {compareSource} is greater than or equal to {compareValue}.",
-	"required-if-less-than":					"{property} is required when {compareSource} is less than {compareValue}.",
-	"required-if-less-than-or-equal":			"{property} is required when {compareSource} is less than or equal to {compareValue}.",
-	"required-if-not-equal":					"{property} is required when {compareSource} is not {compareValue}.",
-	"required-if-not-exists":					"{property} is required when {compareSource} is not specified.",
-	"required-if-on-or-after":					"{property} is required when {compareSource} is on or after {compareValue}.",
-	"required-if-on-or-before":					"{property} is required when {compareSource} is on or before {compareValue}.",
-	"string-format":							"{property} must be formatted as {formatDescription}.",
-	"string-length-at-least":					"{property} must be at least {min} characters.",
-	"string-length-at-most":					"{property} must be at most {max} characters.",
-	"string-length-between":                    "{property} must be between {min} and {max} characters.",
-    "format-with-description":                  "{property} must be formatted as {description}.",
-	"format-without-description":               "{property} is not properly formatted.",
-    "format-currency":                          "$#,###.##",
-    "format-percentage":                        "#.##%",
-    "format-integer":                           "#,###",
-    "format-decimal":                           "#,###.##",
+import { ObjectLookup, hasOwnProperty, merge } from "./helpers";
 
-	// gets the resource with the specified name
-	get: function Resource$get(name: string) {
-		return this[name];
+/**
+ * Alias type for a localized resource dictionary
+ */
+export type LocalizedResources = ObjectLookup<string>;
+
+/**
+ * Implements the ability to get and set localizable resource strings
+ */
+export interface ResourceLocalizationImplementation {
+	setDefaultLocale(locale: string): void;
+	defineResources(locale: string, resources: LocalizedResources): void;
+	getResource(name: string, locale: string, params: ObjectLookup<string>): string;
+}
+
+/**
+ * Alias type for a lookup of string locales to localized resource dictionary
+ */
+type LocalizedResourcesMap = ObjectLookup<LocalizedResources>;
+
+/**
+ * The dictionary of localized resource messages
+ */
+const localizedResources: LocalizedResourcesMap = { };
+
+/**
+ * The default locale, can be changed via `Resource.setDefaultLocale(locale)`.
+ */
+let defaultLocale: string = null;
+
+/**
+ * Default resource localization implementation
+ */
+let localizationImplementation: ResourceLocalizationImplementation = {
+	setDefaultLocale: function Resource$setDefaultLocale(locale: string): void {
+		if (!hasOwnProperty(localizedResources, locale)) throw new Error("Resources are not defined for locale '" + locale + "'.");
+		defaultLocale = locale;
+	},
+	defineResources: function Resource$defineResources(locale: string, resources: ObjectLookup<string>): void {
+		if (!resources) throw new Error("Resources cannot be unset for locale '" + locale + "'.");
+		localizedResources[locale] = hasOwnProperty(localizedResources, locale) ? merge(localizedResources[locale], resources) : resources;
+	},
+	getResource: function Resource$getResource(name: string, locale: string, params: ObjectLookup<string>) {
+		if (!locale) locale = defaultLocale || "en";
+		if (!hasOwnProperty(localizedResources, locale)) throw new Error("Resources are not defined for locale '" + locale + "'.");
+		var localeResources = localizedResources[locale];
+		if (!hasOwnProperty(localeResources, name)) throw new Error("Resource '" + name + "' is not defined for locale '" + locale + "'.");
+		let res = localeResources[name];
+		if (params) {
+			return res.replace(/{([^}]+)}/g, (match: string, key: string): string => {
+				return hasOwnProperty(params, key) ? params[key] : match;
+			});
+		}
+		return res;
 	}
+};
+
+/**
+ * Defines the implementation of resource localization (`setDefaultLocale` and `defineResources`, and `getResource` functions).
+ * This is optional, since a default implementation is provided.
+ * @param implementation The resource localization implementation
+ */
+export function setResourceImplementation(implementation: ResourceLocalizationImplementation): void {
+	if (!implementation) throw new Error("Cannot unset localization implementation.");
+	localizationImplementation = implementation;
+}
+
+/**
+ * Sets the current locale
+ * @param locale The locale to use
+ */
+export function setDefaultLocale(locale: string): void {
+	localizationImplementation.setDefaultLocale(locale);
+}
+
+/**
+ * Sets resource messages for the given locale
+ * @param locale The locale to set messages for
+ * @param resources The resources messages
+ */
+export function defineResources(locale: string, resources: LocalizedResources): void {
+	localizationImplementation.defineResources(locale, resources);
+}
+
+/**
+ * Gets the resource with the specified name
+ * @param name The resource name/key
+ * @param locale
+ * @param params
+ */
+export function getResource(name: string, locale?: string): string;
+export function getResource(name: string, params?: ObjectLookup<string>): string;
+export function getResource(name: string, locale?: string, params?: ObjectLookup<string>): string;
+export function getResource(name: string, arg2?: string | ObjectLookup<string>, arg3?: ObjectLookup<string>): string {
+	let locale: string;
+	let params: ObjectLookup<string>;
+	if (arguments.length === 2) {
+		if (typeof arg2 === "string") {
+			locale = arg2;
+			params = null;
+		}
+		else if (typeof arg2 === "object") {
+			locale = null;
+			params = arg2;
+		}
+	}
+	else if (arguments.length >= 3) {
+		locale = arg2 as string;
+		params = arg3 as ObjectLookup<string>;
+	}
+
+	return localizationImplementation.getResource(name, locale, params);
 }

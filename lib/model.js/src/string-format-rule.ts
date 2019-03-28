@@ -2,7 +2,7 @@ import { ValidationRule, ValidationRuleOptions } from "./validation-rule";
 import { Property } from "./property";
 import { Entity } from "./entity";
 import { Type } from "./type";
-import { Resource } from "./resource";
+import { getResource } from "./resource";
 
 export class StringFormatRule extends ValidationRule {
 
@@ -23,8 +23,8 @@ export class StringFormatRule extends ValidationRule {
 
 		// ensure the error message is specified
 		if (typeof options.message === "string") {
-			if (Resource.get(options.message)) {
-				options.message = Resource.get(options.message);
+			if (getResource(options.message, rootType.model.$locale)) {
+				options.message = getResource(options.message, rootType.model.$locale);
 			}
 			else {
 				delete options.message;
@@ -33,7 +33,7 @@ export class StringFormatRule extends ValidationRule {
 
 		// get the default validation message if not specified
 		if (!options.message) {
-			options.message = Resource.get("string-format").replace("{formatDescription}", options.description);
+			options.message = getResource("string-format", rootType.model.$locale).replace("{formatDescription}", options.description);
 		}
 
 		let expression = options.expression instanceof RegExp ? options.expression : RegExp(options.expression);

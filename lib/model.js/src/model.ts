@@ -1,9 +1,10 @@
 import { Event, EventSubscriber } from "./events";
-import { randomText } from "./helpers";
+import { randomText, ObjectLookup } from "./helpers";
 import { EntityRegisteredEventArgs, EntityUnregisteredEventArgs } from "./entity";
 import { Type, PropertyType, isEntityType, ValueType, TypeOptions } from "./type";
 import { Format, createFormat } from "./format";
-import { EntitySerializer, PropertyConverter } from "./entity-serializer";
+import { EntitySerializer } from "./entity-serializer";
+import { getResource, defineResources } from "./resource";
 
 const valueTypes: { [name: string]: ValueType } = { string: String, number: Number, date: Date, boolean: Boolean };
 
@@ -16,6 +17,8 @@ export class Model {
 	readonly fieldNamePrefix: string;
 
 	readonly $namespace: any;
+
+	readonly $locale: string;
 	
 	readonly entityRegistered: EventSubscriber<Model, EntityRegisteredEventArgs>;
 	readonly entityUnregistered: EventSubscriber<Model, EntityUnregisteredEventArgs>;
@@ -23,7 +26,9 @@ export class Model {
 	private _ready: (() => void)[];
 	private readonly _formats: { [name: string]: { [name: string]: Format<ValueType> } };
 
-	constructor(options?: ModelOptions & ModelNamespaceOption, config?: ModelConfiguration) {
+	readonly serializer = new EntitySerializer();
+
+	constructor(options?: ModelOptions & ModelNamespaceOption & ModelLocaleOption, config?: ModelConfiguration) {
 
 		this.types = {};
 		this.settings = new ModelSettings(config);
@@ -53,7 +58,42 @@ export class Model {
 		}
 	}
 
-	readonly serializer = new EntitySerializer();
+	/**
+	 * Sets resource messages for the given locale
+	 * @param locale The locale to set messages for
+	 * @param resources The resources messages
+	 */
+	static defineResources(locale: string, resources: ObjectLookup<string>): void {
+		defineResources(locale, resources);
+	}
+
+	/**
+	 * Gets the resource with the specified name
+	 * @param name The resource name/key
+	 */
+	static getResource(name: string, locale?: string): string;
+	static getResource(name: string, params?: ObjectLookup<string>): string;
+	static getResource(name: string, locale?: string, params?: ObjectLookup<string>): string;
+	static getResource(name: string, arg2?: string | ObjectLookup<string>, arg3?: ObjectLookup<string>): string {
+		let locale: string;
+		let params: ObjectLookup<string>;
+		if (arguments.length === 2) {
+			if (typeof arg2 === "string") {
+				locale = arg2;
+				params = null;
+			}
+			else if (typeof arg2 === "object") {
+				locale = null;
+				params = arg2;
+			}
+		}
+		else if (arguments.length >= 3) {
+			locale = arg2 as string;
+			params = arg3 as ObjectLookup<string>;
+		}
+
+		return getResource(name, locale, params);
+	}
 
 	/**
 	 * Extends the model with the specified type information.
@@ -76,9 +116,15 @@ export class Model {
 				}
 			}
 
+			if (options.$locale && typeof options.$locale === "string") {
+				// TODO: Detect that the locale has already been set, or types have already been initialized under a different locale
+				let $locale = options.$locale as string;
+				Object.defineProperty(this, "$locale", { configurable: false, enumerable: true, value: $locale, writable: false });
+			}
+
 			// Create New Types
 			for (let [typeName, typeOptions] of Object.entries(options)) {
-				if (typeName === "$namespace") {
+				if (typeName === "$namespace" || typeName === "$locale") {
 					// Ignore the $namespace property since it is handled elsewhere
 					continue;
 				}
@@ -87,15 +133,19 @@ export class Model {
 
 				if (!type) {
 					let baseType = this.types[typeOptions.$extends];
-					type = new Type(this, typeName, baseType);
-					this.types[typeName] = type;
 					delete typeOptions["$extends"];
+
+					let format = typeOptions.$format;
+					delete typeOptions["$format"];
+
+					type = new Type(this, typeName, baseType, format);
+					this.types[typeName] = type;
 				}
 			}
 
 			// Extend Types
 			for (let [typeName, typeOptions] of Object.entries(options)) {
-				if (typeName === "$namespace") {
+				if (typeName === "$namespace" || typeName === "$locale") {
 					// Ignore the $namespace property since it is handled elsewhere
 					continue;
 				}
@@ -164,7 +214,7 @@ export class Model {
 		}
 		else {
 			// otherwise, call the format provider to create a new format
-			return formats[format] = createFormat(type, format);
+			return formats[format] = createFormat(type, format, this.$locale);
 		}
 	}
 
@@ -193,6 +243,13 @@ export type ModelOptions = {
 	 */
 	[name: string]: TypeOptions;
 
+}
+
+export type ModelLocaleOption = {
+	/**
+	 * The model's locale (English is assumed by default)
+	 */
+	$locale?: string;
 }
 
 export type ModelNamespaceOption = {

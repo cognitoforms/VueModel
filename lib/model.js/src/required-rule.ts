@@ -1,5 +1,5 @@
 import { ValidationRule, ValidationRuleOptions } from "./validation-rule";
-import { Resource } from "./resource";
+import { getResource } from "./resource";
 import { Type } from "./type";
 import { Entity } from "./entity";
 import { Property } from "./property";
@@ -20,7 +20,7 @@ export class RequiredRule extends ValidationRule {
 		options.name = options.name || "Required";
 
 		// ensure the error message is specified
-		options.message = options.message || Resource.get("required");
+		options.message = options.message || getResource("required", rootType.model.$locale);
 
 		// create the validation function based on the rule options
 		options.isValid = function(this: Entity, prop: Property, val: any): boolean {

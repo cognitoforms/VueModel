@@ -9,6 +9,9 @@ import { Property } from "../lib/model.js/src/property"
 
 export default VueModel;
 
+// Include English resources by default
+import "../lib/model.js/src/resource-en.ts";
+
 // Export any additional *types* to be referenced externally
 export type Model = Model;
 export type ModelOptions = ModelOptions;

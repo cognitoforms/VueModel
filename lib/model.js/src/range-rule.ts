@@ -2,7 +2,7 @@ import { ValidationRule } from "./validation-rule";
 import { Property, Property$format } from "./property";
 import { Entity } from "./entity";
 import { Type } from "./type";
-import { Resource } from "./resource";
+import { getResource } from "./resource";
 
 export class RangeRule extends ValidationRule {
 
@@ -112,14 +112,14 @@ export class RangeRule extends ValidationRule {
 
 		// ensure the error message is specified
 		var message =
-			(range.min !== undefined && range.max !== undefined ? Resource.get("range-between").replace("{min}", Property$format(this.property, range.min) || range.min).replace("{max}", Property$format(this.property, range.max) || range.max) : // between date or ordinal
+			(range.min !== undefined && range.max !== undefined ? getResource("range-between", this.rootType.model.$locale).replace("{min}", Property$format(this.property, range.min) || range.min).replace("{max}", Property$format(this.property, range.max) || range.max) : // between date or ordinal
 				this.property.propertyType === Date ?
 					range.min !== undefined ?
-						Resource.get("range-on-or-after").replace("{min}", Property$format(this.property, range.min) || range.min) : // on or after date
-						Resource.get("range-on-or-before").replace("{max}", Property$format(this.property, range.max) || range.max) : // on or before date
+						getResource("range-on-or-after", this.rootType.model.$locale).replace("{min}", Property$format(this.property, range.min) || range.min) : // on or after date
+						getResource("range-on-or-before", this.rootType.model.$locale).replace("{max}", Property$format(this.property, range.max) || range.max) : // on or before date
 					range.min !== undefined ?
-						Resource.get("range-at-least").replace("{min}", Property$format(this.property, range.min) || range.min) : // at least ordinal
-						Resource.get("range-at-most").replace("{max}", Property$format(this.property, range.max) || range.max)); // at most ordinal
+						getResource("range-at-least", this.rootType.model.$locale).replace("{min}", Property$format(this.property, range.min) || range.min) : // at least ordinal
+						getResource("range-at-most", this.rootType.model.$locale).replace("{max}", Property$format(this.property, range.max) || range.max)); // at most ordinal
 
 		return message.replace('{property}', this.property.label);
 	}
