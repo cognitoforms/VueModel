@@ -4,9 +4,8 @@ import { Entity } from "../lib/model.js/src/entity";
 import { SourceAdapter, isSourceAdapter, isSourcePropertyAdapter } from "./source-adapter";
 import { Vue$proxy } from "./vue-helpers";
 
-export function proxySourceAdapterPropertiesOntoComponentInstance(vm: Vue, rootKey: string, force: boolean = false, overwrite: boolean = false) {
-	let vm$private: any = vm as any;
-
+export function proxySourceAdapterPropertiesOntoComponentInstance(vm: Vue, rootKey: string, force: boolean = false, overwrite: boolean = false): void {
+	const vm$private = vm as any;
 	if (!hasOwnProperty(vm$private, rootKey)) {
 		// TODO: Warn about missing value for `rootKey`?
 		return;
@@ -22,8 +21,8 @@ export function proxySourceAdapterPropertiesOntoComponentInstance(vm: Vue, rootK
 
 	debug("Proxying source adapter properties for <" + sourceAdapter + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
 
-	let props = vm$private.$options.propsData;
-	let propKeys = vm$private.$options._propKeys.slice();
+	const props = vm$private.$options.propsData;
+	const propKeys = vm$private.$options._propKeys.slice();
 
 	if (isSourcePropertyAdapter(vm$private[rootKey])) {
 		if (force || (propKeys.indexOf("label") >= 0 && (overwrite || !hasOwnProperty(props, "label")))) {
@@ -44,8 +43,8 @@ export function proxySourceAdapterPropertiesOntoComponentInstance(vm: Vue, rootK
 	}
 }
 
-export function defineDollarSourceProperty(vm: Vue, sourceAdapter: SourceAdapter<any>) {
-	let vm$private: any = vm as any;
+export function defineDollarSourceProperty(vm: Vue, sourceAdapter: SourceAdapter<any>): void {
+	const vm$private: any = vm as any;
 
 	if (!hasOwnProperty(vm$private, "_source") || !isSourceAdapter(vm$private._source)) {
 		vm$private._source = sourceAdapter;
@@ -66,7 +65,7 @@ export function defineDollarSourceProperty(vm: Vue, sourceAdapter: SourceAdapter
 }
 
 export function getImplicitSource(vm: Vue, detect: boolean = false): Entity | SourceAdapter<any> {
-	let vm$private = vm as any;
+	const vm$private = vm as any;
 
 	if (hasOwnProperty(vm, "$source")) {
 		// Source is explicit and has been established
@@ -74,7 +73,7 @@ export function getImplicitSource(vm: Vue, detect: boolean = false): Entity | So
 	}
 
 	if (vm$private._source) {
-		let source = vm$private._source;
+		const source = vm$private._source;
 		if (typeof source === "string") {
 			// Source is explicit (but has not been established)
 			return null;
@@ -93,7 +92,7 @@ export function getImplicitSource(vm: Vue, detect: boolean = false): Entity | So
 	}
 
 	if (detect) {
-		let data = vm$private._data;
+		const data = vm$private._data;
 		if (data) {
 			if (data instanceof Entity) {
 				debug("Found implicit source as data of type <" + (data as Entity).meta.type.fullName + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");
@@ -108,7 +107,7 @@ export function getImplicitSource(vm: Vue, detect: boolean = false): Entity | So
 		}
 
 		if (vm$private._entity) {
-			let entity = vm$private._entity;
+			const entity = vm$private._entity;
 			if (entity instanceof Entity) {
 				// Mark the entity as a potential implicit source
 				debug("Found implicit source as pending entity of type <" + (entity as Entity).meta.type.fullName + "> on component of type <" + (vm$private.$options._componentTag || "???") + ">.");

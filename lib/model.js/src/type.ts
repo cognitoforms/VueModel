@@ -1,12 +1,12 @@
 import { Model } from "./model";
-import { Entity, EntityConstructorForType, EntityDestroyEventArgs, EntityInitNewEventArgs, EntityInitExistingEventArgs, EntityConstructor } from "./entity";
-import { Property, Property$generateStaticProperty, Property$generatePrototypeProperty, Property$generateOwnProperty, Property$generateShortcuts, PropertyOptions } from "./property";
+import { Entity, EntityConstructorForType, EntityDestroyEventArgs, EntityInitNewEventArgs, EntityInitExistingEventArgs, EntityRegisteredEventArgs, EntityUnregisteredEventArgs, EntityConstructor } from "./entity";
+import { Property, PropertyOptions, Property$generateOwnProperty, Property$generatePrototypeProperty, Property$generateShortcuts, Property$generateStaticProperty } from "./property";
 import { navigateAttribute, getTypeName, parseFunctionName, ensureNamespace, getGlobalObject } from "./helpers";
 import { Event, EventSubscriber } from "./events";
 import { ObservableArray } from "./observable-array";
 import { RuleOptions, Rule } from "./rule";
 import { Format } from "./format";
-import { PropertyChain, EntityRegisteredEventArgs, EntityUnregisteredEventArgs } from ".";
+import { PropertyChain } from "./property-chain";
 import { PropertyPath } from "./property-path";
 
 export const Type$newIdPrefix = "+c";
@@ -64,8 +64,8 @@ export class Type {
 	}
 
 	/** Generates a unique id suitable for an instance in the current type hierarchy. */
-	newId() {
-		let lastId;
+	newId(): string {
+		let lastId: number;
 
 		for (let type: Type = this; type; type = type.baseType) {
 			lastId = Math.max(lastId || 0, type._lastId);
@@ -125,7 +125,7 @@ export class Type {
 		(this.model.entityRegistered as Event<Model, EntityRegisteredEventArgs>).publish(this.model, { entity: obj });
 	}
 
-	changeObjectId(oldId: string, newId: string) {
+	changeObjectId(oldId: string, newId: string): Entity | void {
 		this.assertValidId(oldId);
 		this.assertValidId(newId);
 
@@ -170,7 +170,7 @@ export class Type {
 		(this.model.entityUnregistered as Event<Model, EntityUnregisteredEventArgs>).publish(this.model, { entity: obj });
 	}
 
-	get(id: string, exactTypeOnly: boolean = false) {
+	get(id: string, exactTypeOnly: boolean = false): Entity {
 		if (!id) {
 			throw new Error(`Method "${this.fullName}.meta.get()" was called without a valid id argument.`);
 		}
@@ -193,7 +193,7 @@ export class Type {
 	known(): Entity[] {
 		var known = this._known;
 		if (!known) {
-			var list: Array<Entity> = [];
+			var list: Entity[] = [];
 
 			for (var id in this._pool) {
 				if (Object.prototype.hasOwnProperty.call(this._pool, id)) {
@@ -351,7 +351,7 @@ export class Type {
 		return result;
 	}
 
-	toString() {
+	toString(): string {
 		return this.fullName;
 	}
 
@@ -359,7 +359,7 @@ export class Type {
 	 * Extends the current type with the specified format, properties and methods
 	 * @param options The options specifying how to extend the type
 	 */
-	extend(options: TypeOptions) {
+	extend(options: TypeOptions): void {
 		// Use prepare() to defer property path resolution while the model is being extended
 		this.model.prepare(() => {
 			const isMethod = (value: any): value is RuleOptions => value.hasOwnProperty("execute");
@@ -445,7 +445,7 @@ export class Type {
 	}
 }
 
-export type Value = String | Number | Date | Boolean;
+export type Value = string | number | Date | boolean;
 export type ValueType = StringConstructor | NumberConstructor | DateConstructor | BooleanConstructor;
 export type EntityType = EntityConstructorForType<Entity>;
 export type PropertyType = ValueType | EntityType;
@@ -480,9 +480,9 @@ export function isEntityType(type: any): type is EntityType {
 }
 
 // TODO: Get rid of disableConstruction?
-let disableConstruction: boolean = false;
+let disableConstruction = false;
 
-export function Type$generateConstructor(type: Type, fullName: string, baseType: Type = null, global: any = null) {
+export function Type$generateConstructor(type: Type, fullName: string, baseType: Type = null, global: any = null): EntityConstructorForType<Entity> {
 	// Create namespaces as needed
 	let nameTokens: string[] = fullName.split(".");
 	let token: string = nameTokens.shift();
@@ -515,7 +515,7 @@ export function Type$generateConstructor(type: Type, fullName: string, baseType:
 	// eslint-disable-next-line no-new-func
 	let ctorFactory = new Function("construct", "return function " + finalName + " () { construct.apply(this, arguments); }");
 
-	function construct(this: Entity) {
+	function construct(this: Entity): void {
 		if (!disableConstruction) {
 			try {
 				Entity.ctorDepth++;

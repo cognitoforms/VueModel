@@ -72,7 +72,7 @@ export class CalculatedPropertyRule extends Rule {
 			this.property.isCalculated = true;
 	}
 
-	execute(obj: Entity) {
+	execute(obj: Entity): void {
 		let calculateFn: (this: Entity) => any;
 
 		// Convert string functions into compiled functions on first execution
@@ -140,7 +140,7 @@ export class CalculatedPropertyRule extends Rule {
 		}
 	}
 
-	toString() {
+	toString(): string {
 		return "calculation of " + this.property.name;
 	}
 }

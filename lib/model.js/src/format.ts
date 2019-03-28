@@ -76,7 +76,7 @@ export abstract class Format<T> {
 		return this.convertFromString(text);
 	}
 
-	toString() {
+	toString(): string {
 		return this.specifier;
 	}
 
@@ -348,10 +348,11 @@ interface CultureInfo {
 }
 
 interface DateTimeFormatInfo {
+
 }
 
 interface NumberFormatInfo {
-	CurrencyDecimalDigits: Number;
+	CurrencyDecimalDigits: number;
 	CurrencySymbol: string;
 	PercentSymbol: string;
 }
@@ -402,7 +403,7 @@ export function createFormat<T>(type: any, format: string): Format<T> {
 		return new CustomFormat<number>({
 			specifier: format,
 			description: isCurrencyFormat ? Resource["format-currency"] : isPercentageFormat ? Resource["format-percentage"] : isIntegerFormat ? Resource["format-integer"] : Resource["format-decimal"],
-			convert: function (val: Number): string {
+			convert: function (val: number): string {
 				// Default to browser formatting for general format
 				if (format.toLowerCase() === "g")
 					return val.toString();

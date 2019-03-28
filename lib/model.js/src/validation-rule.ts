@@ -12,7 +12,7 @@ export class ValidationRule extends ConditionRule implements PropertyRule {
 		options.name = options.name || "ValidatedProperty";
 
 		// store the property being validated
-		var property = typeof options.property === "string" ? rootType.getProperty(options.property) as Property : options.property as Property;
+		var property = options.property;
 
 		// ensure the properties and predicates to include the target property
 		if (!options.properties) {
@@ -79,5 +79,5 @@ export interface ValidationRuleOptions extends PropertyRuleOptions {
 }
 
 export interface ValidationRuleConstructor {
-	new(rootType: Type, options: ValidationRuleOptions) : ValidationRule;
+	new(rootType: Type, options: ValidationRuleOptions): ValidationRule;
 }

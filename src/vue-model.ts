@@ -43,7 +43,7 @@ export class VueModel extends Model {
 	 * Implement the Vue plugin interface:
 	 * https://vuejs.org/v2/guide/plugins.html#Writing-a-Plugin
 	 */
-	static install(vue: typeof Vue) {
+	static install(vue: typeof Vue): void {
 		// Detect if the plugin install has already been called
 		if (VueModel._Vue) {
 			if (process.env.NODE_ENV !== "production") {

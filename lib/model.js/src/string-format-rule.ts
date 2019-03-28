@@ -14,8 +14,8 @@ export class StringFormatRule extends ValidationRule {
 	 */
 	constructor(rootType: Type, options: StringFormatRuleOptions) {
 		// exit immediately if called with no arguments
-		if (arguments.length) {
-			// ensure the rule name is specified
+		if (arguments.length !== 0) {
+		// ensure the rule name is specified
 			options.name = options.name || "StringFormat";
 
 			// ensure the error message is specified
@@ -37,7 +37,7 @@ export class StringFormatRule extends ValidationRule {
 			let reformat = options.reformat;
 
 			// create the string format validation function
-			options.isValid = function (this: Entity, prop: Property, val: any): boolean {
+			options.isValid = function(this: Entity, prop: Property, val: any): boolean {
 				var isValid = true;
 				if (val) {
 					expression.lastIndex = 0;
@@ -59,13 +59,13 @@ export class StringFormatRule extends ValidationRule {
 
 		// call the base type constructor
 		super(rootType, options);
-
+	
 		// define properties for the rule
 		this.description = options.description;
 	}
 
 	// get the string representation of the rule
-	toString() {
+	toString(): string {
 		return `${this.property.containingType.fullName}.${this.property.name} formatted as ${this.description}`;
 	}
 }

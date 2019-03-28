@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
     "files.exclude": {
         "**/.git": true,
         "**/.DS_Store": true,
@@ -27,3 +28,26 @@
 	],
 	"javascript.validate.enable": false,
 }
+=======
+	"files.exclude": {
+		"**/.git": true,
+		"**/.DS_Store": true,
+		 "**/node_modules": true,
+		"lib/model.js/node_modules": true,
+		"**/bin": true,
+		"**/obj": true,
+		// "**/out/lib": true,
+		// "**/out/src": true,
+		// "**/out/**/*.js": true,
+		// "**/out/**/*.js.map": true,
+		"Properties": true,
+	},
+	"jest.pathToConfig": "./jest.config.js",
+	"jest.pathToJest": "./node_modules/.bin/jest",
+	"eslint.autoFixOnSave": true,
+	"eslint.validate": [
+		"javascript",
+		{ "language": "typescript", "autoFix": true },
+	],
+}
+>>>>>>> origin/vuejs

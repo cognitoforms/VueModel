@@ -14,7 +14,7 @@ export class SourceRootMixin extends Vue {
 	readonly: boolean;
 
 	@Watch("readonly")
-	onReadonlyChanged(readonly: boolean) {
+	onReadonlyChanged(readonly: boolean): void {
 		this.$source.readonly = readonly;
 	}
 

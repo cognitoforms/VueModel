@@ -22,7 +22,7 @@ export class FormatError {
 		return new Condition(FormatError.ConditionType, this.messageTemplate.replace("{property}", prop.label), target, [prop]);
 	}
 
-	toString() {
+	toString(): string {
 		return this.invalidValue;
 	}
 }

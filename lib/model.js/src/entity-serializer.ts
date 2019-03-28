@@ -37,7 +37,7 @@ export class EntitySerializer {
 	 * Property converters should be registered in order of increasing specificity.
 	 * If two converters would convert a property, only the one registered last will apply.
 	 */
-	registerPropertyConverter(converter: PropertyConverter) {
+	registerPropertyConverter(converter: PropertyConverter): void {
 		this._propertyConverters.unshift(converter);
 	}
 
@@ -48,7 +48,7 @@ export class EntitySerializer {
 	 * @param type Either a Type or the fullName of a Type
 	 * @param injector 
 	 */
-	registerPropertyInjector(type: Type | string, injector: PropertyInjector) {
+	registerPropertyInjector(type: Type | string, injector: PropertyInjector): void {
 		let injectors = this._propertyInjectors.get(type) || [];
 		injectors.push(injector);
 		this._propertyInjectors.set(type, injectors);
@@ -58,7 +58,7 @@ export class EntitySerializer {
 	 * Returns the property injectors registered for a specific type, including name-based registrations.
 	 * @param type 
 	 */
-	private getInjectorsOrDefault(type: Type) {
+	private getInjectorsOrDefault(type: Type): PropertyInjector[] {
 		return (this._propertyInjectors.get(type) || []).concat(this._propertyInjectors.get(type.fullName) || []);
 	}
 
@@ -79,8 +79,8 @@ export class EntitySerializer {
 	 * Produces a JSON-valid object representation of the entity.
 	 * @param entity
 	 */
-	serialize(entity: Entity, serializeNull: boolean = false): Object {
-		let result: Object = {};
+	serialize(entity: Entity, serializeNull: boolean = false): object {
+		let result: object = {};
 		const type = entity.meta.type;
 		this.getPropertyInjectors(type).flatMap(i => i.inject(entity))
 			.concat(type.properties

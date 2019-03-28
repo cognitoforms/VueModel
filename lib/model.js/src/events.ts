@@ -25,7 +25,7 @@ export interface EventPublisher<This, EventArgsType> extends EventSubscriber<Thi
 }
 
 export interface EventSubscription<This, EventArgsType> {
-	handler: EventHandler<This, EventArgsType>,
+	handler: EventHandler<This, EventArgsType>;
 	isExecuted?: boolean;
 	isOnce?: boolean;
 }

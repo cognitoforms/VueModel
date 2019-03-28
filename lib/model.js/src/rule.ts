@@ -16,9 +16,9 @@ const detectRunawayRules = true;
 // to its parent while the parent scope is exiting. A large number indicates that
 // rules are not reaching steady-state. Technically something other than rules could
 // cause this scenario, but in practice they are the primary use-case for event scope. 
-const nonExitingScopeNestingCount: number = 100;
+const nonExitingScopeNestingCount = 100;
 
-let Rule$customRuleIndex: number = 0;
+let Rule$customRuleIndex = 0;
 
 export class Rule {
 	// Public read-only properties: aspects of the object that cannot be
@@ -109,7 +109,7 @@ export class Rule {
 	 */
 	onChangeOf(predicates: PropertyPath[]): this
 	onChangeOf(...predicates: PropertyPath[]): this
-	onChangeOf(predicates: any) {
+	onChangeOf(predicates: any): this {
 		// ensure the rule has not already been registered
 		if (this._registered)
 			throw new Error("Rules cannot be configured once they have been registered: " + this.name);
@@ -135,7 +135,7 @@ export class Rule {
 	 */
 	returns(properties: (string | Property)[]): this
 	returns(...properties: (string | Property)[]): this
-	returns(properties: any) {
+	returns(properties: any): this {
 		// Ensure the rule has not already been registered
 		if (this._registered)
 			throw new Error("Rules cannot be configured once they have been registered: " + this.name);
@@ -158,7 +158,7 @@ export class Rule {
 	}
 
 	// registers the rule based on the configured invocation types, predicates, and return values
-	register() {
+	register(): void {
 		let rule = this;
 
 		if (rule._registered) {

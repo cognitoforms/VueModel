@@ -120,7 +120,7 @@ export class SourceItemAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 		let value = list[this.internalIndex];
 
-		let displayValue: string | Array<string>;
+		let displayValue: string | string[];
 
 		if (isSourcePropertyAdapter(this.parent) && this.parent.property.format != null) {
 			// Use a markup or property format if available

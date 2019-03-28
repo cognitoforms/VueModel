@@ -73,7 +73,7 @@ export class Property implements PropertyPath {
 		return obj;
 	}
 
-	get defaultValue() {
+	get defaultValue(): any {
 		if (Object.prototype.hasOwnProperty.call(this, "_defaultValue")) {
 			// clone array and date defaults since they are mutable javascript types
 			return this._defaultValue instanceof Array ? this._defaultValue.slice() :
@@ -91,7 +91,7 @@ export class Property implements PropertyPath {
 		return isType<TOptions>(obj, d => getTypeName(d) === "object");
 	}
 
-	extend(options: PropertyOptions, targetType?: Type) {
+	extend(options: PropertyOptions, targetType?: Type): void {
 		if (!targetType)
 			targetType = this.containingType;
 
@@ -258,7 +258,7 @@ export class Property implements PropertyPath {
 			if (options.allowedValues) {
 				if (typeof (options.allowedValues) === "function") {
 					let originalAllowedValues = options.allowedValues;
-					let allowedValuesFunction = function (this: Entity) { return originalAllowedValues.call(this); };
+					let allowedValuesFunction = function (this: Entity): any[] { return originalAllowedValues.call(this); };
 					options.get = { function: allowedValuesFunction, dependsOn: "" };
 				}
 
@@ -270,11 +270,11 @@ export class Property implements PropertyPath {
 					}
 
 					targetType.model.ready(() => {
-						new AllowedValuesRule(targetType, {
+						(new AllowedValuesRule(targetType, {
 							property: this,
 							source: allowedValuesOptions.function,
 							onChangeOf: resolveDependsOn(this, "allowedValues", allowedValuesOptions.dependsOn)
-						}).register();
+						})).register();
 					});
 				}
 				else {
@@ -342,7 +342,7 @@ export class Property implements PropertyPath {
 		}
 	}
 
-	each(obj: Entity, callback: (obj: any, property: Property) => any, filter: Property = null) {
+	each(obj: Entity, callback: (obj: any, property: Property) => any, filter: Property = null): void {
 		if (!filter || filter === this)
 			callback(obj, this);
 	}
@@ -471,46 +471,44 @@ export class Property implements PropertyPath {
 }
 
 export interface PropertyOptions {
-
 	/** The name or Javascript type of the property */
-	type?: string | PropertyType,
+	type?: string | PropertyType;
 
 	/** True if the property is static, or type level. */
-	static?: boolean
+	static?: boolean;
 
 	/**
 	*  The optional label for the property.
 	*  The property name will be used as the label when not specified.
 	*/
-	label?: string,
+	label?: string;
 
 	/** The optional helptext for the property */
-	helptext?: string,
+	helptext?: string;
 
 	/** The optional format specifier for the property. */
-	format?: string | Format<PropertyType> | PropertyFormatOptions,
+	format?: string | Format<PropertyType> | PropertyFormatOptions;
 
 	/** An optional function or dependency function object that calculates the value of this property. */
-	get?: PropertyValueFunction | PropertyValueFunctionAndDependencies,
+	get?: PropertyValueFunction | PropertyValueFunctionAndDependencies;
 
 	/** An optional function to call when this property is updated. */
-	set?: (this: Entity, value: any) => void,
+	set?: (this: Entity, value: any) => void;
 
 	/** An optional constant default value, or a function or dependency function object that calculates the default value of this property. */
-	default?: PropertyValueFunction | PropertyDefaultValueFunctionAndOptions | Value,
+	default?: PropertyValueFunction | PropertyDefaultValueFunctionAndOptions | Value;
 
 	/** An optional constant default value, or a function or dependency function object that calculates the default value of this property. */
-	allowedValues?: PropertyValueFunction | PropertyValueFunctionAndDependencies | Value[],
+	allowedValues?: PropertyValueFunction | PropertyValueFunctionAndDependencies | Value[];
 
 	/** True if the property is always required, or a dependency function object for conditionally required properties. */
-	required?: boolean | { function: (this: Entity) => boolean, dependsOn: string },
+	required?: boolean | { function: (this: Entity) => boolean; dependsOn: string };
 
 	/** An optional dependency function object that adds an error with the specified message when true. */
-	error?: { function: (this: Entity) => boolean, dependsOn: string, message: string | ((this: Entity) => string) }
+	error?: { function: (this: Entity) => boolean; dependsOn: string; message: string | ((this: Entity) => string) };
 }
 
 export interface PropertyFormatOptions {
-
 	/** The human readable description of the format, such as MM/DD/YYY */
 	description: string;
 
@@ -542,14 +540,12 @@ export type PropertyGetMethod = (property: Property, entity: Entity, additionalA
 export type PropertySetMethod = (property: Property, entity: Entity, val: any, additionalArgs: any, skipTypeCheck: boolean) => void;
 
 export interface PropertyRule extends Rule {
-
 	/** The property that the rule targets */
 	readonly property: Property;
 
 }
 
 export interface PropertyRuleOptions extends ConditionRuleOptions {
-
 	// the property being validated (either a Property instance or string property name)
 	property: Property;
 
@@ -581,15 +577,15 @@ export function Property$format(prop: Property, val: any): string {
 
 // }
 
-export function Property$generateShortcuts(property: Property, target: any, overwrite: boolean = null) {
-	var shortcutName = "$" + property.name;
+export function Property$generateShortcuts(property: Property, target: any, overwrite: boolean = null): void {
+	const shortcutName = "$" + property.name;
 
 	if (!(Object.prototype.hasOwnProperty.call(target, shortcutName)) || overwrite) {
 		target[shortcutName] = property;
 	}
 }
 
-export function Property$generateStaticProperty(property: Property, target: any) {
+export function Property$generateStaticProperty(property: Property, target: any): void {
 	Object.defineProperty(target, property.name, {
 		configurable: false,
 		enumerable: true,
@@ -598,7 +594,7 @@ export function Property$generateStaticProperty(property: Property, target: any)
 	});
 }
 
-export function Property$generatePrototypeProperty(property: Property, target: any) {
+export function Property$generatePrototypeProperty(property: Property, target: any): void {
 	Object.defineProperty(target, property.name, {
 		configurable: false,
 		enumerable: true,
@@ -607,7 +603,7 @@ export function Property$generatePrototypeProperty(property: Property, target: a
 	});
 }
 
-export function Property$generateOwnProperty(property: Property, obj: Entity) {
+export function Property$generateOwnProperty(property: Property, obj: Entity): void {
 	Object.defineProperty(obj, property.name, {
 		configurable: false,
 		enumerable: true,
@@ -617,12 +613,12 @@ export function Property$generateOwnProperty(property: Property, obj: Entity) {
 }
 
 // TODO: Get rid of `Property$_generateOwnPropertyWithClosure`...
-export function Property$generateOwnPropertyWithClosure(property: Property, obj: Entity) {
+export function Property$generateOwnPropertyWithClosure(property: Property, obj: Entity): void {
 	let val: any = null;
 
-	let isInitialized: boolean = false;
+	let isInitialized = false;
 
-	var _ensureInited = function () {
+	var _ensureInited = function (): void {
 		if (!isInitialized) {
 			// Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.  
 			if (!property.isCalculated) {
@@ -716,7 +712,7 @@ export function Property$pendingInit(obj: Entity | EntityConstructorForType<Enti
 	}
 }
 
-function Property$subArrayEvents(obj: Entity, property: Property, array: ObservableArray<any>) {
+function Property$subArrayEvents(obj: Entity, property: Property, array: ObservableArray<any>): void {
 	array.changed.subscribe(function (args) {
 		// NOTE: property change should be broadcast before rules are run so that if 
 		// any rule causes a roundtrip to the server these changes will be available
@@ -734,11 +730,11 @@ function Property$subArrayEvents(obj: Entity, property: Property, array: Observa
 	});
 }
 
-function Property$getInitialValue(property: Property) {
+function Property$getInitialValue(property: Property): any {
 	var val = property.defaultValue;
 
 	if (Array.isArray(val)) {
-		val = ObservableArray.ensureObservable(val as Array<any>);
+		val = ObservableArray.ensureObservable(val as any[]);
 
 		// Override the default toString on arrays so that we get a comma-delimited list
 		// TODO: Implement toString on observable list?
@@ -748,7 +744,7 @@ function Property$getInitialValue(property: Property) {
 	return val;
 }
 
-export function Property$init(property: Property, obj: Entity, val: any) {
+export function Property$init(property: Property, obj: Entity, val: any): void {
 	var target = (property.isStatic ? property.containingType.jstype : obj);
 
 	Property$pendingInit(target, property, false);
@@ -763,7 +759,7 @@ export function Property$init(property: Property, obj: Entity, val: any) {
 	(obj.changed as Event<Entity, EntityChangeEventArgs>).publish(obj, { entity: obj, property });
 }
 
-function Property$ensureInited(property: Property, obj: Entity) {
+function Property$ensureInited(property: Property, obj: Entity): void {
 	var target = (property.isStatic ? property.containingType.jstype : obj);
 
 	// Determine if the property has been initialized with a value
@@ -779,7 +775,7 @@ function Property$ensureInited(property: Property, obj: Entity) {
 	}
 }
 
-function Property$getter(property: Property, obj: Entity) {
+function Property$getter(property: Property, obj: Entity): any {
 	// Ensure that the property has an initial (possibly default) value
 	Property$ensureInited(property, obj);
 
@@ -791,7 +787,7 @@ function Property$getter(property: Property, obj: Entity) {
 	return (obj as any)[property.fieldName];
 }
 
-export function Property$setter(property: Property, obj: Entity, val: any, additionalArgs: any = null) {
+export function Property$setter(property: Property, obj: Entity, val: any, additionalArgs: any = null): void {
 	// Ensure that the property has an initial (possibly default) value
 	Property$ensureInited(property, obj);
 
@@ -802,7 +798,7 @@ export function Property$setter(property: Property, obj: Entity, val: any, addit
 	}
 }
 
-function Property$shouldSetValue(property: Property, obj: Entity, old: any, val: any) {
+function Property$shouldSetValue(property: Property, obj: Entity, old: any, val: any): boolean {
 	if (!property.canSetValue(obj, val)) {
 		throw new Error("Cannot set " + property.name + "=" + (val === undefined ? "<undefined>" : val) + " for instance " + obj.meta.type.fullName + "|" + obj.meta.id + ": a value of type " + (isEntityType(property.propertyType) ? property.propertyType.meta.fullName : parseFunctionName(property.propertyType)) + " was expected.");
 	}
@@ -823,7 +819,7 @@ function Property$shouldSetValue(property: Property, obj: Entity, old: any, val:
 	}
 }
 
-function Property$setValue(property: Property, obj: Entity, currentValue: any, newValue: any, additionalArgs: any = null) {
+function Property$setValue(property: Property, obj: Entity, currentValue: any, newValue: any, additionalArgs: any = null): void {
 	// Update lists as batch remove/add operations
 	if (property.isList) {
 		let currentArray = currentValue as ObservableArray<any>;
@@ -853,14 +849,14 @@ function Property$setValue(property: Property, obj: Entity, currentValue: any, n
 	}
 }
 
-function Property$makeGetter(property: Property, getter: PropertyGetMethod) {
+function Property$makeGetter(property: Property, getter: PropertyGetMethod): (args?: any) => any {
 	return function (additionalArgs: any = null) {
 		// ensure the property is initialized
 		return getter(property, this, additionalArgs);
 	};
 }
 
-function Property$makeSetter(prop: Property, setter: PropertySetMethod, skipTypeCheck: boolean = false) {
+function Property$makeSetter(prop: Property, setter: PropertySetMethod, skipTypeCheck: boolean = false): (value: any, args?: any) => void {
 	// TODO: Is setter "__notifies" needed?
 	// setter.__notifies = true;
 

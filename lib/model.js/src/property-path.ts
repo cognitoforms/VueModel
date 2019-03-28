@@ -46,6 +46,6 @@ export interface PropertyChangeEventHandler {
 export interface PropertyChangeEventArgs {
 	entity: Entity;
 	property: PropertyPath;
-	newValue: any,
-	oldValue?: any,
+	newValue: any;
+	oldValue?: any;
 }

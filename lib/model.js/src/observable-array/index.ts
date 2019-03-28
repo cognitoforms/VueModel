@@ -186,7 +186,7 @@ export class ObservableArray<ItemType> extends Array<ItemType> implements Observ
 	 * Returns a value indicating whether the given array is observable
 	 * @param array The array to check for observability
 	 */
-	public static isObservableArray<ItemType>(array: Array<ItemType> | ObservableArray<ItemType>): array is ObservableArray<ItemType> {
+	public static isObservableArray<ItemType>(array: ItemType[] | ObservableArray<ItemType>): array is ObservableArray<ItemType> {
 		return hasOwnProperty(array, "__aob__") && (array as any).__aob__.constructor === ArrayObserver;
 	}
 
@@ -231,7 +231,7 @@ export class ObservableArray<ItemType> extends Array<ItemType> implements Observ
 	 * Creates a new observable array
 	 * @param items The initial array items
 	 */
-	public static create<ItemType>(items: ItemType[] = []): ObservableArray<ItemType> & Array<ItemType> {
+	public static create<ItemType>(items: ItemType[] = []): ObservableArray<ItemType> & ItemType[] {
 		let array: ObservableArray<ItemType>;
 		if (items instanceof ObservableArray)
 			array = items;
@@ -269,7 +269,7 @@ export class ObservableArray<ItemType> extends Array<ItemType> implements Observ
 	}
 
 	/** Expose the changed event */
-	get changed(): EventSubscriber<Array<ItemType>, ArrayChangedEventArgs<ItemType>> {
+	get changed(): EventSubscriber<ItemType[], ArrayChangedEventArgs<ItemType>> {
 		return this.__aob__.changed;
 	}
 
@@ -300,6 +300,7 @@ export class ObservableArray<ItemType> extends Array<ItemType> implements Observ
 	 * @param end End index, defaults to this.length.
 	 * @returns The modified array.
 	 */
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	fill(value: ItemType, start?: number, end?: number): this {
 		return ObservableArray$fill.call(this, value, start, end);
 	}
@@ -319,6 +320,7 @@ export class ObservableArray<ItemType> extends Array<ItemType> implements Observ
 	 * @param items The elements to add to the end of the array.
 	 * @returns The new length property of the object upon which the method was called.
 	 */
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	push(...elements: ItemType[]): number {
 		return ObservableArray$push.call(this, ...elements);
 	}
@@ -348,6 +350,7 @@ export class ObservableArray<ItemType> extends Array<ItemType> implements Observ
 	 * @param compareFunction Specifies a function that defines the sort order. If omitted, the array is sorted according to each character's Unicode code point value, according to the string conversion of each element.
 	 * @returns The sorted array. Note that the array is sorted in place, and no copy is made.
 	 */
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	sort(compareFunction?: (a: ItemType, b: ItemType) => number): this {
 		return ObservableArray$sort.call(this, compareFunction);
 	}
@@ -360,6 +363,7 @@ export class ObservableArray<ItemType> extends Array<ItemType> implements Observ
 	 * @param items The elements to add to the array, beginning at the start index. If you don't specify any elements, splice() will only remove elements from the array.
 	 * @returns An array containing the deleted elements. If only one element is removed, an array of one element is returned. If no elements are removed, an empty array is returned.
 	 */
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	splice(start: number, deleteCount?: number, ...items: ItemType[]): ItemType[] {
 		return ObservableArray$splice.call(this, start, deleteCount, ...items);
 	}
@@ -370,6 +374,7 @@ export class ObservableArray<ItemType> extends Array<ItemType> implements Observ
 	 * @param items The elements to add to the front of the array.
 	 * @returns The new length property of the object upon which the method was called.
 	 */
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	unshift(...items: ItemType[]): number {
 		return ObservableArray$unshift.call(this, ...items);
 	}
@@ -378,15 +383,15 @@ export class ObservableArray<ItemType> extends Array<ItemType> implements Observ
 export class ArrayObserver<ItemType> {
 	readonly array: Array<ItemType>;
 
-	readonly changed: Event<Array<ItemType>, ArrayChangedEventArgs<ItemType>>;
+	readonly changed: Event<ItemType[], ArrayChangedEventArgs<ItemType>>;
 
 	_queuedChanges: ArrayChange<ItemType>[];
 
 	_isQueuingChanges: boolean;
 
-	public constructor(array: Array<ItemType>) {
+	public constructor(array: ItemType[]) {
 		this.array = array;
-		this.changed = new Event<Array<ItemType>, ArrayChangedEventArgs<ItemType>>();
+		this.changed = new Event<ItemType[], ArrayChangedEventArgs<ItemType>>();
 		this._isQueuingChanges = false;
 	}
 
@@ -426,7 +431,7 @@ export class ArrayObserver<ItemType> {
 	}
 }
 
-function observableSplice(arr: any[], events: any[], index: number, removeCount: number, addItems: any[]) {
+function observableSplice(arr: any[], events: any[], index: number, removeCount: number, addItems: any[]): void {
 	var removedItems;
 
 	let arr2 = arr as any;

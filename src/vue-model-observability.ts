@@ -146,7 +146,7 @@ export function getArrayObserver<TItem>(array: ObservableArray<TItem>, create: b
 		return getProp(array, "__ob__");
 	}
 	else if (create) {
-		return new ArrayObserver(array) as any;
+		return new ArrayObserver(array);
 	}
 	else {
 		return null;
@@ -175,6 +175,7 @@ export function dependChildArray(array: any[]): void {
 			else if (hasOwnProperty(e, "__ob__")) {
 				(e.__ob__.dep as Dep).depend();
 			}
+
 			if (Array.isArray(e)) {
 				dependChildArray(e);
 			}

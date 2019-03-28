@@ -187,7 +187,7 @@ export class Entity {
 	 * Produces a JSON-valid object representation of the entity.
 	 * @param entity
 	 */
-	serialize(): Object {
+	serialize(): object {
 		return this.meta.type.model.serializer.serialize(this);
 	}
 }

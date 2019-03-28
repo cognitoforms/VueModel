@@ -12,7 +12,6 @@ export class ArrayObserver<TItem> extends CustomObserver implements ExtendedObse
 		}
 
 		this.value.changed.subscribe(this._onChange.bind(this));
-
 		(this as any)._observable = true;
 	}
 

@@ -8,10 +8,10 @@ import { makeEntitiesVueObservable, getEntityObserver, observeEntity } from "./v
  * Installs a global Vue mixin that hooks into component events to intercept model entities as component data and make necesary adjustments
  * @param Vue The Vue constructor/module object
  */
-export function VueModel$installGlobalMixin(Vue: VueConstructor) {
+export function VueModel$installGlobalMixin(Vue: VueConstructor): void {
 	Vue.mixin({
 		beforeCreate: function VueModel$Plugin$beforeCreate() {
-			let vm: Vue = this as Vue;
+			const vm: Vue = this as Vue;
 
 			if (vm.$options.data) {
 				// Intercept data that is an entity or data function that returns an entity
@@ -20,9 +20,9 @@ export function VueModel$installGlobalMixin(Vue: VueConstructor) {
 			}
 		},
 		created: function VueModel$Plugin$created() {
-			let vm: Vue = this as Vue;
+			const vm: Vue = this as Vue;
 
-			let vm$private: any = vm as any;
+			const vm$private: any = vm as any;
 
 			if (vm$private._entity) {
 				let entity = vm$private._entity as Entity;
@@ -42,8 +42,8 @@ export function VueModel$installGlobalMixin(Vue: VueConstructor) {
 	});
 }
 
-function replaceEntityData(vm: Vue, data: any) {
-	let vm$private = vm as any;
+function replaceEntityData(vm: Vue, data: any): any {
+	const vm$private = vm as any;
 
 	if (data != null && data instanceof Entity) {
 		debug("Data is an entity, returning empty object...");
@@ -54,7 +54,7 @@ function replaceEntityData(vm: Vue, data: any) {
 	return data;
 }
 
-function preprocessDataToInterceptEntities(vm: Vue) {
+function preprocessDataToInterceptEntities(vm: Vue): void {
 	if (!vm.$options.data) {
 		return;
 	}
@@ -74,9 +74,8 @@ function preprocessDataToInterceptEntities(vm: Vue) {
 	}
 }
 
-function restoreComponentEntityData(vm: Vue) {
-	let vm$private: any = vm as any;
-
+function restoreComponentEntityData(vm: Vue): void {
+	const vm$private = vm as any;
 	// Since the entity is now observable, go ahead and let the component see it
 	// TODO: Is it necessary to somehow "merge" the object? Or, just not set the data
 	//      field since we're going to do custom proxying of properties anyway?
@@ -94,7 +93,7 @@ function restoreComponentEntityData(vm: Vue) {
 	vm$private._entity = null;
 }
 
-function proxyEntityPropertiesOntoComponentInstance(vm: Vue, entity: Entity) {
+function proxyEntityPropertiesOntoComponentInstance(vm: Vue, entity: Entity): void {
 	// TODO: add proxies onto the component instance
 	// proxy data on instance
 	var properties = entity.meta.type.properties;

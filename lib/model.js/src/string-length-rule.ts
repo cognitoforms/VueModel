@@ -49,7 +49,7 @@ export class StringLengthRule extends RangeRule {
 	}
 
 	// get the string representation of the rule
-	toString() {
+	toString(): string {
 		return `${this.property.containingType.fullName}.${this.property.name} in range, min: , max: `;
 	}
 }

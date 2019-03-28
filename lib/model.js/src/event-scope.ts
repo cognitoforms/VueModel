@@ -8,7 +8,7 @@ export let EventScope$current: EventScope = null;
 // to its parent while the parent scope is exiting. A large number indicates that
 // rules are not reaching steady-state. Technically something other than rules could
 // cause this scenario, but in practice they are the primary use-case for event scope. 
-const nonExitingScopeNestingCount: number = 100;
+const nonExitingScopeNestingCount = 100;
 
 interface EventScopeExitEventArgs {
 }
@@ -40,7 +40,7 @@ export class EventScope {
 		EventScope$current = this;
 	}
 
-	abort(maxNestingExceeded: boolean = false) {
+	abort(maxNestingExceeded: boolean = false): void {
 		if (!this.isActive) {
 			throw new Error("The event scope cannot be aborted because it is not active.");
 		}
@@ -66,7 +66,7 @@ export class EventScope {
 		}
 	}
 
-	exit() {
+	exit(): void {
 		if (!this.isActive) {
 			throw new Error("The event scope cannot be exited because it is not active.");
 		}
@@ -128,7 +128,7 @@ export class EventScope {
 	}
 }
 
-export function EventScope$onExit(callback: Function, thisPtr: any = null) {
+export function EventScope$onExit(callback: Function, thisPtr: any = null): void {
 	if (EventScope$current === null) {
 		// Immediately invoke the callback
 		if (thisPtr) {
@@ -147,7 +147,7 @@ export function EventScope$onExit(callback: Function, thisPtr: any = null) {
 	}
 }
 
-export function EventScope$onAbort(callback: Function, thisPtr: any = null) {
+export function EventScope$onAbort(callback: Function, thisPtr: any = null): void {
 	if (EventScope$current !== null) {
 		if (!EventScope$current.isActive) {
 			throw new Error("The current event scope cannot be inactive.");
@@ -158,7 +158,7 @@ export function EventScope$onAbort(callback: Function, thisPtr: any = null) {
 	}
 }
 
-export function EventScope$perform(callback: Function, thisPtr: any = null) {
+export function EventScope$perform(callback: Function, thisPtr: any = null): void {
 	// Create an event scope
 	var scope = new EventScope();
 	try {

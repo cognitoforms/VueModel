@@ -57,7 +57,7 @@ export class Model {
 	 * Extends the model with the specified type information.
 	 * @param options The set of model types to add and/or extend.
 	 */
-	extend(options: ModelOptions) {
+	extend(options: ModelOptions): void {
 		// Use prepare() to defer property path resolution while the model is being extended
 		this.prepare(() => {
 			if (options.$namespace) {
@@ -106,7 +106,7 @@ export class Model {
 	 * ready state to allow use of the @ready promise to defer property path resolution.
 	 * @param extend The function extending the model
 	 */
-	prepare(extend: () => void) {
+	prepare(extend: () => void): void {
 		// Create a model initialization scope
 		if (!this._ready) {
 			// Create an array to track model initialization callbacks
@@ -125,7 +125,7 @@ export class Model {
 			extend();
 	}
 
-	ready(init: () => void) {
+	ready(init: () => void): void {
 		this._ready.push(init);
 	}
 

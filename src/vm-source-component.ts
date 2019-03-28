@@ -9,7 +9,7 @@ export class VMSource extends Vue {
 	@Prop({ type: [String, Object] })
 	source: string | SourceAdapter<any>;
 
-	get $source() : SourceAdapter<any> {
+	get $source(): SourceAdapter<any> {
 		if (isSourceAdapter(this.source)) {
 			return this.source;
 		}
