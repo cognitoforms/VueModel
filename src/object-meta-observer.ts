@@ -1,12 +1,11 @@
-﻿import { ObjectMeta } from "../lib/model.js/src/object-meta";
-import { CustomObserver } from "./custom-observer";
+﻿import { CustomObserver } from "./custom-observer";
 import { ExtendedObserver } from "./vue-model-observability";
 
 /**
  * A subclass of Vue's internal `Observer` class for entity meta objects, which uses model
  * metadata to manage condition change rather than property walking and rewriting
  */
-export class ObjectMetaObserver extends CustomObserver<ObjectMeta> implements ExtendedObserver {
+export class ObjectMetaObserver extends CustomObserver implements ExtendedObserver {
 	ensureObservable(): void {
 		if ((this as any)._observable === true) {
 			return;

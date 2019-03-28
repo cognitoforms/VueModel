@@ -1,4 +1,4 @@
-import { Entity, EntityAccessEventArgs, EntityChangeEventArgs } from "../lib/model.js/src/entity";
+import { EntityAccessEventArgs, EntityChangeEventArgs } from "../lib/model.js/src/entity";
 import { CustomObserver } from "./custom-observer";
 import { ExtendedObserver, getObjectMetaObserver } from "./vue-model-observability";
 
@@ -6,7 +6,7 @@ import { ExtendedObserver, getObjectMetaObserver } from "./vue-model-observabili
  * A subclass of Vue's internal `Observer` class for entities, which uses model
  * metadata to manage property access/change rather than property walking and rewriting
  */
-export class EntityObserver extends CustomObserver<Entity> implements ExtendedObserver {
+export class EntityObserver extends CustomObserver implements ExtendedObserver {
 	ensureObservable(): void {
 		if ((this as any)._observable === true) {
 			return;

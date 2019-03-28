@@ -8,9 +8,6 @@
 		"allowJs": true,
 		// Don't emit; allow Babel to transform files.
 		"noEmit": true,
-		// Enable strictest settings like strictNullChecks & noImplicitAny.
-		"strict": true,
-		"strictNullChecks": false,
 		// Disallow features that require cross-file information for emit.
 		"isolatedModules": true,
 		// Import non-ES modules as default imports.
@@ -27,20 +24,7 @@
 		]
 	},
 	"include": [
-		"./src/*.ts"
-	],
-	"exclude": [
-		"bin",
-		"dist",
-		"lib/model.js/bin",
-		"lib/model.js/dist",
-		"lib/model.js/node_modules",
-		"lib/model.js/obj",
-		"lib/model.js/out",
-		"node_modules",
-		"obj",
-		"out",
-		"ref",
-		"model-definition-example.ts"
+		"./src",
+		"./lib/model.js/src"
 	]
 }

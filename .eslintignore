@@ -2,7 +2,7 @@
 **/obj/*
 **/bin/*
 **/node_modules/*
-**/config.[jt]s
+**/*.config.[jt]s
 **/LICENSE
 *.json
 *.d.ts
