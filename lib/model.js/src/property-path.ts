@@ -2,7 +2,7 @@ import { Type, PropertyType } from "./type";
 import { Format } from "./format";
 import { EventObject, EventSubscriber } from "./events";
 import { Entity } from "./entity";
-import { Property } from "./property";
+import { Property, PropertyBooleanFunction } from "./property";
 
 export interface PropertyPath {
 
@@ -11,7 +11,7 @@ export interface PropertyPath {
 	readonly propertyType: PropertyType;
 	readonly isList: boolean;
 	readonly isStatic: boolean;
-	readonly required: boolean | { function: (this: Entity) => boolean; dependsOn: string };
+	readonly required: boolean | PropertyBooleanFunction;
 	readonly path: string;
 	readonly firstProperty: Property;
 	readonly lastProperty: Property;

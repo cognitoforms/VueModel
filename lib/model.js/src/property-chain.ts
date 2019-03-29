@@ -1,5 +1,5 @@
 import { Type, EntityType } from "./type";
-import { Property } from "./property";
+import { Property, PropertyBooleanFunction } from "./property";
 import { PropertyAccessEventArgs, PropertyChangeEventArgs, PropertyChangeEventHandler, PropertyAccessEventHandler } from "./property-path";
 import { Event, EventSubscriber, EventPublisher } from "./events";
 import { Entity, EntityConstructorForType } from "./entity";
@@ -15,7 +15,7 @@ export class PropertyChain implements PropertyPath {
 
 	readonly rootType: Type;
 	readonly properties: Property[];
-	readonly required: boolean | { function: (this: Entity) => boolean; dependsOn: string };
+	readonly required: boolean | PropertyBooleanFunction;
 	readonly changed: EventSubscriber<Entity, PropertyChangeEventArgs>;
 	readonly accessed: EventSubscriber<Entity, PropertyAccessEventArgs>;
 

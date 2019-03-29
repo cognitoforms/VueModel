@@ -21,7 +21,7 @@ export class Property implements PropertyPath {
 	readonly propertyType: PropertyType;
 	readonly isList: boolean;
 	readonly isStatic: boolean;
-	readonly required: boolean | { function: (this: Entity) => boolean; dependsOn: string };
+	readonly required: boolean | PropertyBooleanFunction;
 
 	label: string;
 	helptext: string;
@@ -520,7 +520,7 @@ export interface PropertyOptions {
 	allowedValues?: PropertyValueFunction | PropertyValueFunctionAndDependencies | Value[];
 
 	/** True if the property is always required, or a dependency function object for conditionally required properties. */
-	required?: boolean | { function: (this: Entity) => boolean; dependsOn: string };
+	required?: boolean | PropertyBooleanFunction;
 
 	/** An optional dependency function object that adds an error with the specified message when true. */
 	error?: { function: (this: Entity) => boolean; dependsOn: string; message: string | ((this: Entity) => string) };
