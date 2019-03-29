@@ -1,4 +1,3 @@
-/* eslint-disable no-new-func */
 import { ValidationRule } from "./validation-rule";
 import { Property, Property$format } from "./property";
 import { Entity } from "./entity";
@@ -6,6 +5,7 @@ import { Type } from "./type";
 import { Resource } from "./resource";
 
 export class RangeRule extends ValidationRule {
+
 	_min: string | ((this: Entity) => any);
 
 	_max: string | ((this: Entity) => any);
@@ -27,28 +27,28 @@ export class RangeRule extends ValidationRule {
 		/// <returns type="RangeRule">The new range rule.</returns>
 
 		// exit immediately if called with no arguments
-		if (arguments.length) {
-			// ensure the rule name is specified
-			options.name = options.name || "Range";
+		if (arguments.length == 0) return;
 
-			// get the property being validated in order to determine the data type
-			var property: Property = options.property instanceof Property ? options.property : rootType.getProperty(options.property);
+		// ensure the rule name is specified
+		options.name = options.name || "Range";
 
-			// coerce date range constants
-			if (options.min && !(options.min instanceof Function) && typeof options.min !== "string" && property.propertyType === Date) {
-				options.min = new Date(options.min);
-			}
-			if (options.max && !(options.max instanceof Function) && typeof options.max !== "string" && property.propertyType === Date) {
-				options.max = new Date(options.max);
-			}
+		// get the property being validated in order to determine the data type
+		var property: Property = options.property instanceof Property ? options.property : rootType.getProperty(options.property);
 
-			// coerce null ranges to undefined
-			if (options.min === null) {
-				options.min = undefined;
-			}
-			if (options.max === null) {
-				options.max = undefined;
-			}
+		// coerce date range constants
+		if (options.min && !(options.min instanceof Function) && typeof options.min !== "string" && property.propertyType === Date) {
+			options.min = new Date(options.min);
+		}
+		if (options.max && !(options.max instanceof Function) && typeof options.max !== "string" && property.propertyType === Date) {
+			options.max = new Date(options.max);
+		}
+
+		// coerce null ranges to undefined
+		if (options.min === null) {
+			options.min = undefined;
+		}
+		if (options.max === null) {
+			options.max = undefined;
 		}
 
 		// call the base type constructor
@@ -61,6 +61,7 @@ export class RangeRule extends ValidationRule {
 
 	// get the min and max range in effect for this rule for the specified instance
 	range(obj: Entity): { min?: any; max?: any } {
+
 		// convert string functions into compiled functions on first execution
 		if (this._min && !(this._min instanceof Function)) {
 			if (typeof this._min === "string") {
@@ -106,6 +107,7 @@ export class RangeRule extends ValidationRule {
 	}
 
 	getMessage(obj: Entity): string {
+
 		var range = this.range(obj);
 
 		// ensure the error message is specified
@@ -119,11 +121,12 @@ export class RangeRule extends ValidationRule {
 						Resource.get("range-at-least").replace("{min}", Property$format(this.property, range.min) || range.min) : // at least ordinal
 						Resource.get("range-at-most").replace("{max}", Property$format(this.property, range.max) || range.max)); // at most ordinal
 
-		return message.replace("{property}", this.property.label);
+		return message.replace('{property}', this.property.label);
 	}
 
 	// get the string representation of the rule
 	toString(): string {
 		return `${this.property.containingType.fullName}.${this.property.name} in range, min: , max: `;
 	}
+
 }

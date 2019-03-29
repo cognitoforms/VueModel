@@ -10,28 +10,6 @@
                 "kind": "build",
                 "isDefault": true
             }
-        },
-        {
-            "type": "npm",
-            "script": "lint",
-            "problemMatcher": [
-                "$eslint-stylish"
-            ]
-        },
-        {
-            "type": "npm",
-            "script": "check-types",
-            "problemMatcher": [
-                "$tsc"
-            ]
-        },
-        {
-            "type": "npm",
-            "script": "type-check:watch",
-            "problemMatcher": [
-                "$tsc-watch"
-            ],
-            "isBackground": true
         }
     ]
 }

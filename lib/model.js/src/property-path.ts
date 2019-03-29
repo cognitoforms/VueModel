@@ -11,6 +11,7 @@ export interface PropertyPath {
 	readonly propertyType: PropertyType;
 	readonly isList: boolean;
 	readonly isStatic: boolean;
+	readonly required: boolean | { function: (this: Entity) => boolean; dependsOn: string };
 	readonly path: string;
 	readonly firstProperty: Property;
 	readonly lastProperty: Property;

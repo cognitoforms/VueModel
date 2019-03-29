@@ -1,6 +1,6 @@
-export enum RuleInvocationType {
+export const enum RuleInvocationType {
 
-	/** Occurs when an existing instance is initialized. */
+	/** Occurs when an existing instance is initialized.*/
 	InitExisting = 2,
 
 	/** Occurs when a new instance is initialized. */

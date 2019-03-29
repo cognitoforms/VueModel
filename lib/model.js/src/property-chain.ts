@@ -1,9 +1,10 @@
 import { Type, EntityType } from "./type";
 import { Property } from "./property";
-import { PropertyAccessEventArgs, PropertyChangeEventArgs, PropertyChangeEventHandler, PropertyAccessEventHandler, PropertyPath } from "./property-path";
+import { PropertyAccessEventArgs, PropertyChangeEventArgs, PropertyChangeEventHandler, PropertyAccessEventHandler } from "./property-path";
 import { Event, EventSubscriber, EventPublisher } from "./events";
 import { Entity, EntityConstructorForType } from "./entity";
 import { Format } from "./format";
+import { PropertyPath } from "./property-path";
 
 /**
  * Encapsulates the logic required to work with a chain of properties and
@@ -11,8 +12,10 @@ import { Format } from "./format";
  * single property of the root object.
  */
 export class PropertyChain implements PropertyPath {
+
 	readonly rootType: Type;
 	readonly properties: Property[];
+	readonly required: boolean | { function: (this: Entity) => boolean; dependsOn: string };
 	readonly changed: EventSubscriber<Entity, PropertyChangeEventArgs>;
 	readonly accessed: EventSubscriber<Entity, PropertyAccessEventArgs>;
 
@@ -21,6 +24,7 @@ export class PropertyChain implements PropertyPath {
 	readonly path: string;
 
 	constructor(rootType: Type, path: string) {
+
 		this.rootType = rootType;
 
 		// replace "." in type casts so that they do not interfere with splitting path
@@ -28,6 +32,7 @@ export class PropertyChain implements PropertyPath {
 
 		let currentType = rootType;
 		this.properties = path.split(".").map(function (step) {
+
 			let property: Property;
 
 			// Regex pattern matches all letters and digits that are valid for javascript identifiers, including  "_"
@@ -69,7 +74,7 @@ export class PropertyChain implements PropertyPath {
 								(this.accessed as EventPublisher<Entity, PropertyAccessEventArgs>).publish(known, {
 									entity: known,
 									property: args.property,
-									value: args.value
+									value: args.value,
 								});
 							}
 						});
@@ -98,7 +103,7 @@ export class PropertyChain implements PropertyPath {
 									entity: known,
 									property: args.property,
 									oldValue: args.oldValue,
-									newValue: args.newValue
+									newValue: args.newValue,
 								});
 							}
 						});
@@ -118,6 +123,7 @@ export class PropertyChain implements PropertyPath {
 	}
 
 	equals(prop: PropertyPath): boolean {
+
 		if (prop === null || prop === undefined) {
 			return;
 		}
@@ -139,6 +145,7 @@ export class PropertyChain implements PropertyPath {
 
 			return true;
 		}
+
 	}
 
 	/**
@@ -155,7 +162,7 @@ export class PropertyChain implements PropertyPath {
 	
 		if (obj == null) throw new Error("Argument 'obj' cannot be null or undefined.");
 		if (callback == null) throw new Error("Argument 'callback' cannot be null or undefined.");
-		if (typeof (callback) !== "function") throw new Error("Argument 'callback' must be of type function: " + callback + ".");
+		if (typeof (callback) != "function") throw new Error("Argument 'callback' must be of type function: " + callback + ".");
 	
 		// invoke callback on obj first
 		var target: Entity = arguments[3] || obj;
@@ -168,7 +175,9 @@ export class PropertyChain implements PropertyPath {
 	
 			// if the target is a list, invoke the callback once per item in the list
 			if (target instanceof Array) {
+				
 				for (var i = 0; i < target.length; ++i) {
+
 					if (enableCallback && callback(target[i], prop) === false) {
 						return false;
 					}
@@ -186,6 +195,7 @@ export class PropertyChain implements PropertyPath {
 				return true;
 			} 
 			else {
+	
 				// take into account any chain filters along the way
 				if (enableCallback && callback(target, prop) === false) {
 					return false;
@@ -228,6 +238,7 @@ export class PropertyChain implements PropertyPath {
 	}
 
 	getLastTarget(obj: Entity): Entity {
+
 		for (var p = 0; p < this.properties.length - 1; p++) {
 			var prop = this.properties[p];
 
@@ -312,6 +323,7 @@ export class PropertyChain implements PropertyPath {
 		var path = this.properties.map(function (e) { return e.name; }).join(".");
 		return `this<${this.rootType}>.${path}`;
 	}
+
 }
 
 export interface PropertyChainConstructor {
@@ -319,6 +331,7 @@ export interface PropertyChainConstructor {
 }
 
 function getPropertyChainPathFromIndex(chain: PropertyChain, startIndex: number): string {
+
 	var steps: string[] = [];
 
 	let props = chain.toPropertyArray();
