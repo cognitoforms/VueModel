@@ -1,18 +1,19 @@
-import Vue from "vue";
-import { Component, Prop, Watch } from "vue-property-decorator";
+import Vue from 'vue';
+import { Component, Prop, Watch } from 'vue-property-decorator'
 import { SourceAdapter, isSourceAdapter, isSourcePropertyAdapter } from "./source-adapter";
 import { Entity } from "../lib/model.js/src/entity";
 import { SourcePathAdapter } from "./source-path-adapter";
 
 @Component
 export class SourcePathMixin extends Vue {
+
 	@Prop({ type: [String, Object] })
 	source: string | SourceAdapter<any>;
 
 	@Prop(String)
 	label: string;
 
-	@Watch("label")
+	@Watch('label')
 	onLabelChanged(label: string): void {
 		this.onOverrideValueChanged(label, String);
 	}
@@ -20,7 +21,7 @@ export class SourcePathMixin extends Vue {
 	@Prop(String)
 	helptext: string;
 
-	@Watch("helptext")
+	@Watch('helptext')
 	onHelptextChanged(helptext: string): void {
 		this.onOverrideValueChanged(helptext, String);
 	}
@@ -28,7 +29,7 @@ export class SourcePathMixin extends Vue {
 	@Prop({ type: Boolean, default: null })
 	readonly: boolean;
 
-	@Watch("readonly")
+	@Watch('readonly')
 	onReadonlyChanged(readonly: boolean): void {
 		this.onOverrideValueChanged(readonly, Boolean);
 	}
@@ -66,6 +67,7 @@ export class SourcePathMixin extends Vue {
 			throw new Error("Cannot apply overrides to source of type '" + this.source.constructor.name + "'.");
 		}
 	}
+
 }
 
 function hasOverrideValue(value: any, type: StringConstructor | BooleanConstructor): boolean {
