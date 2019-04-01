@@ -2,10 +2,10 @@ import { VueModel } from "./vue-model";
 import { SourceRootAdapter } from "./source-root-adapter";
 import { SourcePathAdapter } from "./source-path-adapter";
 import { SourceItemAdapter } from "./source-item-adapter";
-import { Model, ModelOptions } from "../lib/model.js/src/model"
-import { PropertyConverter, PropertyInjector, PropertySerializationResult } from "../lib/model.js/src/entity-serializer"
-import { Entity } from "../lib/model.js/src/entity"
-import { Property } from "../lib/model.js/src/property"
+import { Model, ModelOptions } from "../lib/model.js/src/model";
+import { PropertyConverter, PropertyInjector, PropertySerializationResult } from "../lib/model.js/src/entity-serializer";
+import { Entity } from "../lib/model.js/src/entity";
+import { Property } from "../lib/model.js/src/property";
 
 export default VueModel;
 

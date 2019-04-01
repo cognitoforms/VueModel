@@ -9,7 +9,7 @@ import { Format } from "./format";
 import { PropertyChain } from "./property-chain";
 import { PropertyPath } from "./property-path";
 
-export const Type$newIdPrefix = "+c"
+export const Type$newIdPrefix = "+c";
 
 export class Type {
 	format: Format<Entity>;
@@ -41,8 +41,7 @@ export class Type {
 	// readonly conditionsChanged: EventSubscriber<Type, ConditionTargetsChangedEventArgs>;
 
 	constructor(model: Model, fullName: string, baseType: Type = null, options?: TypeOptions) {
-
-		this.model =  model;
+		this.model = model;
 		this.fullName = fullName;
 		this.jstype = Type$generateConstructor(this, fullName, baseType, model.settings.useGlobalObject ? getGlobalObject() : null);
 		this.baseType = baseType;
@@ -66,16 +65,17 @@ export class Type {
 
 	/** Generates a unique id suitable for an instance in the current type hierarchy. */
 	newId(): string {
+		let lastId: number;
 
-		for (var lastId, type: Type = this; type; type = type.baseType) {
+		for (let type: Type = this; type; type = type.baseType) {
 			lastId = Math.max(lastId || 0, type._lastId);
 		}
 
 		let nextId = lastId + 1;
 
 		// Update the last id for each type in the heirarchy.
-		for (var type: Type = this; type; type = type.baseType) {
-			(type as any)._lastId = nextId;
+		for (let type: any = this; type; type = type.baseType) {
+			type._lastId = nextId;
 		}
 
 		// Return the new id.
@@ -87,7 +87,7 @@ export class Type {
 			throw new Error(`Id cannot be ${(id === null ? "null" : "undefined")} (entity = ${this.fullName}).`);
 		}
 		else if (getTypeName(id) !== "string") {
-			throw new Error(`Id must be a string:  encountered id ${id} of type \"${parseFunctionName(id.constructor)}\" (entity = ${this.fullName}).`);
+			throw new Error(`Id must be a string:  encountered id ${id} of type "${parseFunctionName(id.constructor)}" (entity = ${this.fullName}).`);
 		}
 		else if (id === "") {
 			throw new Error(`Id cannot be a blank string (entity = ${this.fullName}).`);
@@ -95,14 +95,13 @@ export class Type {
 	}
 	
 	register(obj: Entity): void {
-
 		this.assertValidId(obj.meta.id);
 
 		var key = obj.meta.id.toLowerCase();
 
 		for (var t: Type = this; t; t = t.baseType) {
 			if (t._pool.hasOwnProperty(key)) {
-				throw new Error(`Object \"${this.fullName}|${obj.meta.id}\" has already been registered.`);
+				throw new Error(`Object "${this.fullName}|${obj.meta.id}" has already been registered.`);
 			}
 
 			t._pool[key] = obj;
@@ -222,7 +221,6 @@ export class Type {
 
 	/** Gets the {Property} or {PropertyChain} for the specified simple path {string}. */
 	getPath(path: string): PropertyPath {
-
 		// Get single property
 		let property: PropertyPath = this.getProperty(path);
 
@@ -241,7 +239,6 @@ export class Type {
 
 	/** Gets and array of {Property} or {PropertyChain} instances for the specified complex graph path {string}. */
 	getPaths(path: string): PropertyPath[] {
-
 		let start = 0;
 		let paths = [];
 
@@ -253,11 +250,11 @@ export class Type {
 			for (let i = 0, len = path.length; i < len; ++i) {
 				let c = path.charAt(i);
 
-				if (c === '{' || c === ',' || c === '}') {
+				if (c === "{" || c === "," || c === "}") {
 					let seg = path.substring(start, i).trim();
 					start = i + 1;
 
-					if (c === '{') {
+					if (c === "{") {
 						if (parent) {
 							stack.push(parent);
 							parent += "." + seg;
@@ -266,12 +263,12 @@ export class Type {
 							parent = seg;
 						}
 					}
-					else {   // ',' or '}'
+					else { // ',' or '}'
 						if (seg.length > 0) {
 							paths.push(this.getPath(parent ? parent + "." + seg : seg));
 						}
 
-						if (c === '}') {
+						if (c === "}") {
 							parent = (stack.length === 0) ? undefined : stack.pop();
 						}
 					}
@@ -314,7 +311,6 @@ export class Type {
 	}
 
 	addRule(optionsOrFunction: ((this: Entity) => void) | RuleOptions): Rule {
-
 		let options: RuleOptions;
 
 		if (optionsOrFunction) {
@@ -345,7 +341,7 @@ export class Type {
 	isSubclassOf(type: Type): boolean {
 		var result = false;
 
-		navigateAttribute(this, 'baseType', function (baseType: Type) {
+		navigateAttribute(this, "baseType", function (baseType: Type) {
 			if (baseType === type) {
 				result = true;
 				return false;
@@ -364,11 +360,9 @@ export class Type {
 	 * @param options The options specifying how to extend the type
 	 */
 	extend(options: TypeOptions): void {
-
 		// Use prepare() to defer property path resolution while the model is being extended
 		this.model.prepare(() => {
-
-			const isMethod = (value: any): value is RuleOptions => value.hasOwnProperty('execute');
+			const isMethod = (value: any): value is RuleOptions => value.hasOwnProperty("execute");
 
 			// Set Format
 			if (options.$format) {
@@ -385,7 +379,6 @@ export class Type {
 
 			// Type Members
 			for (let [name, member] of Object.entries(options)) {
-
 				// Ignore Type and Format values, which do not represent type members
 				if (member instanceof Type || member instanceof Format)
 					continue;
@@ -411,17 +404,14 @@ export class Type {
 
 				// Property
 				else {
-
 					// Get Property
 					let property = this.getProperty(name);
 
 					// Add Property
 					if (!property) {
-
 						// Type & IsList
 						let isList = false;
 						if (typeof (member.type) === "string") {
-
 							// Type names ending in [] are lists
 							if (member.type.lastIndexOf("[]") === (member.type.length - 2)) {
 								isList = true;
@@ -447,13 +437,10 @@ export class Type {
 						}
 					}
 					else {
-
 						property.extend(member, this);
 					}
-
 				}
 			}
-
 		});
 	}
 }
@@ -496,12 +483,11 @@ export function isEntityType(type: any): type is EntityType {
 let disableConstruction = false;
 
 export function Type$generateConstructor(type: Type, fullName: string, baseType: Type = null, global: any = null): EntityConstructorForType<Entity> {
-
 	// Create namespaces as needed
-	let nameTokens: string[] = fullName.split("."),
-		token: string = nameTokens.shift(),
-		namespaceObj: any = type.model.$namespace || type.model,
-		globalObj: any = global;
+	let nameTokens: string[] = fullName.split(".");
+	let token: string = nameTokens.shift();
+	let namespaceObj: any = type.model.$namespace || type.model;
+	let globalObj: any = global;
 
 	while (nameTokens.length > 0) {
 		namespaceObj = ensureNamespace(token, namespaceObj);
@@ -514,18 +500,19 @@ export function Type$generateConstructor(type: Type, fullName: string, baseType:
 	// The final name to use is the last token
 	let finalName = token;
 
-	let baseConstructor: EntityConstructor;
+	let BaseConstructor: EntityConstructor;
 
 	if (baseType) {
-		baseConstructor = baseType.jstype;
+		BaseConstructor = baseType.jstype;
 		// // TODO: Implement `inheritBaseTypePropShortcuts`
 		// // inherit all shortcut properties that have aleady been defined
 		// inheritBaseTypePropShortcuts(ctor, baseType);
 	}
 	else {
-		baseConstructor = Entity;
+		BaseConstructor = Entity;
 	}
 
+	// eslint-disable-next-line no-new-func
 	let ctorFactory = new Function("construct", "return function " + finalName + " () { construct.apply(this, arguments); }");
 
 	function construct(this: Entity): void {
@@ -533,7 +520,7 @@ export function Type$generateConstructor(type: Type, fullName: string, baseType:
 			try {
 				Entity.ctorDepth++;
 				let baseTypeArgs: ArrayLike<any> = (arguments.length > 0 && arguments[0] instanceof Type) ? arguments : [type].concat(Array.from(arguments));
-				baseConstructor.apply(this, baseTypeArgs);
+				BaseConstructor.apply(this, baseTypeArgs);
 			}
 			finally {
 				Entity.ctorDepth--;
@@ -547,7 +534,7 @@ export function Type$generateConstructor(type: Type, fullName: string, baseType:
 		namespaceObj[finalName] = ctor;
 	}
 	else {
-		namespaceObj['$' + finalName] = ctor;
+		namespaceObj["$" + finalName] = ctor;
 	}
 
 	if (global) {
@@ -556,7 +543,7 @@ export function Type$generateConstructor(type: Type, fullName: string, baseType:
 			globalObj[finalName] = ctor;
 		}
 		else {
-			globalObj['$' + finalName] = ctor;
+			globalObj["$" + finalName] = ctor;
 		}
 	}
 
@@ -564,7 +551,7 @@ export function Type$generateConstructor(type: Type, fullName: string, baseType:
 
 	disableConstruction = true;
 
-	ctor.prototype = new baseConstructor();
+	ctor.prototype = new BaseConstructor();
 
 	disableConstruction = false;
 

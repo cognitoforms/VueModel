@@ -2,11 +2,10 @@ import { Event, EventObject, EventSubscriber } from "./events";
 import { Format } from "./format";
 import { Type, EntityType, isEntityType } from "./type";
 import { ObjectMeta } from "./object-meta";
-import { Property, Property$init, Property$setter } from "./property";
+import { Property, Property$init as InitProperty, Property$setter as SetProperty } from "./property";
 import { ObjectLookup } from "./helpers";
 
 export class Entity {
-
 	static ctorDepth: number = 0;
 
 	readonly meta: ObjectMeta;
@@ -22,7 +21,7 @@ export class Entity {
 			// TODO: Warn about direct call in dev build?
 		}
 		else if (Entity.ctorDepth === 0)
-				throw new Error("Entity constructor should not be called directly.");
+			throw new Error("Entity constructor should not be called directly.");
 		else {
 			this.accessed = new Event<Entity, EntityAccessEventArgs>();
 			this.changed = new Event<Entity, EntityChangeEventArgs>();
@@ -34,7 +33,7 @@ export class Entity {
 			else {
 				// Was id provided as undefined, or not provided at all?
 				if (arguments.length === 2)
-				properties = id;
+					properties = id;
 				id = type.newId();
 				isNew = true;
 			}
@@ -72,7 +71,7 @@ export class Entity {
 		let properties: ObjectLookup<any>;
 
 		// Convert property/value pair to a property dictionary
-		if (typeof property == "string") {
+		if (typeof property === "string") {
 			properties = {};
 			properties[property] = value;
 		}
@@ -99,7 +98,7 @@ export class Entity {
 				else
 					value = this.meta.type.model.serializer.deserialize(state, prop);
 
-				Property$init(prop, this, value);
+				InitProperty(prop, this, value);
 			}
 		}
 	}
@@ -110,7 +109,7 @@ export class Entity {
 		let properties: ObjectLookup<any>;
 
 		// Convert property/value pair to a property dictionary
-		if (typeof property == "string") {
+		if (typeof property === "string") {
 			properties = {};
 			properties[property] = value;
 		}
@@ -156,7 +155,7 @@ export class Entity {
 					value = this.meta.type.model.serializer.deserialize(state, prop);
 
 				if (value !== undefined)
-				Property$setter(prop, this, value);
+					SetProperty(prop, this, value);
 			}
 		}
 	}
