@@ -1,7 +1,7 @@
-﻿import { Event, EventSubscriber } from "./events";
+import { Event, EventSubscriber } from "./events";
 import { hasOwnProperty } from "./helpers";
 
-export interface ObservableArray<ItemType> extends Array<ItemType> {
+interface IObservableArray<ItemType> extends Array<ItemType> {
 
 	readonly __aob__: ArrayObserver<ItemType>;
 
@@ -10,7 +10,7 @@ export interface ObservableArray<ItemType> extends Array<ItemType> {
 	/**
 	 * Begin queueing changes to the array, make changes in the given callback function, then stop queueing and raise events
 	 */
-	batchUpdate(fn: (array: ObservableArray<ItemType>) => void): void;
+	batchUpdate(fn: (array: IObservableArray<ItemType>) => void): void;
 
 }
 
@@ -95,12 +95,11 @@ export interface ObservableArrayMethods<ItemType> extends Array<ItemType> {
 }
 
 export class ObservableArray<ItemType> {
-
 	/**
 	 * Returns a value indicating whether the given array is observable
 	 * @param array The array to check for observability
 	 */
-	public static isObservableArray<ItemType>(array: ItemType[] | ObservableArray<ItemType>): array is ObservableArray<ItemType> {
+	public static isObservableArray<ItemType>(array: ItemType[] | IObservableArray<ItemType>): array is IObservableArray<ItemType> {
 		return hasOwnProperty(array, "__aob__") && (array as any).__aob__.constructor === ArrayObserver;
 	}
 
@@ -108,14 +107,13 @@ export class ObservableArray<ItemType> {
 	 * Makes the given array observable, if not already
 	 * @param array The array to make observable
 	 */
-	public static ensureObservable<ItemType>(array: ItemType[] | ObservableArray<ItemType>): ObservableArray<ItemType> {
-		
+	public static ensureObservable<ItemType>(array: ItemType[] | IObservableArray<ItemType>): IObservableArray<ItemType> {
 		// Check to see if the array is already an observable list
 		if (ObservableArray.isObservableArray(array)) {
 			return array;
 		}
 
-		if (hasOwnProperty(array, '__aob__')) {
+		if (hasOwnProperty(array, "__aob__")) {
 			// TODO: Warn about invalid '__aob__' property?
 			return;
 		}
@@ -127,7 +125,7 @@ export class ObservableArray<ItemType> {
 			writable: false
 		});
 
-		Object.defineProperty(array, 'changed', {
+		Object.defineProperty(array, "changed", {
 			configurable: false,
 			enumerable: true,
 			get: function() {
@@ -139,25 +137,23 @@ export class ObservableArray<ItemType> {
 
 		ObservableArray$overrideNativeMethods.call(array);
 
-		return array as ObservableArray<ItemType>;
-
+		return array as IObservableArray<ItemType>;
 	}
 
 	/**
 	 * Creates a new observable array
 	 * @param items The initial array items
 	 */
-	public static create<ItemType>(items: ItemType[] = []): ObservableArray<ItemType> & ItemType[] {
-		let array: ObservableArray<ItemType>;
+	public static create<ItemType>(items: ItemType[] = []): IObservableArray<ItemType> & ItemType[] {
+		let array: IObservableArray<ItemType>;
 		if (items instanceof ObservableArray)
-			array = items;
+			array = items as IObservableArray<ItemType>;
 		else
 			array = new ObservableArrayImplementation(...items);
 
 		ObservableArray.ensureObservable<ItemType>(array);
 		return array;
 	}
-
 }
 
 export interface ArrayChangedEventArgs<ItemType> {
@@ -178,8 +174,7 @@ export interface ArrayChange<ItemType> {
 	items?: ItemType[];
 }
 
-export class ObservableArrayImplementation<ItemType> extends Array<ItemType> implements ObservableArray<ItemType>, ObservableArrayMethods<ItemType> {
-
+export class ObservableArrayImplementation<ItemType> extends Array<ItemType> implements IObservableArray<ItemType>, ObservableArrayMethods<ItemType> {
 	readonly __aob__: ArrayObserver<ItemType>;
 
 	/**
@@ -196,14 +191,14 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
 			writable: false
 		});
 
-		Object.defineProperty(this, 'changed', {
+		Object.defineProperty(this, "changed", {
 			get: function() {
 				return this.__aob__.changed;
 			}
 		});
 
 		if (this.constructor !== ObservableArrayImplementation) {
-			this["batchUpdate"] = (function (fn: (array: ObservableArray<ItemType>) => void) { ObservableArray$batchUpdate.call(this, fn); });
+			this["batchUpdate"] = (function (fn: (array: IObservableArray<ItemType>) => void) { ObservableArray$batchUpdate.call(this, fn); });
 			ObservableArray$overrideNativeMethods.call(this);
 		}
 	}
@@ -216,7 +211,7 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
 	/**
 	 * Begin queueing changes to the array, make changes in the given callback function, then stop queueing and raise events
 	 */
-	batchUpdate(fn: (array: ObservableArray<ItemType>) => void): void {
+	batchUpdate(fn: (array: IObservableArray<ItemType>) => void): void {
 		ObservableArray$batchUpdate.call(this, fn);
 	}
 
@@ -319,7 +314,6 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
 	unshift(...items: ItemType[]): number {
 		return ObservableArray$unshift.apply(this, arguments);
 	}
-
 }
 
 /**
@@ -330,7 +324,7 @@ export function ObservableArray$overrideNativeMethods<ItemType>(this: ItemType[]
 	(this as any)["copyWithin"] = ObservableArray$copyWithin;
 	(this as any)["fill"] = ObservableArray$fill;
 	(this as any)["pop"] = ObservableArray$pop;
-	(this as any)["push"] = ObservableArray$push;
+	(this as any)["push"] = ObservableArray$push.bind(this);
 	(this as any)["reverse"] = ObservableArray$reverse;
 	(this as any)["shift"] = ObservableArray$shift;
 	(this as any)["sort"] = ObservableArray$sort;
@@ -341,7 +335,7 @@ export function ObservableArray$overrideNativeMethods<ItemType>(this: ItemType[]
 /**
  * Begin queueing changes to the array, make changes in the given callback function, then stop queueing and raise events
  */
-export function ObservableArray$batchUpdate<ItemType>(this: ObservableArray<ItemType>, fn: (array: ObservableArray<ItemType>) => void): void {
+export function ObservableArray$batchUpdate<ItemType>(this: IObservableArray<ItemType>, fn: (array: IObservableArray<ItemType>) => void): void {
 	this.__aob__.startQueueingChanges();
 	try {
 		fn(this);
@@ -407,7 +401,7 @@ export function ObservableArray$pop<ItemType>(this: ObservableArrayImplementatio
  * @param items The elements to add to the end of the array.
  * @returns The new length property of the object upon which the method was called.
  */
-export function ObservableArray$push<ItemType>(this: ObservableArrayImplementation<ItemType>, ...items: ItemType[]): number {
+export function ObservableArray$push<ItemType>(...items: ItemType[]): number {
 	let originalLength = this.length;
 	let newLength: number = Array.prototype.push.apply(this, arguments);
 	if (newLength > 0) {
@@ -501,14 +495,13 @@ export function ObservableArray$unshift<ItemType>(this: ObservableArrayImplement
 }
 
 export interface ObservableArrayConstructor<ItemType> {
-	new(items?: ItemType[]): ObservableArray<ItemType>;
+	new(items?: ItemType[]): IObservableArray<ItemType>;
 	isObservableArray(array: ItemType[]): boolean;
-	ensureObservable(array: ItemType[]): ObservableArray<ItemType>;
-	create(items?: ItemType[]): ObservableArray<ItemType>;
+	ensureObservable(array: ItemType[]): IObservableArray<ItemType>;
+	create(items?: ItemType[]): IObservableArray<ItemType>;
 }
 
 export class ArrayObserver<ItemType> {
-
 	readonly array: ItemType[];
 
 	readonly changed: Event<ItemType[], ArrayChangedEventArgs<ItemType>>;
@@ -557,7 +550,6 @@ export class ArrayObserver<ItemType> {
 			delete this._queuedChanges;
 		}
 	}
-
 }
 
 function observableSplice(arr: any[], events: any[], index: number, removeCount: number, addItems: any[]): void {
@@ -578,7 +570,7 @@ function observableSplice(arr: any[], events: any[], index: number, removeCount:
 	
 		if (events) {
 			events.push({
-				action: 'remove',
+				action: "remove",
 				oldStartingIndex: index,
 				oldItems: removedItems,
 				newStartingIndex: null,
@@ -602,7 +594,7 @@ function observableSplice(arr: any[], events: any[], index: number, removeCount:
 
 		if (events) {
 			events.push({
-				action: 'add',
+				action: "add",
 				oldStartingIndex: null,
 				oldItems: null,
 				newStartingIndex: index,
@@ -613,11 +605,11 @@ function observableSplice(arr: any[], events: any[], index: number, removeCount:
 }
 
 export function updateArray(array: any[], values: any[] /*, trackEvents */): any[] {
-	var trackEvents: boolean = arguments[2],
-		events: any[] = trackEvents ? [] : null,
-		pointer = 0,
-		srcSeek = 0,
-		tgtSeek = 0;
+	var trackEvents: boolean = arguments[2];
+	var events: any[] = trackEvents ? [] : null;
+	var pointer = 0;
+	var srcSeek = 0;
+	var tgtSeek = 0;
 
 	while (srcSeek < array.length) {
 		if (array[srcSeek] === values[tgtSeek]) {

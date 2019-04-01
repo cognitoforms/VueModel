@@ -1,12 +1,11 @@
-import Vue, { VNode } from 'vue';
-import { Component, Prop } from 'vue-property-decorator'
+import Vue, { VNode } from "vue";
+import { Component, Prop } from "vue-property-decorator";
 import { SourceAdapter, isSourceAdapter } from "./source-adapter";
-import { SourcePathAdapter } from './source-path-adapter';
-import { Entity } from '../lib/model.js/src/entity';
+import { SourcePathAdapter } from "./source-path-adapter";
+import { Entity } from "../lib/model.js/src/entity";
 
 @Component
 export class VMSource extends Vue {
-
 	@Prop({ type: [String, Object] })
 	source: string | SourceAdapter<any>;
 
@@ -29,5 +28,4 @@ export class VMSource extends Vue {
 
 		return slotNodes[0];
 	}
-
 }

@@ -18,10 +18,9 @@ const detectRunawayRules = true;
 // cause this scenario, but in practice they are the primary use-case for event scope. 
 const nonExitingScopeNestingCount = 100;
 
-let Rule$customRuleIndex = 0
+let Rule$customRuleIndex = 0;
 
 export class Rule {
-
 	// Public read-only properties: aspects of the object that cannot be
 	// changed without fundamentally changing what the object is
 	readonly rootType: Type;
@@ -40,7 +39,6 @@ export class Rule {
 	 * @param options The options for the rule.
 	 */
 	constructor(rootType: Type, name: string, options: RuleOptions & RuleInvocationOptions) {
-
 		// Track the root type
 		this.rootType = rootType;
 
@@ -48,7 +46,6 @@ export class Rule {
 
 		// Configure the rule based on the specified options
 		if (options) {
-
 			if (options.onInit)
 				this.onInit();
 			if (options.onInitNew)
@@ -75,7 +72,6 @@ export class Rule {
 
 	// Indicates that the rule should run only for new instances when initialized
 	onInitNew(): this {
-
 		// ensure the rule has not already been registered
 		if (this._registered)
 			throw new Error("Rules cannot be configured once they have been registered: " + this.name);
@@ -87,7 +83,6 @@ export class Rule {
 
 	// indicates that the rule should run only for existing instances when initialized
 	onInitExisting(): this {
-
 		// ensure the rule has not already been registered
 		if (this._registered)
 			throw new Error("Rules cannot be configured once they have been registered: " + this.name);
@@ -99,7 +94,6 @@ export class Rule {
 
 	// indicates that the rule should run for both new and existing instances when initialized
 	onInit(): this {
-
 		// ensure the rule has not already been registered
 		if (this._registered)
 			throw new Error("Rules cannot be configured once they have been registered: " + this.name);
@@ -116,7 +110,6 @@ export class Rule {
 	onChangeOf(predicates: PropertyPath[]): this
 	onChangeOf(...predicates: PropertyPath[]): this
 	onChangeOf(predicates: any): this {
-
 		// ensure the rule has not already been registered
 		if (this._registered)
 			throw new Error("Rules cannot be configured once they have been registered: " + this.name);
@@ -143,7 +136,6 @@ export class Rule {
 	returns(properties: (string | Property)[]): this
 	returns(...properties: (string | Property)[]): this
 	returns(properties: any): this {
-
 		// Ensure the rule has not already been registered
 		if (this._registered)
 			throw new Error("Rules cannot be configured once they have been registered: " + this.name);
@@ -167,7 +159,6 @@ export class Rule {
 
 	// registers the rule based on the configured invocation types, predicates, and return values
 	register(): void {
-
 		let rule = this;
 
 		if (rule._registered) {
@@ -175,16 +166,16 @@ export class Rule {
 		}
 
 		// Indicate that the rule should now be considered registered and cannot be reconfigured
-		Object.defineProperty(this, '_registered', { enumerable: false, value: true, writable: false });
+		Object.defineProperty(this, "_registered", { enumerable: false, value: true, writable: false });
 
 		// register for init new
 		if (rule.invocationTypes & RuleInvocationType.InitNew) {
-			rule.rootType.initNew.subscribe(function (args) { executeRule(rule, args.entity) });
+			rule.rootType.initNew.subscribe(function (args) { executeRule(rule, args.entity); });
 		}
 
 		// register for init existing
 		if (rule.invocationTypes & RuleInvocationType.InitExisting) {
-			rule.rootType.initExisting.subscribe(function (args) { executeRule(rule, args.entity) });
+			rule.rootType.initExisting.subscribe(function (args) { executeRule(rule, args.entity); });
 		}
 
 		// register for property change
@@ -209,7 +200,6 @@ export class Rule {
 
 		// register for property get
 		if (rule.invocationTypes & RuleInvocationType.PropertyGet && rule.returnValues) {
-
 			// register for property get events for each return value to calculate the property when accessed
 			rule.returnValues.forEach(function (returnValue) {
 				returnValue.accessed.subscribe(
@@ -256,7 +246,6 @@ export class Rule {
 				);
 			});
 		}
-
 	}
 }
 
@@ -355,11 +344,11 @@ function executeRule(rule: Rule, obj: Entity): void {
 	});
 };
 
-export function Rule$ensureConditionType<DesiredConditionType = ErrorConditionType | WarningConditionType>(ruleName: string, typeOrProp: Type | Property, category: string = "Error"): ErrorConditionType | WarningConditionType {
+export function Rule$ensureConditionType(ruleName: string, typeOrProp: Type | Property, category: string = "Error"): ErrorConditionType | WarningConditionType {
 	var generatedCode =
 		typeOrProp instanceof Property ? `${typeOrProp.containingType.fullName}.${typeOrProp.name}.${ruleName}` :
-		typeOrProp instanceof Type ? `${typeOrProp}.${ruleName}` : 
-		ruleName;
+			typeOrProp instanceof Type ? `${typeOrProp}.${ruleName}` : 
+				ruleName;
 
 	var counter: string | number = "";
 

@@ -28,32 +28,30 @@ export interface VueInternals {
 }
 
 export function ensureVueInternalTypes(target: VueInternals, Vue: VueConstructor): void {
+	// Exit early if Observer or Dep are already defined
+	if (target.Observer || target.Dep) {
+		return;
+	}
 
-    // Exit early if Observer or Dep are already defined
-    if (target.Observer || target.Dep) {
-        return;
-    }
+	let observableData: any;
 
-    let observableData: any;
+	if (Vue.observable) {
+		observableData = Vue.observable({});
+	}
+	else {
+		let component = new Vue({
+			data() {
+				return { };
+			}
+		});
 
-    if (Vue.observable) {
-        observableData = Vue.observable({});
-    }
-    else {
-        let component = new Vue({
-            data() {
-                return { };
-            },
-        });
+		observableData = component.$data;
+	}
 
-        observableData = component.$data;
-    }
-
-    let observer = (observableData as any).__ob__ as Observer;
-    let observerCtor = (observer as any).constructor as ObserverConstructor;
+	let observer = (observableData as any).__ob__ as Observer;
+	let observerCtor = (observer as any).constructor as ObserverConstructor;
 	let depCtor = observer.dep.constructor as DepConstructor;
 
-    target.Observer = observerCtor;
+	target.Observer = observerCtor;
 	target.Dep = depCtor;
-
 }
