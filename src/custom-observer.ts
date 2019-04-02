@@ -7,7 +7,7 @@ import { Entity } from "../lib/model.js/src/entity";
 let VueInternals = (VueModel as any)._VueInternals as VueInternals;
 
 if (!VueInternals.Observer) {
-    throw new Error("Vue's Observer constructor has not yet been obtained, be sure to call Vue.use(VueModel).");
+	throw new Error("Vue's Observer constructor has not yet been obtained, be sure to call Vue.use(VueModel).");
 }
 
 let Observer = VueInternals.Observer;
@@ -29,8 +29,8 @@ export class CustomObserver<TValue> extends Observer implements TypedObserver<TV
     }
 
     walk(): void {
-        // Overwrite the `walk()` method to prevent Vue's default property walking behavior
-        // TODO: Should we allow this to happen?
+    	// Overwrite the `walk()` method to prevent Vue's default property walking behavior
+    	// TODO: Should we allow this to happen?
     }
 
     /**
@@ -47,18 +47,18 @@ export class CustomObserver<TValue> extends Observer implements TypedObserver<TV
 
         let propertyDeps = this.propertyDeps;
 
-        if (hasOwnProperty(propertyDeps, propertyName) && propertyDeps[propertyName] instanceof Dep) {
+    	if (hasOwnProperty(propertyDeps, propertyName) && propertyDeps[propertyName] instanceof Dep) {
             propertyDep = propertyDeps[propertyName];
-        }
-        else if (create) {
+    	}
+    	else if (create) {
             propertyDep = new Dep();
-            Object.defineProperty(propertyDeps, propertyName, {
-                configurable: true,
-                enumerable: true,
-                value: propertyDep,
-                writable: true
-            });
-        }
+    		Object.defineProperty(propertyDeps, propertyName, {
+    			configurable: true,
+    			enumerable: true,
+    			value: propertyDep,
+    			writable: true
+    		});
+    	}
 
         return propertyDep;
     }
@@ -69,25 +69,25 @@ export class CustomObserver<TValue> extends Observer implements TypedObserver<TV
      * @param value The current property value
      */
     onPropertyAccess(propertyName: string, value: any): void {
-        let Dep = VueInternals.Dep;
-        // Attach dependencies if something is watching
-        if (Dep.target) {
-            // Get or initialize the `Dep` object
+    	let Dep = VueInternals.Dep;
+    	// Attach dependencies if something is watching
+    	if (Dep.target) {
+    		// Get or initialize the `Dep` object
             var propertyDep = this.getPropertyDep(propertyName, true);
 
-            // Let an active observer target know that the property was accessed and is a dependency
-            propertyDep.depend();
+    		// Let an active observer target know that the property was accessed and is a dependency
+    			propertyDep.depend();
 
-            var childOb = observeEntity(value);
-            if (childOb) {
-                childOb.dep.depend();
-            }
+    		var childOb = observeEntity(value);
+    		if (childOb) {
+    			childOb.dep.depend();
+    		}
 
-            if (Array.isArray(value)) {
-                // Track dependency on children as well (creating entity observer as needed)
-                dependChildArray(value);
-            }
-        }
+    		if (Array.isArray(value)) {
+    			// Track dependency on children as well (creating entity observer as needed)
+    			dependChildArray(value);
+    		}
+    	}
     }
 
     /**
@@ -97,16 +97,16 @@ export class CustomObserver<TValue> extends Observer implements TypedObserver<TV
      */
     onPropertyChange(propertyName: string, newValue: any): void {
 
-        // Get or initialize the `Dep` object
+    	// Get or initialize the `Dep` object
         var propertyDep = this.getPropertyDep(propertyName, true);
     
-        // Make sure a new value that is an entity is observable
-        if (newValue && newValue instanceof Entity) {
-            observeEntity(newValue).ensureObservable();
-        }
+    	// Make sure a new value that is an entity is observable
+    	if (newValue && newValue instanceof Entity) {
+    		observeEntity(newValue).ensureObservable();
+    	}
 
-        // Notify of property change
-        propertyDep.notify(); 
+    	// Notify of property change
+    		propertyDep.notify(); 
     }
 
 }

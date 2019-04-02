@@ -26,25 +26,25 @@ export class SourceItemAdapter<TEntity extends Entity, TValue> extends Vue imple
     
     isSubscribedToSourceChanges: boolean = false;
 
-	created(): void {
-        // Track the intial index internally
-        this.internalIndex = this.index;
+    created(): void {
+    	// Track the intial index internally
+    	this.internalIndex = this.index;
 
-        // Track changes to the list and update the component's state appropriately
-        if (!this.suppressChangeTracking) {
-            this.subscribeToSourceChanges();
-        }
-	}
+    	// Track changes to the list and update the component's state appropriately
+    	if (!this.suppressChangeTracking) {
+    		this.subscribeToSourceChanges();
+    	}
+    }
 
 	@Watch('index')
-	onIndexChanged(index: number): void {
-        this.internalIndex = index;
-	}
+    onIndexChanged(index: number): void {
+    	this.internalIndex = index;
+    }
 
 	get parent(): SourceAdapter<TValue[]> {
-        if (isSourceAdapter(this.parentSource)) {
-            return this.parentSource;
-        }
+		if (isSourceAdapter(this.parentSource)) {
+			return this.parentSource;
+		}
 
 		for (let parentVm: Vue = this.$parent.$parent, parentLevel = 1; parentVm != null; parentVm = parentVm.$parent, parentLevel += 1) {
 			if (isSourceAdapter((parentVm as any).$source)) {
@@ -53,7 +53,7 @@ export class SourceItemAdapter<TEntity extends Entity, TValue> extends Vue imple
 		}
 
 		throw new Error("Parent source not found!");
-    }
+	}
 
 	/**
 	 *  Indicants whether the source property is readonly.
@@ -62,79 +62,79 @@ export class SourceItemAdapter<TEntity extends Entity, TValue> extends Vue imple
 	 */
 	get readonly(): boolean {
 		return this.parent.readonly || (this.overrides ? this.overrides.readonly : false);
-    }
+	}
 
-    subscribeToSourceChanges(): void {
-        if (this.isSubscribedToSourceChanges) {
-            return;
-        }
+	subscribeToSourceChanges(): void {
+		if (this.isSubscribedToSourceChanges) {
+			return;
+		}
 
-        let _this = this;
-        let array = ObservableArray.ensureObservable(this.parent.value);
-        array.changed.subscribe(function (args) {
-            let index: number = _this.internalIndex;
-            let isOrphaned: boolean = _this.isOrphaned;
-            args.changes.forEach(function (c) {
-                if (c.type === ArrayChangeType.remove) {
-                    if (c.startIndex === index) {
-                        index = -1;
-                        isOrphaned = true;
-                    }
+		let _this = this;
+		let array = ObservableArray.ensureObservable(this.parent.value);
+		array.changed.subscribe(function (args) {
+			let index: number = _this.internalIndex;
+			let isOrphaned: boolean = _this.isOrphaned;
+			args.changes.forEach(function (c) {
+				if (c.type === ArrayChangeType.remove) {
+					if (c.startIndex === index) {
+						index = -1;
+						isOrphaned = true;
+					}
                     else if (c.startIndex < index) {
-                        if (c.items.length > index - c.startIndex) {
-                            index = -1;
-                            isOrphaned = true;
-                        }
-                        else {
-                            index -= c.items.length;
-                        }
-                    }
-                }
-                else if (c.type === ArrayChangeType.add) {
+						if (c.items.length > index - c.startIndex) {
+							index = -1;
+							isOrphaned = true;
+						}
+						else {
+							index -= c.items.length;
+						}
+					}
+				}
+				else if (c.type === ArrayChangeType.add) {
                     if (c.startIndex >= 0) {
-                        if (c.startIndex <= index) {
-                            index += c.items.length;
-                        }
-                    }
-                }
-            });
+						if (c.startIndex <= index) {
+							index += c.items.length;
+						}
+					}
+				}
+			});
             if (isOrphaned != _this.isOrphaned) {
-                Vue.set(_this, "isOrphaned", isOrphaned);
-            }
+				Vue.set(_this, "isOrphaned", isOrphaned);
+			}
 			if (index != _this.internalIndex) {
 				Vue.set(_this, "internalIndex", index);
-            }
-        });
+			}
+		});
 
-        this.isSubscribedToSourceChanges = true;
-    }
+		this.isSubscribedToSourceChanges = true;
+	}
 
-    get value(): TValue {
-        let list = this.parent.value;
+	get value(): TValue {
+		let list = this.parent.value;
 		let value = list[this.internalIndex];
-        return value as TValue;
-    }
+		return value as TValue;
+	}
 
-    get displayValue(): string {
-        let list = this.parent.value;
+	get displayValue(): string {
+		let list = this.parent.value;
 
 		let value = list[this.internalIndex];
 
-        let displayValue: string | string[];
+		let displayValue: string | string[];
 
-        if (isSourcePropertyAdapter(this.parent) && this.parent.property.format != null) {
-            // Use a markup or property format if available
-            displayValue = this.parent.property.format.convert(value);
-        }
-        else {
-            displayValue = value.toString();
-        }
+		if (isSourcePropertyAdapter(this.parent) && this.parent.property.format != null) {
+			// Use a markup or property format if available
+			displayValue = this.parent.property.format.convert(value);
+		}
+		else {
+			displayValue = value.toString();
+		}
 
-        return displayValue;
-    }
+		return displayValue;
+	}
 
-    toString(): string {
+	toString(): string {
 		return "Source[" + this.internalIndex + "]";
-    }
+	}
 
 }

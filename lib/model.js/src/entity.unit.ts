@@ -14,7 +14,8 @@ function resetModel() {
 			Title: String,
 			Director: "Person",
 			ReleaseDate: Date,
-			Genres: "String[]"
+			Genres: "String[]",
+			Cast: "Person[]"
 		}
 	});
 }
@@ -22,7 +23,8 @@ function resetModel() {
 const Alien = {
 	Title: "Alien",
 	Director: { FirstName: "Ridley", LastName: "Scott" },
-	Genres: ["science fiction", "action"]
+	Genres: ["science fiction", "action"],
+	Cast: []
 };
 
 describe("Entity", () => {
@@ -152,6 +154,34 @@ describe("Entity", () => {
 				const state = movie.serialize();
 				expect(state).toEqual(Alien);
 			});
+		});
+	});
+
+	describe("list", () => {
+		it("can add/remove primitive items", () => {
+			const movie = new Types.Movie(Alien);
+			const horror = "horror";
+
+			movie.Genres.push(horror);
+			expect(movie.Genres.slice()).toEqual([...Alien.Genres, horror]);
+
+			movie.Genres.pop();
+			expect(movie.Genres.slice()).toEqual(Alien.Genres);
+		});
+
+		it("can add/remove entity items", () => {
+			const movie = new Types.Movie(Alien);
+			const sigourney = new Types.Person({ FirstName: "Sigourney", LastName: "Weaver" });
+			const john = new Types.Person({ FirstName: "John", LastName: "Hurt" });
+
+			movie.Cast.push(sigourney);
+			expect(movie.Cast[0]).toBe(sigourney);
+
+			movie.Cast.push(john);
+			expect(movie.Cast[1]).toBe(john);
+
+			movie.Cast.pop();
+			expect(movie.Cast.slice()).toEqual([sigourney]);
 		});
 	});
 });
