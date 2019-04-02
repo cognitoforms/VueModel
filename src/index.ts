@@ -4,6 +4,7 @@ import { SourcePathAdapter } from "./source-path-adapter";
 import { SourceItemAdapter } from "./source-item-adapter";
 import { Model, ModelOptions } from "../lib/model.js/src/model"
 import { PropertyConverter, PropertyInjector, PropertySerializationResult } from "../lib/model.js/src/entity-serializer"
+import { TypeExtensionOptions, RuleOrMethodFunctionOrOptions } from "../lib/model.js/src/type"
 import { Entity } from "../lib/model.js/src/entity"
 import { Property } from "../lib/model.js/src/property"
 
@@ -13,9 +14,12 @@ export default VueModel;
 import "../lib/model.js/src/resource-en.ts";
 
 // Export any additional *types* to be referenced externally
+// TODO: Change to export { ... } from "./...";
 export type Model = Model;
 export type ModelOptions = ModelOptions;
-export { Entity };
+export type TypeExtensionOptions<TEntity extends Entity> = TypeExtensionOptions<TEntity>;
+export type RuleOrMethodFunctionOrOptions<TEntity extends Entity> = RuleOrMethodFunctionOrOptions<TEntity>;
+export type Entity = Entity;
 export type Property = Property;
 export type PropertyConverter = PropertyConverter;
 export type PropertyInjector = PropertyInjector;

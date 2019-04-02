@@ -319,25 +319,25 @@ export class Property implements PropertyPath {
 
 			// Error
 			if (options.error) {
+				(Array.isArray(options.error) ? options.error : [options.error]).forEach(errorOptions => {
+					let errorFn = errorOptions.function;
+					let errorDependsOn = errorOptions.dependsOn;
 
-				let isValid = options.error.function;
-				let message = options.error.message;
+					if (typeof (errorFn) !== "function") {
+						throw new Error(`Invalid property 'error' function of type '${getTypeName(errorOptions.function)}'.`);
+					}
 
-				if (typeof (isValid) !== "function") {
-					throw new Error(`Invalid property 'get' function of type '${getTypeName(options.error.function)}'.`);
-				}
-
-				this.containingType.model.ready(() => {
-
-					new ValidationRule(this.containingType, {
-						property: this,
-						isValid: function () {
-							return !isValid.call(this) || !message || (typeof (message) === "function" && !message.call(this));
-						},
-						onChangeOf: resolveDependsOn(this, "allowedValues", options.error.dependsOn),
-						message: message
-					})
-					.register();
+					this.containingType.model.ready(() => {
+						new ValidationRule(this.containingType, {
+							property: this,
+							isValid: function () {
+								return !errorFn.call(this);
+							},
+							onChangeOf: resolveDependsOn(this, "", errorDependsOn),
+							message: errorFn
+						})
+						.register();
+					});
 				});
 			}
 
@@ -523,7 +523,7 @@ export interface PropertyOptions {
 	required?: boolean | PropertyBooleanFunction;
 
 	/** An optional dependency function object that adds an error with the specified message when true. */
-	error?: { function: (this: Entity) => boolean; dependsOn: string; message: string | ((this: Entity) => string) };
+	error?: PropertyErrorFunction | PropertyErrorFunction[];
 }
 
 export interface PropertyFormatOptions {
@@ -538,6 +538,8 @@ export interface PropertyFormatOptions {
 	reformat: string;
 
 }
+
+export type PropertyErrorFunction = { function: (this: Entity) => string; dependsOn: string };
 
 export type PropertyValueFunction = () => any;
 

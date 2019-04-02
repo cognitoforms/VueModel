@@ -40,7 +40,7 @@ export class Type {
 	readonly destroy: EventSubscriber<Type, EntityDestroyEventArgs>;
 	// readonly conditionsChanged: EventSubscriber<Type, ConditionTargetsChangedEventArgs>;
 
-	constructor(model: Model, fullName: string, baseType: Type = null, options?: TypeOptions) {
+	constructor(model: Model, fullName: string, baseType: Type = null, format: string | Format<Entity>, options?: TypeExtensionOptions<Entity>) {
 
 		this.model =  model;
 		this.fullName = fullName;
@@ -58,6 +58,17 @@ export class Type {
 		this.initExisting = new Event<Type, EntityInitExistingEventArgs>();
 		this.destroy = new Event<Type, EntityDestroyEventArgs>();
 		// this.conditionsChanged = new Event<Type, ConditionTargetsChangedEventArgs>();
+
+		// Set Format
+		if (format) {
+			if (typeof (format) === "string") {
+				this.model.ready(() => {
+					this.format = this.model.getFormat<Entity>(this.jstype, format);
+				});
+			}
+			else
+				this.format = format;
+		}
 
 		// Apply type options
 		if (options)
@@ -363,25 +374,12 @@ export class Type {
 	 * Extends the current type with the specified format, properties and methods
 	 * @param options The options specifying how to extend the type
 	 */
-	extend(options: TypeOptions): void {
+	extend(options: TypeExtensionOptions<Entity>): void {
 
 		// Use prepare() to defer property path resolution while the model is being extended
 		this.model.prepare(() => {
 
-			const isMethod = (value: any): value is RuleOptions => value.hasOwnProperty('execute');
-
-			// Set Format
-			if (options.$format) {
-				if (typeof (options.$format) === "string") {
-					let format = options.$format;
-					this.model.ready(() => {
-						this.format = this.model.getFormat<Entity>(this.jstype, format);
-					});
-				}
-				else
-					this.format = options.$format;
-				delete options["$format"];
-			}
+			const isRuleMethod = (value: any): value is RuleOrMethodOptions<Entity> => value.hasOwnProperty('function');
 
 			// Type Members
 			for (let [name, member] of Object.entries(options)) {
@@ -398,12 +396,13 @@ export class Type {
 				else if (isValueType(member))
 					member = { type: member };
 
-				// Method Function
-				else if (typeof (member) === "function")
-					member = { execute: member as (this: Entity) => any };
+				// Non-Rule Method/Function
+				if (typeof (member) === "function") {
+					Type$generateMethod(this, this.jstype.prototype, name, member);
+				}
 
-				// Method
-				if (isMethod(member)) {
+				// Rule Method
+				else if (isRuleMethod(member)) {
 
 					// TODO: Add rule/method here
 
@@ -468,14 +467,19 @@ export interface TypeConstructor {
 }
 
 export interface TypeOptions {
-
 	$extends?: string;
-
 	$format?: string | Format<Entity>;
+}
 
-	/** The name of the property, method, or type attribute */
-	[name: string]: string | ValueType | Function | Format<Entity> | ((this: Entity) => any) | PropertyOptions | RuleOptions;
+export interface RuleOrMethodOptions<TEntity extends Entity> {
+	function: (this: TEntity, ...args: any[]) => any;
+	dependsOn?: PropertyPath[];
+}
 
+export type RuleOrMethodFunctionOrOptions<EntityType extends Entity> = ((this: EntityType, ...args: any[]) => any) | RuleOrMethodOptions<EntityType>;
+
+export interface TypeExtensionOptions<EntityType extends Entity> {
+	[name: string]: ValueType | PropertyOptions | RuleOrMethodFunctionOrOptions<EntityType>;
 }
 
 export function isValueType(type: any): type is ValueType {
@@ -490,6 +494,10 @@ export function isValue(value: any, valueType: any = null): value is Value {
 
 export function isEntityType(type: any): type is EntityType {
 	return type.meta && type.meta instanceof Type;
+}
+
+export function Type$generateMethod(type: Type, target: any, name: string, member: Function): void {
+	target[name] = member;
 }
 
 // TODO: Get rid of disableConstruction?

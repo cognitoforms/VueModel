@@ -1,7 +1,7 @@
 import { Event, EventSubscriber } from "./events";
 import { randomText, ObjectLookup } from "./helpers";
-import { EntityRegisteredEventArgs, EntityUnregisteredEventArgs } from "./entity";
-import { Type, PropertyType, isEntityType, ValueType, TypeOptions } from "./type";
+import { EntityRegisteredEventArgs, EntityUnregisteredEventArgs, Entity } from "./entity";
+import { Type, PropertyType, isEntityType, ValueType, TypeOptions, TypeExtensionOptions } from "./type";
 import { Format, createFormat } from "./format";
 import { EntitySerializer } from "./entity-serializer";
 import { getResource, defineResources } from "./resource";
@@ -237,12 +237,10 @@ export interface ModelConstructor {
 }
 
 export type ModelOptions = {
-
 	/**
-	 * The name of the type.
+	 * Standard type options ($extends and $format), properties, and methods/rules
 	 */
-	[name: string]: TypeOptions;
-
+	[name: string]: TypeOptions & TypeExtensionOptions<Entity>;
 }
 
 export type ModelLocaleOption = {
@@ -253,12 +251,10 @@ export type ModelLocaleOption = {
 }
 
 export type ModelNamespaceOption = {
-
 	/**
 	 * The object to use as the namespace for model types
 	 */
 	$namespace?: object;
-
 }
 
 export type ModelConfiguration = {
