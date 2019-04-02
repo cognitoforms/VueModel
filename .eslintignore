@@ -1,4 +1,11 @@
-lib/model.js/node_modules/*
-model-definition-example.ts
-**/*.unit.ts
-**/*.d.ts
+**/dist/*
+**/obj/*
+**/bin/*
+**/node_modules/*
+**/*.config.[jt]s
+**/LICENSE
+*.json
+*.d.ts
+vendor/
+assets/
+sass/

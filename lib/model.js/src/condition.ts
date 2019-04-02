@@ -6,7 +6,6 @@ import { PropertyPath } from "./property-path";
 import { ObservableArray } from "./observable-array";
 
 export class Condition {
-
 	type: ConditionType;
 	message: string;
 	origin: string;
@@ -20,7 +19,6 @@ export class Condition {
 		* @param properties The set of property paths specifying which properties and entities the condition should be attached to.
 		*/
 	constructor(type: ConditionType, message: string, target: Entity, properties: PropertyPath[] = []) {
-
 		this.type = type;
 		this.message = message || (type ? type.message : undefined);
 
@@ -28,15 +26,12 @@ export class Condition {
 
 		// create targets if a root was specified
 		if (target) {
-
 			// process each property path to build up the condition sources
 			for (let p = properties.length - 1; p >= 0; p--) {
-
 				let path = properties[p];
 
 				// add condition targets to the last property of each path
 				path.each(target, (entity, property) => {
-
 					// see if a target already exists for the current instance
 					let conditionTarget = null;
 					for (let t = targets.length - 1; t >= 0; t--) {
@@ -62,7 +57,6 @@ export class Condition {
 
 		// raise events for the new condition
 		if (type !== FormatError.ConditionType) {
-
 			let conditionType = type;
 
 			// raise events on condition targets
@@ -126,7 +120,6 @@ export class Condition {
 	toString(): string {
 		return this.message;
 	}
-
 }
 
 export interface ConditionConstructor {

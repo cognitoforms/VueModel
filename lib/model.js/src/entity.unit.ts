@@ -1,6 +1,6 @@
+/* eslint-disable no-new */
 import { Model } from "./model";
 import { Entity, EntityConstructorForType } from "./entity";
-import { ObjectMeta } from "./object-meta";
 let Types: { [name: string]: EntityConstructorForType<Entity> };
 function resetModel() {
 	Types = {};
@@ -24,7 +24,7 @@ const Alien = {
 	Title: "Alien",
 	Director: { FirstName: "Ridley", LastName: "Scott" },
 	Genres: ["science fiction", "action"],
-	Cast: []
+	Cast: [] as string[]
 };
 
 describe("Entity", () => {
@@ -71,7 +71,7 @@ describe("Entity", () => {
 				const changed = jest.fn();
 				Types.Person.meta.getProperty("FirstName").changed.subscribe(changed);
 				Types.Person.meta.getProperty("LastName").changed.subscribe(changed);
-				const person = new Types.Person("1", Alien.Director);
+				new Types.Person("1", Alien.Director);
 
 				expect(changed).not.toBeCalled();
 			});
@@ -79,7 +79,7 @@ describe("Entity", () => {
 			test("value list property", () => {
 				const changed = jest.fn();
 				Types.Movie.meta.getProperty("Genres").changed.subscribe(changed);
-				const movie = new Types.Movie("1", Alien);
+				new Types.Movie("1", Alien);
 
 				expect(changed).not.toBeCalled();
 			});
@@ -96,7 +96,7 @@ describe("Entity", () => {
 		const _default = {
 			Title: "Untitled",
 			Director: { FirstName: "John", LastName: "Doe" },
-			Genres: new Array<string>()
+			Genres: [] as string[]
 		};
 
 		describe("static", () => {
@@ -159,7 +159,7 @@ describe("Entity", () => {
 
 	describe("list", () => {
 		it("can add/remove primitive items", () => {
-			const movie = new Types.Movie(Alien);
+			const movie = new Types.Movie(Alien) as any;
 			const horror = "horror";
 
 			movie.Genres.push(horror);
@@ -170,7 +170,7 @@ describe("Entity", () => {
 		});
 
 		it("can add/remove entity items", () => {
-			const movie = new Types.Movie(Alien);
+			const movie = new Types.Movie(Alien) as any;
 			const sigourney = new Types.Person({ FirstName: "Sigourney", LastName: "Weaver" });
 			const john = new Types.Person({ FirstName: "John", LastName: "Hurt" });
 

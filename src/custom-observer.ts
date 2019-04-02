@@ -1,10 +1,10 @@
 import { VueModel } from "./vue-model";
-import { VueInternals, Dep } from "./vue-internals";
+import { VueInternals as VueInternalsType, Dep } from "./vue-internals";
 import { hasOwnProperty } from "./helpers";
 import { TypedObserver, observeEntity, dependChildArray } from "./vue-model-observability";
 import { Entity } from "../lib/model.js/src/entity";
 
-let VueInternals = (VueModel as any)._VueInternals as VueInternals;
+let VueInternals = (VueModel as any)._VueInternals as VueInternalsType;
 
 if (!VueInternals.Observer) {
 	throw new Error("Vue's Observer constructor has not yet been obtained, be sure to call Vue.use(VueModel).");
@@ -18,14 +18,11 @@ let Observer = VueInternals.Observer;
  * walking the object's own properties
  */
 export class CustomObserver<TValue> extends Observer implements TypedObserver<TValue> {
-
-    value: TValue;
-
     propertyDeps: { [name: string]: Dep };
 
     constructor(value: TValue) {
-        super(value);
-        Object.defineProperty(this, 'propertyDeps', { configurable: true, enumerable: true, value: {}, writable: false });
+    	super(value);
+    	Object.defineProperty(this, "propertyDeps", { configurable: true, enumerable: true, value: {}, writable: false });
     }
 
     walk(): void {
@@ -41,17 +38,17 @@ export class CustomObserver<TValue> extends Observer implements TypedObserver<TV
      * @param create If true, create the `Dep` object if it doesn't already exist
      */
     getPropertyDep(propertyName: string, create: boolean = false): Dep {
-        let propertyDep: Dep;
+    	let propertyDep: Dep;
 
-        let Dep = VueInternals.Dep;
+    	let Dep = VueInternals.Dep;
 
-        let propertyDeps = this.propertyDeps;
+    	let propertyDeps = this.propertyDeps;
 
     	if (hasOwnProperty(propertyDeps, propertyName) && propertyDeps[propertyName] instanceof Dep) {
-            propertyDep = propertyDeps[propertyName];
+    		propertyDep = propertyDeps[propertyName];
     	}
     	else if (create) {
-            propertyDep = new Dep();
+    		propertyDep = new Dep();
     		Object.defineProperty(propertyDeps, propertyName, {
     			configurable: true,
     			enumerable: true,
@@ -60,7 +57,7 @@ export class CustomObserver<TValue> extends Observer implements TypedObserver<TV
     		});
     	}
 
-        return propertyDep;
+    	return propertyDep;
     }
 
     /**
@@ -73,7 +70,7 @@ export class CustomObserver<TValue> extends Observer implements TypedObserver<TV
     	// Attach dependencies if something is watching
     	if (Dep.target) {
     		// Get or initialize the `Dep` object
-            var propertyDep = this.getPropertyDep(propertyName, true);
+    		var propertyDep = this.getPropertyDep(propertyName, true);
 
     		// Let an active observer target know that the property was accessed and is a dependency
     			propertyDep.depend();
@@ -96,9 +93,8 @@ export class CustomObserver<TValue> extends Observer implements TypedObserver<TV
      * @param newValue The new property value
      */
     onPropertyChange(propertyName: string, newValue: any): void {
-
     	// Get or initialize the `Dep` object
-        var propertyDep = this.getPropertyDep(propertyName, true);
+    	var propertyDep = this.getPropertyDep(propertyName, true);
     
     	// Make sure a new value that is an entity is observable
     	if (newValue && newValue instanceof Entity) {
@@ -108,5 +104,4 @@ export class CustomObserver<TValue> extends Observer implements TypedObserver<TV
     	// Notify of property change
     		propertyDep.notify(); 
     }
-
 }

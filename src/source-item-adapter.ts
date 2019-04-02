@@ -1,5 +1,5 @@
-import Vue from 'vue';
-import { Component, Prop, Watch } from 'vue-property-decorator'
+import Vue from "vue";
+import { Component, Prop, Watch } from "vue-property-decorator";
 import { Entity } from "../lib/model.js/src/entity";
 import { SourceAdapter, isSourceAdapter, isSourcePropertyAdapter } from "./source-adapter";
 import { SourcePathAdapter, SourcePathOverrides } from "./source-path-adapter";
@@ -7,7 +7,6 @@ import { ObservableArray, ArrayChangeType } from "../lib/model.js/src/observable
 
 @Component
 export class SourceItemAdapter<TEntity extends Entity, TValue> extends Vue implements SourceAdapter<TValue> {
-
     @Prop(Number)
     index: number;
 
@@ -36,7 +35,7 @@ export class SourceItemAdapter<TEntity extends Entity, TValue> extends Vue imple
     	}
     }
 
-	@Watch('index')
+	@Watch("index")
     onIndexChanged(index: number): void {
     	this.internalIndex = index;
     }
@@ -80,7 +79,7 @@ export class SourceItemAdapter<TEntity extends Entity, TValue> extends Vue imple
 						index = -1;
 						isOrphaned = true;
 					}
-                    else if (c.startIndex < index) {
+					else if (c.startIndex < index) {
 						if (c.items.length > index - c.startIndex) {
 							index = -1;
 							isOrphaned = true;
@@ -91,17 +90,17 @@ export class SourceItemAdapter<TEntity extends Entity, TValue> extends Vue imple
 					}
 				}
 				else if (c.type === ArrayChangeType.add) {
-                    if (c.startIndex >= 0) {
+					if (c.startIndex >= 0) {
 						if (c.startIndex <= index) {
 							index += c.items.length;
 						}
 					}
 				}
 			});
-            if (isOrphaned != _this.isOrphaned) {
+			if (isOrphaned !== _this.isOrphaned) {
 				Vue.set(_this, "isOrphaned", isOrphaned);
 			}
-			if (index != _this.internalIndex) {
+			if (index !== _this.internalIndex) {
 				Vue.set(_this, "internalIndex", index);
 			}
 		});
@@ -136,5 +135,4 @@ export class SourceItemAdapter<TEntity extends Entity, TValue> extends Vue imple
 	toString(): string {
 		return "Source[" + this.internalIndex + "]";
 	}
-
 }
