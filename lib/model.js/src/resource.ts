@@ -1,3 +1,4 @@
+/* eslint-disable import/export */
 import { ObjectLookup, hasOwnProperty, merge } from "./helpers";
 
 /**

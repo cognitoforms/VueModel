@@ -1,6 +1,6 @@
+/* eslint-disable no-new */
 import { Model } from "./model";
 import { Entity, EntityConstructorForType } from "./entity";
-import { ObjectMeta } from "./object-meta";
 let Types: { [name: string]: EntityConstructorForType<Entity> };
 function resetModel() {
 	Types = {};
@@ -14,7 +14,8 @@ function resetModel() {
 			Title: String,
 			Director: "Person",
 			ReleaseDate: Date,
-			Genres: "String[]"
+			Genres: "String[]",
+			Cast: "Person[]"
 		}
 	});
 }
@@ -22,7 +23,8 @@ function resetModel() {
 const Alien = {
 	Title: "Alien",
 	Director: { FirstName: "Ridley", LastName: "Scott" },
-	Genres: ["science fiction", "action"]
+	Genres: ["science fiction", "action"],
+	Cast: [] as string[]
 };
 
 describe("Entity", () => {
@@ -69,7 +71,7 @@ describe("Entity", () => {
 				const changed = jest.fn();
 				Types.Person.meta.getProperty("FirstName").changed.subscribe(changed);
 				Types.Person.meta.getProperty("LastName").changed.subscribe(changed);
-				const person = new Types.Person("1", Alien.Director);
+				new Types.Person("1", Alien.Director);
 
 				expect(changed).not.toBeCalled();
 			});
@@ -77,7 +79,7 @@ describe("Entity", () => {
 			test("value list property", () => {
 				const changed = jest.fn();
 				Types.Movie.meta.getProperty("Genres").changed.subscribe(changed);
-				const movie = new Types.Movie("1", Alien);
+				new Types.Movie("1", Alien);
 
 				expect(changed).not.toBeCalled();
 			});
@@ -94,7 +96,7 @@ describe("Entity", () => {
 		const _default = {
 			Title: "Untitled",
 			Director: { FirstName: "John", LastName: "Doe" },
-			Genres: new Array<string>()
+			Genres: [] as string[]
 		};
 
 		describe("static", () => {
@@ -152,6 +154,34 @@ describe("Entity", () => {
 				const state = movie.serialize();
 				expect(state).toEqual(Alien);
 			});
+		});
+	});
+
+	describe("list", () => {
+		it("can add/remove primitive items", () => {
+			const movie = new Types.Movie(Alien) as any;
+			const horror = "horror";
+
+			movie.Genres.push(horror);
+			expect(movie.Genres.slice()).toEqual([...Alien.Genres, horror]);
+
+			movie.Genres.pop();
+			expect(movie.Genres.slice()).toEqual(Alien.Genres);
+		});
+
+		it("can add/remove entity items", () => {
+			const movie = new Types.Movie(Alien) as any;
+			const sigourney = new Types.Person({ FirstName: "Sigourney", LastName: "Weaver" });
+			const john = new Types.Person({ FirstName: "John", LastName: "Hurt" });
+
+			movie.Cast.push(sigourney);
+			expect(movie.Cast[0]).toBe(sigourney);
+
+			movie.Cast.push(john);
+			expect(movie.Cast[1]).toBe(john);
+
+			movie.Cast.pop();
+			expect(movie.Cast.slice()).toEqual([sigourney]);
 		});
 	});
 });

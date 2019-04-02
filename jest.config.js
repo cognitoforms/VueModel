@@ -9,10 +9,10 @@ module.exports = {
 	// globalTeardown: "<rootDir>/testing/unit/global-teardown",
 	setupFilesAfterEnv: ["<rootDir>/testing/unit/setup"],
 	testMatch: ["**/(*.)unit.[jt]s"],
+	testPathIgnorePatterns: ["/node_modules/", "/dist/"],
 	moduleFileExtensions: ["js", "ts", "json", "vue"],
 	transform: {
-		"^.+\\.js$": "babel-jest",
-		"^.+\\.ts$": "ts-jest"
+		"^.+\\.[jt]s$": "babel-jest",
 	},
 	transformIgnorePatterns: ["<rootDir>/node_modules/"],
 	moduleNameMapper: {
@@ -31,10 +31,5 @@ module.exports = {
 	// Set the `testURL` to a provided base URL if one exists, or the mock API base URL
 	// Solves: https://stackoverflow.com/questions/42677387/jest-returns-network-error-when-doing-an-authenticated-request-with-axios
 	testURL: process.env.API_BASE_URL || `http://localhost:${process.env.MOCK_API_PORT}`,
-	testEnvironment: "node",
-	globals: {
-		"ts-jest": {
-			diagnostics: false
-		}
-	}
+	testEnvironment: "node"
 };

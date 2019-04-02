@@ -7,19 +7,17 @@ import { ExtendedObserver } from "./vue-model-observability";
  * array events rather than property walking and rewriting
  */
 export class ArrayObserver<TItem> extends CustomObserver<ObservableArray<TItem>> implements ExtendedObserver {
-
-    ensureObservable(): void {
-        if ((this as any)._observable === true) {
-            return;
-        }
+	ensureObservable(): void {
+		if ((this as any)._observable === true) {
+			return;
+		}
     
-        this.value.changed.subscribe(this._onChange.bind(this));
+		this.value.changed.subscribe(this._onChange.bind(this));
     
-        (this as any)._observable = true;
-    }
+		(this as any)._observable = true;
+	}
 
-    _onChange(): void {
-        this.dep.notify();
-    }
- 
+	_onChange(): void {
+		this.dep.notify();
+	}
 }

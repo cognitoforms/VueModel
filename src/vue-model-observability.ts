@@ -5,11 +5,7 @@ import { ObjectMeta } from "../lib/model.js/src/object-meta";
 import { ObservableArray } from "../lib/model.js/src/observable-array";
 import { hasOwnProperty, getProp } from "./helpers";
 
-export interface TypedObserver<TValue> extends Observer {
-    value: TValue;
-}
-
-export interface ExtendedObserver extends Observer {
+export interface ExtendedObserver extends Observer<any> {
     ensureObservable(): void;
 }
 
@@ -20,17 +16,17 @@ export interface CustomObserverInterface {
 }
 
 export interface CustomObserverConstructor extends ObserverConstructor {
-    new(value: any): Observer & CustomObserverInterface;
+    new(value: any): Observer<any> & CustomObserverInterface;
 }
 
 let CustomObserverConstructor: ObserverConstructor = null;
 
 export function getCustomObserverConstructor(): CustomObserverConstructor {
-    return CustomObserverConstructor || (CustomObserverConstructor = require("./custom-observer").CustomObserver);
+	return CustomObserverConstructor || (CustomObserverConstructor = require("./custom-observer").CustomObserver);
 }
 
 export interface EntityObserverConstructor extends ObserverConstructor {
-	new(value: Entity): TypedObserver<Entity> & ExtendedObserver & CustomObserverInterface;
+	new(value: Entity): Observer<Entity> & ExtendedObserver & CustomObserverInterface;
 }
 
 /**
@@ -39,20 +35,20 @@ export interface EntityObserverConstructor extends ObserverConstructor {
  * @param entity The entity to observe
  * @param asRootData The entity is referenced as a component's data
  */
-export function observeEntity(entity: Entity, asRootData: boolean = false): TypedObserver<Entity> & ExtendedObserver & CustomObserverInterface {
-    if (entity instanceof Entity) {
+export function observeEntity(entity: Entity, asRootData: boolean = false): Observer<Entity> & ExtendedObserver & CustomObserverInterface {
+	if (entity instanceof Entity) {
 		var ob = getEntityObserver(entity, true);
 		if (entity.meta) {
 			getObjectMetaObserver(entity.meta, true);
 		}
-        if (asRootData && ob) {
-            ob.vmCount++;
-        }
-        return ob;
-    }
-    else {
-        // TODO: Warn about attempting to observe non-entity?
-    }
+		if (asRootData && ob) {
+			ob.vmCount++;
+		}
+		return ob;
+	}
+	else {
+		// TODO: Warn about attempting to observe non-entity?
+	}
 }
 
 /**
@@ -60,27 +56,27 @@ export function observeEntity(entity: Entity, asRootData: boolean = false): Type
  * @param entity The entity begin observed
  * @param create If true, create the observer if it doesn't already exist
  */
-export function getEntityObserver(entity: Entity, create: boolean = false): TypedObserver<Entity> & ExtendedObserver & CustomObserverInterface {
-    var EntityObserver = getEntityObserverConstructor();
-    if (hasOwnProperty(entity, '__ob__') && getProp(entity, '__ob__') instanceof EntityObserver) {
-        return getProp(entity, '__ob__');
-    }
-    else if (create) {
-        return new EntityObserver(entity);
-    }
-    else {
-        return null;
-    }
+export function getEntityObserver(entity: Entity, create: boolean = false): Observer<Entity> & ExtendedObserver & CustomObserverInterface {
+	var EntityObserver = getEntityObserverConstructor();
+	if (hasOwnProperty(entity, "__ob__") && getProp(entity, "__ob__") instanceof EntityObserver) {
+		return getProp(entity, "__ob__");
+	}
+	else if (create) {
+		return new EntityObserver(entity);
+	}
+	else {
+		return null;
+	}
 }
 
 let EntityObserverConstructor: EntityObserverConstructor = null;
 
 export function getEntityObserverConstructor(): EntityObserverConstructor {
-    return EntityObserverConstructor || (EntityObserverConstructor = require("./entity-observer").EntityObserver);
+	return EntityObserverConstructor || (EntityObserverConstructor = require("./entity-observer").EntityObserver);
 }
 
 export interface ObjectMetaObserverConstructor extends ObserverConstructor {
-	new(value: ObjectMeta): TypedObserver<ObjectMeta> & ExtendedObserver & CustomObserverInterface;
+	new(value: ObjectMeta): Observer<ObjectMeta> & ExtendedObserver & CustomObserverInterface;
 }
 
 /**
@@ -88,15 +84,15 @@ export interface ObjectMetaObserverConstructor extends ObserverConstructor {
  * @param meta The object meta begin observed
  * @param create If true, create the observer if it doesn't already exist
  */
-export function getObjectMetaObserver(meta: ObjectMeta, create: boolean = false): TypedObserver<ObjectMeta> & ExtendedObserver & CustomObserverInterface {
+export function getObjectMetaObserver(meta: ObjectMeta, create: boolean = false): Observer<ObjectMeta> & ExtendedObserver & CustomObserverInterface {
 	var ObjectMetaObserver = getObjectMetaObserverConstructor();
-	if (hasOwnProperty(meta, '__ob__') && getProp(meta, '__ob__') instanceof ObjectMetaObserver) {
-		return getProp(meta, '__ob__');
-    }
-    else if (create) {
+	if (hasOwnProperty(meta, "__ob__") && getProp(meta, "__ob__") instanceof ObjectMetaObserver) {
+		return getProp(meta, "__ob__");
+	}
+	else if (create) {
 		return new ObjectMetaObserver(meta);
-    }
-    else {
+	}
+	else {
 		return null;
 	}
 }
@@ -108,7 +104,7 @@ export function getObjectMetaObserverConstructor(): ObjectMetaObserverConstructo
 }
 
 export interface ArrayObserverConstructor extends ObserverConstructor {
-	new(items: ObservableArray<any>): TypedObserver<ObservableArray<any>> & ExtendedObserver & CustomObserverInterface;
+	new(items: ObservableArray<any>): Observer<ObservableArray<any>> & ExtendedObserver & CustomObserverInterface;
 }
 
 /**
@@ -117,22 +113,22 @@ export interface ArrayObserverConstructor extends ObserverConstructor {
  * @param array The array to observe
  * @param asRootData The array is referenced as a component's data
  */
-export function observeArray<TItem>(array: ObservableArray<TItem>, asRootData: boolean = false): TypedObserver<ObservableArray<TItem>> & ExtendedObserver & CustomObserverInterface {
-    if (Array.isArray(array)) {
-        if (ObservableArray.isObservableArray(array)) {
-            var ob = getArrayObserver(array, true);
-            if (asRootData && ob) {
-                ob.vmCount++;
-            }
-            return ob;
-        }
-        else {
-            // TODO: Warn about attempting to observe non-observable array?
-        }
-    }
-    else {
-        // TODO: Warn about attempting to observe non-array?
-    }
+export function observeArray<TItem>(array: ObservableArray<TItem>, asRootData: boolean = false): Observer<ObservableArray<TItem>> & ExtendedObserver & CustomObserverInterface {
+	if (Array.isArray(array)) {
+		if (ObservableArray.isObservableArray(array)) {
+			var ob = getArrayObserver(array, true);
+			if (asRootData && ob) {
+				ob.vmCount++;
+			}
+			return ob;
+		}
+		else {
+			// TODO: Warn about attempting to observe non-observable array?
+		}
+	}
+	else {
+		// TODO: Warn about attempting to observe non-array?
+	}
 }
 
 /**
@@ -140,23 +136,23 @@ export function observeArray<TItem>(array: ObservableArray<TItem>, asRootData: b
  * @param entity The entity begin observed
  * @param create If true, create the observer if it doesn't already exist
  */
-export function getArrayObserver<TItem>(array: ObservableArray<TItem>, create: boolean = false): TypedObserver<ObservableArray<TItem>> & ExtendedObserver & CustomObserverInterface {
-    let ArrayObserver = getArrayObserverConstructor();
-    if (hasOwnProperty(array, '__ob__') && getProp(array, '__ob__') instanceof ArrayObserver) {
-        return getProp(array, '__ob__');
-    }
-    else if (create) {
-        return new ArrayObserver(array);
-    }
-    else {
-        return null;
-    }
+export function getArrayObserver<TItem>(array: ObservableArray<TItem>, create: boolean = false): Observer<ObservableArray<TItem>> & ExtendedObserver & CustomObserverInterface {
+	let ArrayObserver = getArrayObserverConstructor();
+	if (hasOwnProperty(array, "__ob__") && getProp(array, "__ob__") instanceof ArrayObserver) {
+		return getProp(array, "__ob__");
+	}
+	else if (create) {
+		return new ArrayObserver(array);
+	}
+	else {
+		return null;
+	}
 }
 
 let ArrayObserverConstructor: ArrayObserverConstructor = null;
 
 export function getArrayObserverConstructor(): ArrayObserverConstructor {
-    return ArrayObserverConstructor || (ArrayObserverConstructor = require("./array-observer").ArrayObserver);
+	return ArrayObserverConstructor || (ArrayObserverConstructor = require("./array-observer").ArrayObserver);
 }
 
 /**
@@ -164,23 +160,23 @@ export function getArrayObserverConstructor(): ArrayObserverConstructor {
  * @param array The child array to track as a dependency
  */
 export function dependChildArray(array: any[]): void {
-    for (var e, i = 0, l = array.length; i < l; i++) {
-        e = array[i];
-        if (e != null) {
-            if (e instanceof Entity) {
-                let observer = getEntityObserver(e, true);
-                observer.ensureObservable();
-                observer.dep.depend();
-            }
-            else if (hasOwnProperty(e, '__ob__')) {
-                (e.__ob__.dep as Dep).depend();
-            }
+	for (var e, i = 0, l = array.length; i < l; i++) {
+		e = array[i];
+		if (e != null) {
+			if (e instanceof Entity) {
+				let observer = getEntityObserver(e, true);
+				observer.ensureObservable();
+				observer.dep.depend();
+			}
+			else if (hasOwnProperty(e, "__ob__")) {
+				(e.__ob__.dep as Dep).depend();
+			}
 
-            if (Array.isArray(e)) {
-                dependChildArray(e);
-            }
-        }
-    }
+			if (Array.isArray(e)) {
+				dependChildArray(e);
+			}
+		}
+	}
 }
 
 var vueCompatibleModels: Model[] = [];
@@ -193,29 +189,27 @@ var vueCompatibleModels: Model[] = [];
  * @param model The model to augment
  */
 export function makeEntitiesVueObservable(model: Model): void {
+	if (!model || !(model instanceof Model)) {
+		// TODO: Warn about missing or non-Model argument?
+		return;
+	}
 
-    if (!model || !(model instanceof Model)) {
-        // TODO: Warn about missing or non-Model argument?
-        return;
-    }
+	if (vueCompatibleModels.indexOf(model) >= 0 || (model as any)._entitiesAreVueObservable === true) {
+		return;
+	}
 
-    if (vueCompatibleModels.indexOf(model) >= 0 || (model as any)._entitiesAreVueObservable === true) {
-        return;
-    }
+	model.entityRegistered.subscribe(function(args: EntityRegisteredEventArgs) {
+		observeEntity(args.entity).ensureObservable();
+	});
 
-    model.entityRegistered.subscribe(function(args: EntityRegisteredEventArgs) {
-        observeEntity(args.entity).ensureObservable();
-    });
-
-    // Make existing entities observable
+	// Make existing entities observable
 	for (let typeName of Object.keys(model.types)) {
 		let type = model.types[typeName];
-        type.known().forEach(function(entity: Entity) {
-            observeEntity(entity).ensureObservable();
-        });
-    }
+		type.known().forEach(function(entity: Entity) {
+			observeEntity(entity).ensureObservable();
+		});
+	}
 
-    vueCompatibleModels.push(model);
-    (model as any)._entitiesAreVueObservable = true;
-
+	vueCompatibleModels.push(model);
+	(model as any)._entitiesAreVueObservable = true;
 }

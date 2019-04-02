@@ -6,7 +6,6 @@ import { ConditionTypeSet } from "./condition-type-set";
 import { PropertyPath } from "./property-path";
 
 export class ConditionRule extends Rule {
-
 	// Assertion function indicating whether the condition exists
 	assert: (this: Entity) => boolean;
 
@@ -25,7 +24,6 @@ export class ConditionRule extends Rule {
 	 * @param options The options for the rule, of type ConditionRuleOptions
 	 */
 	constructor(rootType: Type, options: ConditionRuleOptions & RuleInvocationOptions) {
-
 		// automatically run the condition rule during initialization of new and existing instances
 		options.onInit = true;
 
@@ -50,7 +48,6 @@ export class ConditionRule extends Rule {
 
 	// asserts the condition and adds or removes it from the model if necessary
 	execute(entity: Entity): void {
-
 		let assert = this.assert.call(entity);
 
 		let message = typeof this.message === "string" ?
@@ -67,7 +64,6 @@ export class ConditionRule extends Rule {
 	toString(): string {
 		return typeof this.message === "string" ? this.message : this.conditionType.message;
 	}
-
 }
 
 export type ConditionTypeCategory = "Error" | "Warning";
