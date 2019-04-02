@@ -30,5 +30,4 @@ export * from "./calculated-property-rule";
 // export * from "./observable-list";
 // export * from "./signal";
 
-//import "./legacy-api";
-
+// import "./legacy-api";

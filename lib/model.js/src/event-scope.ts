@@ -18,7 +18,6 @@ interface EventScopeAbortEventArgs {
 }
 
 export class EventScope {
-
 	parent: EventScope;
 
 	isActive: boolean;
@@ -30,7 +29,6 @@ export class EventScope {
 	readonly onAbort: EventSubscriber<EventScope, EventScopeAbortEventArgs>;
 
 	constructor() {
-
 		// If there is a current event scope
 		// then it will be the parent of the new event scope
 		this.parent = EventScope$current;
@@ -76,10 +74,8 @@ export class EventScope {
 		try {
 			var exitSubscriptions = getEventSubscriptions(this.onExit as Event<EventScope, EventScopeExitEventArgs>);
 			if (exitSubscriptions && exitSubscriptions.length > 0) {
-
 				// If there is no parent scope, then go ahead and execute the 'exit' event
 				if (this.parent === null || !this.parent.isActive) {
-
 					// Record the initial version and initial number of subscribers
 					this._exitEventVersion = 0;
 					this._exitEventHandlerCount = exitSubscriptions.length;
@@ -90,12 +86,11 @@ export class EventScope {
 					// Delete the fields to indicate that raising the exit event suceeded
 					delete this._exitEventHandlerCount;
 					delete this._exitEventVersion;
-
 				}
 				else {
 					// if (typeof ...config.nonExitingScopeNestingCount === "number") { ...
 					var maxNesting = nonExitingScopeNestingCount - 1;
-					if (this.parent.hasOwnProperty("_exitEventVersion") && this.parent._exitEventVersion >= maxNesting) {
+					if (this.parent._exitEventVersion >= maxNesting) {
 						this.abort(true);
 						// TODO: Warn... "Event scope 'exit' subscribers were discarded due to non-exiting."
 						return;
@@ -108,7 +103,7 @@ export class EventScope {
 						}
 					});
 
-					if (this.parent.hasOwnProperty("_exitEventVersion")) {
+					if (this.parent._exitEventVersion !== undefined) {
 						this.parent._exitEventVersion++;
 					}
 				}

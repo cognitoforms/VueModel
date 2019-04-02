@@ -20,13 +20,13 @@ export interface SourcePropertyAdapter<TValue> extends SourceAdapter<TValue> {
 }
 
 export function isSourceAdapter(obj: any): obj is SourceRootAdapter<Entity> | SourcePathAdapter<Entity, any> | SourceItemAdapter<Entity, any> {
-    if (obj instanceof SourceRootAdapter) return true;
-    if (obj instanceof SourcePathAdapter) return true;
-    if (obj instanceof SourceItemAdapter) return true;
-    return false;
+	if (obj instanceof SourceRootAdapter) return true;
+	if (obj instanceof SourcePathAdapter) return true;
+	if (obj instanceof SourceItemAdapter) return true;
+	return false;
 }
 
 export function isSourcePropertyAdapter(obj: any): obj is SourcePathAdapter<Entity, any> {
-    if (obj instanceof SourcePathAdapter) return true;
-    return false;
+	if (obj instanceof SourcePathAdapter) return true;
+	return false;
 }

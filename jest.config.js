@@ -11,8 +11,7 @@ module.exports = {
 	testMatch: ["**/(*.)unit.[jt]s"],
 	moduleFileExtensions: ["js", "ts", "json", "vue"],
 	transform: {
-		"^.+\\.js$": "babel-jest",
-		"^.+\\.ts$": "ts-jest"
+		"^.+\\.[jt]s$": "babel-jest",
 	},
 	transformIgnorePatterns: ["<rootDir>/node_modules/"],
 	moduleNameMapper: {

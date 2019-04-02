@@ -5,7 +5,6 @@ import { Type } from "./type";
 import { Resource } from "./resource";
 
 export class StringLengthRule extends RangeRule {
-
 	constructor(rootType: Type, options: any) {
 		/// <summary>Creates a rule that validates that the length of a string property is within a specific range.</summary>
 		/// <param name="rootType" type="Type">The model type the rule is for.</param>
@@ -53,5 +52,4 @@ export class StringLengthRule extends RangeRule {
 	toString(): string {
 		return `${this.property.containingType.fullName}.${this.property.name} in range, min: , max: `;
 	}
-
 }

@@ -10,7 +10,6 @@ import { VMSource } from "./vm-source-component";
 // TODO: Do we need to take `toggleObserving()` into account?
 
 export class VueModel extends Model {
-
 	private static _Vue: VueConstructor = null;
 
 	private static _VueInternals: VueInternals = { Observer: null, Dep: null };
@@ -37,7 +36,7 @@ export class VueModel extends Model {
 	static mixins = {
 		SourcePath: SourcePathMixin,
 		SourceRoot: SourceRootMixin
-		//SourceRoot: function (source: string) { return new SourceRootMixin({ propsData: { source: source } }); }
+		// SourceRoot: function (source: string) { return new SourceRootMixin({ propsData: { source: source } }); }
 	};
 
 	/**
@@ -45,11 +44,10 @@ export class VueModel extends Model {
 	 * https://vuejs.org/v2/guide/plugins.html#Writing-a-Plugin
 	 */
 	static install(vue: typeof Vue): void {
-
 		// Detect if the plugin install has already been called
 		if (VueModel._Vue) {
-			if (process.env.NODE_ENV !== 'production') {
-				console.error('[vuemodel] already installed. Vue.use(VueModel) should be called only once.');
+			if (process.env.NODE_ENV !== "production") {
+				console.error("[vuemodel] already installed. Vue.use(VueModel) should be called only once.");
 				return;
 			}
 
@@ -67,9 +65,7 @@ export class VueModel extends Model {
 
 		// Install the Vue global mixin
 		return VueModel$installGlobalMixin(vue);
-
 	}
-
 }
 
 export interface VueModelMixins {

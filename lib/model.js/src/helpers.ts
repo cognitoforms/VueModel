@@ -22,39 +22,39 @@ export function getGlobalObject(): Window | NodeJS.Global | void {
 }
 
 export function ensureNamespace(name: string, parentNamespace: string | ObjectLiteral): object {
-    var result, nsTokens, target: any = parentNamespace;
+	var result; var nsTokens; var target: any = parentNamespace;
 
-    if (typeof target === "string") {
-        nsTokens = target.split(".");
-        target = getGlobalObject();
-        nsTokens.forEach(function (token: string) {
-            target = target[token];
+	if (typeof target === "string") {
+		nsTokens = target.split(".");
+		target = getGlobalObject();
+		nsTokens.forEach(function (token: string) {
+			target = target[token];
 
-            if (target === undefined) {
-                throw new Error("Parent namespace \"" + parentNamespace + "\" could not be found.");
-            }
-        });
+			if (target === undefined) {
+				throw new Error("Parent namespace \"" + parentNamespace + "\" could not be found.");
+			}
+		});
 	}
 	else if (target === undefined || target === null) {
-        target = getGlobalObject();
-    }
+		target = getGlobalObject();
+	}
 
-    // create the namespace object if it doesn't exist, otherwise return the existing namespace
-    if (!(name in target)) {
-        result = target[name] = {};
-        return result;
+	// create the namespace object if it doesn't exist, otherwise return the existing namespace
+	if (!(name in target)) {
+		result = target[name] = {};
+		return result;
 	}
 	else {
-        return target[name];
-    }
+		return target[name];
+	}
 }
 
 export function navigateAttribute(obj: any, attr: string, callback: Function, thisPtr: any = null): void {
-    for (var val = obj[attr]; val != null; val = val[attr]) {
-        if (callback.call(thisPtr || obj, val) === false) {
-            return;
-        }
-    }
+	for (var val = obj[attr]; val != null; val = val[attr]) {
+		if (callback.call(thisPtr || obj, val) === false) {
+			return;
+		}
+	}
 }
 
 function isObject(obj: any): boolean {
@@ -87,7 +87,7 @@ function getValue(target: any, property: string): any {
 			}
 		}
 		else if (/\./.test(property)) {
-            // TODO: Warn about passing multi-hop path to `getValue()`
+			// TODO: Warn about passing multi-hop path to `getValue()`
 			// logWarning("Possible incorrect usage of \"getValue()\", the path \"" + property + "\" does not exist on the target and appears to represent a multi-hop path.");
 		}
 	}
@@ -96,7 +96,7 @@ function getValue(target: any, property: string): any {
 }
 
 export function evalPath(obj: any, path: string, nullValue: any = null, undefinedValue: any = undefined): any {
-    let value = obj;
+	let value = obj;
 
 	let steps = path.split(".");
 
@@ -107,7 +107,7 @@ export function evalPath(obj: any, path: string, nullValue: any = null, undefine
 
 		if (value === null) {
 			return nullValue;
-        }
+		}
 
 		if (value === undefined) {
 			return undefinedValue;
@@ -117,19 +117,19 @@ export function evalPath(obj: any, path: string, nullValue: any = null, undefine
 	return value;
 }
 
-var fnRegex = /function\s*([\w_\$]*)/i;
+var fnRegex = /function\s*([\w_$]*)/i;
 
 export function parseFunctionName(fn: Function): string {
-    var fnMatch = fnRegex.exec(fn.toString());
-    return fnMatch ? (fnMatch[1] || "{anonymous}") : "{anonymous}";
+	var fnMatch = fnRegex.exec(fn.toString());
+	return fnMatch ? (fnMatch[1] || "{anonymous}") : "{anonymous}";
 }
 
 var typeNameExpr = /\s([a-z|A-Z]+)/;
 
 export function getTypeName(obj: any): string {
-    if (obj === undefined) return "undefined";
-    if (obj === null) return "null";
-    return Object.prototype.toString.call(obj).match(typeNameExpr)[1].toLowerCase();
+	if (obj === undefined) return "undefined";
+	if (obj === null) return "null";
+	return Object.prototype.toString.call(obj).match(typeNameExpr)[1].toLowerCase();
 }
 
 export function getConstructorName(ctor: Function): string {
@@ -153,10 +153,10 @@ export function isNumber(obj: any): boolean {
 }
 
 export function getDefaultValue(isList: boolean, jstype: any): any {
-    if (isList) return [];
-    if (jstype === Boolean) return false;
-    if (jstype === Number) return 0;
-    return null;
+	if (isList) return [];
+	if (jstype === Boolean) return false;
+	if (jstype === Number) return 0;
+	return null;
 }
 
 export function isType<T>(obj: any, test: ((o: any) => boolean) = null): obj is T {
@@ -208,20 +208,20 @@ export function toTitleCase(input: string): string {
 
 	// Certain minor words should be left lowercase unless 
 	// they are the first or last words in the string
-	lowers = ['A', 'An', 'The', 'And', 'But', 'Or', 'For', 'Nor', 'As', 'At',
-				'By', 'For', 'From', 'In', 'Into', 'Near', 'Of', 'On', 'Onto',
-				'To', 'With'];
+	lowers = ["A", "An", "The", "And", "But", "Or", "For", "Nor", "As", "At",
+		"By", "For", "From", "In", "Into", "Near", "Of", "On", "Onto",
+		"To", "With"];
 
 	for (i = 0, j = lowers.length; i < j; i++) {
-		str = str.replace(new RegExp('\\s' + lowers[i] + '\\s', 'g'), function(txt) {
+		str = str.replace(new RegExp("\\s" + lowers[i] + "\\s", "g"), function(txt) {
 			return txt.toLowerCase();
 		});
 	}
 
 	// Certain words such as initialisms or acronyms should be left uppercase
-	uppers = ['Id', 'Tv'];
+	uppers = ["Id", "Tv"];
 	for (i = 0, j = uppers.length; i < j; i++) {
-		str = str.replace(new RegExp('\\b' + uppers[i] + '\\b', 'g'), uppers[i].toUpperCase());
+		str = str.replace(new RegExp("\\b" + uppers[i] + "\\b", "g"), uppers[i].toUpperCase());
 	}
 
 	return str;
@@ -232,7 +232,6 @@ export function hasOwnProperty(obj: any, prop: string): boolean {
 }
 
 export function merge<T>(obj1: T, ...objs: any[]): T {
-
 	let target = {};
 
 	for (let arg in obj1) {
@@ -251,7 +250,6 @@ export function merge<T>(obj1: T, ...objs: any[]): T {
 	}
 
 	return target as T;
-
 }
 
 export function getEventSubscriptions<TypeType, EventArgsType>(event: Event<TypeType, EventArgsType>): EventSubscription<TypeType, EventArgsType>[] {
@@ -259,7 +257,7 @@ export function getEventSubscriptions<TypeType, EventArgsType>(event: Event<Type
 	if (func) {
 		let funcs = (func as any)._funcs as FunctorItem[];
 		if (funcs.length > 0) {
-			let subs = funcs.map((f) => { return { handler: f.fn, isExecuted: f.applied, isOnce: f.once }});
+			let subs = funcs.map((f) => { return { handler: f.fn, isExecuted: f.applied, isOnce: f.once };});
 			return subs as EventSubscription<TypeType, EventArgsType>[];
 		}
 		else {
