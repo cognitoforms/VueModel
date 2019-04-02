@@ -6,7 +6,7 @@ import { Format } from "../lib/model.js/src/format";
 import { SourceAdapter, SourcePropertyAdapter, isSourceAdapter } from "./source-adapter";
 import { SourceOptionAdapter } from "./source-option-adapter";
 import { AllowedValuesRule } from "../lib/model.js/src/allowed-values-rule";
-import { observeEntity, observeArray, getObjectMetaObserver, ObjectMetaObserverConstructor } from "./vue-model-observability";
+import { observeEntity, observeArray, getObjectMetaObserver } from "./vue-model-observability";
 import { PropertyChain } from "../lib/model.js/src/property-chain";
 import { ObservableArray, updateArray } from "../lib/model.js/src/observable-array";
 import { PropertyPath } from '../lib/model.js/src/property-path';
@@ -17,9 +17,9 @@ import { ConditionTarget } from '../lib/model.js/src/condition-target';
 import { FormatError } from '../lib/model.js/src/format-error';
 
 export type SourcePathOverrides = {
-	label?: string,
-	helptext?: string,
-	readonly?: boolean
+	label?: string;
+	helptext?: string;
+	readonly?: boolean;
 };
 
 @Component
@@ -131,7 +131,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 			let valueArray = (value as any) as any[];
 			let observableArray = this.property.value(this.parent.value) as ObservableArray<any>;
 			observableArray.batchUpdate(() => updateArray(observableArray, valueArray));
-		} else {
+		}
+		else {
 			this.property.value(this.parent.value, this.ensureObservable(value));
 		}
 	}
@@ -193,7 +194,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 				vs.formatError = formatErrorConditionTarget;
 				(err as any)['conditionTarget'] = formatErrorConditionTarget;
 			});
-		} else {
+		}
+		else {
 			vs.formatError = null;
 		}
 
@@ -244,7 +246,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		var formatter;
 		if (this.property.format != null) {
 			formatter = this.property.format;
-		} else if (isValueType(this.property.propertyType) && this.property.propertyType !== String) {
+		}
+		else if (isValueType(this.property.propertyType) && this.property.propertyType !== String) {
 			// Try to use the general format by default
 			formatter = this.property.containingType.model.getFormat(this.property.propertyType, "G");
 		}
@@ -261,10 +264,12 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 				this.formatError = newValue;
 				return;
 			}
-		} else if (this.property.propertyType == String && typeof text === "string" && text.length === 0) {
+		}
+		else if (this.property.propertyType == String && typeof text === "string" && text.length === 0) {
 			// Convert blank string to null
 			newValue = null;
-		} else {
+		}
+		else {
 			newValue = text;
 		}
 
@@ -294,7 +299,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		let targetObj: Entity;
 		if (this.property instanceof PropertyChain) {
 			targetObj = this.property.getLastTarget(this.parent.value);
-		} else {
+		}
+		else {
 			targetObj = this.parent.value;
 		}
 
@@ -305,7 +311,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 			if (!allowedValuesRule.ignoreValidation) {
 				this.clearInvalidOptions(allowedValuesFromRule);
 			}
-		} else if (!allowedValuesRule.ignoreValidation) {
+		}
+		else if (!allowedValuesRule.ignoreValidation) {
 			// Clear out values since the property doesn't currently have any allowed values
 			this.clearInvalidOptions(null);
 		}
@@ -382,7 +389,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 						// Include the existing item in the return value
 						items.push(existingItem);
-					} else {
+					}
+					else {
 						// Create a new item adapter
 						let newItem = new SourceItemAdapter<TEntity, any>({ parent: this, propsData: { index: i, parentSource: this } });
 
@@ -418,17 +426,20 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 						}
 					}
 				});
-			} else if (value !== null && allowedValues.indexOf(value) < 0) {
+			}
+			else if (value !== null && allowedValues.indexOf(value) < 0) {
 				property.value(this.parent.value, null);
 			}
-		} else if (value instanceof Array) {
+		}
+		else if (value instanceof Array) {
 			value.splice(0, value.length);
-		} else if (value !== null) {
+		}
+		else if (value !== null) {
 			property.value(this.parent.value, null);
 		}
 	}
 
-	ensureObservable(value: TValue) {
+	ensureObservable(value: TValue): TValue {
 
 		if (Array.isArray(value)) {
 			if (ObservableArray.isObservableArray(value)) {
@@ -440,7 +451,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 					observeEntity(item).ensureObservable();
 				}
 			}
-		} else if (value instanceof Entity) {
+		}
+		else if (value instanceof Entity) {
 			observeEntity(value).ensureObservable();
 		}
 
@@ -455,31 +467,36 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 export function formatDisplayValue<TValue>(adapter: SourcePropertyAdapter<TValue>, value: any): string {
 
-	let displayValue: string | Array<string>;
+	let displayValue: string | string[];
 
 	let property = adapter.property;
 
 	if (value === null || value === undefined) {
 		displayValue = "";
-	} else if (property.format != null) {
+	}
+	else if (property.format != null) {
 		// Use a markup or property format if available
 		if (Array.isArray(value)) {
-			let array = value as Array<any>;
+			let array = value as any[];
 			displayValue = array.map((item: TValue) => property.format.convert(item));
-		} else {
+		}
+		else {
 			displayValue = property.format.convert(value);
 		}
-	} else if (Array.isArray(value)) {
+	}
+	else if (Array.isArray(value)) {
 		// If no format exists, then fall back to toString
-		let array = value as Array<any>;
+		let array = value as any[];
 		displayValue = array.map((item: TValue) => {
 			if (value === null || value === undefined) {
 				return "";
-			} else {
+			}
+			else {
 				return item.toString();
 			}
 		});
-	} else {
+	}
+	else {
 		displayValue = value.toString();
 	}
 
