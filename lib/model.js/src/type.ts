@@ -479,7 +479,7 @@ export interface RuleOrMethodOptions<TEntity extends Entity> {
 export type RuleOrMethodFunctionOrOptions<EntityType extends Entity> = ((this: EntityType, ...args: any[]) => any) | RuleOrMethodOptions<EntityType>;
 
 export interface TypeExtensionOptions<EntityType extends Entity> {
-	[name: string]: ValueType | PropertyOptions | RuleOrMethodFunctionOrOptions<EntityType>;
+	[name: string]: string | ValueType | PropertyOptions | RuleOrMethodFunctionOrOptions<EntityType>;
 }
 
 export function isValueType(type: any): type is ValueType {
