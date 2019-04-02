@@ -5,11 +5,7 @@ import { ObjectMeta } from "../lib/model.js/src/object-meta";
 import { ObservableArray } from "../lib/model.js/src/observable-array";
 import { hasOwnProperty, getProp } from "./helpers";
 
-export interface TypedObserver<TValue> extends Observer {
-    value: TValue;
-}
-
-export interface ExtendedObserver extends Observer {
+export interface ExtendedObserver extends Observer<any> {
     ensureObservable(): void;
 }
 
@@ -20,7 +16,7 @@ export interface CustomObserverInterface {
 }
 
 export interface CustomObserverConstructor extends ObserverConstructor {
-    new(value: any): Observer & CustomObserverInterface;
+    new(value: any): Observer<any> & CustomObserverInterface;
 }
 
 let CustomObserverConstructor: ObserverConstructor = null;
@@ -30,7 +26,7 @@ export function getCustomObserverConstructor(): CustomObserverConstructor {
 }
 
 export interface EntityObserverConstructor extends ObserverConstructor {
-	new(value: Entity): TypedObserver<Entity> & ExtendedObserver & CustomObserverInterface;
+	new(value: Entity): Observer<Entity> & ExtendedObserver & CustomObserverInterface;
 }
 
 /**
@@ -39,7 +35,7 @@ export interface EntityObserverConstructor extends ObserverConstructor {
  * @param entity The entity to observe
  * @param asRootData The entity is referenced as a component's data
  */
-export function observeEntity(entity: Entity, asRootData: boolean = false): TypedObserver<Entity> & ExtendedObserver & CustomObserverInterface {
+export function observeEntity(entity: Entity, asRootData: boolean = false): Observer<Entity> & ExtendedObserver & CustomObserverInterface {
 	if (entity instanceof Entity) {
 		var ob = getEntityObserver(entity, true);
 		if (entity.meta) {
@@ -60,7 +56,7 @@ export function observeEntity(entity: Entity, asRootData: boolean = false): Type
  * @param entity The entity begin observed
  * @param create If true, create the observer if it doesn't already exist
  */
-export function getEntityObserver(entity: Entity, create: boolean = false): TypedObserver<Entity> & ExtendedObserver & CustomObserverInterface {
+export function getEntityObserver(entity: Entity, create: boolean = false): Observer<Entity> & ExtendedObserver & CustomObserverInterface {
 	var EntityObserver = getEntityObserverConstructor();
 	if (hasOwnProperty(entity, "__ob__") && getProp(entity, "__ob__") instanceof EntityObserver) {
 		return getProp(entity, "__ob__");
@@ -80,7 +76,7 @@ export function getEntityObserverConstructor(): EntityObserverConstructor {
 }
 
 export interface ObjectMetaObserverConstructor extends ObserverConstructor {
-	new(value: ObjectMeta): TypedObserver<ObjectMeta> & ExtendedObserver & CustomObserverInterface;
+	new(value: ObjectMeta): Observer<ObjectMeta> & ExtendedObserver & CustomObserverInterface;
 }
 
 /**
@@ -88,7 +84,7 @@ export interface ObjectMetaObserverConstructor extends ObserverConstructor {
  * @param meta The object meta begin observed
  * @param create If true, create the observer if it doesn't already exist
  */
-export function getObjectMetaObserver(meta: ObjectMeta, create: boolean = false): TypedObserver<ObjectMeta> & ExtendedObserver & CustomObserverInterface {
+export function getObjectMetaObserver(meta: ObjectMeta, create: boolean = false): Observer<ObjectMeta> & ExtendedObserver & CustomObserverInterface {
 	var ObjectMetaObserver = getObjectMetaObserverConstructor();
 	if (hasOwnProperty(meta, "__ob__") && getProp(meta, "__ob__") instanceof ObjectMetaObserver) {
 		return getProp(meta, "__ob__");
@@ -108,7 +104,7 @@ export function getObjectMetaObserverConstructor(): ObjectMetaObserverConstructo
 }
 
 export interface ArrayObserverConstructor extends ObserverConstructor {
-	new(items: ObservableArray<any>): TypedObserver<ObservableArray<any>> & ExtendedObserver & CustomObserverInterface;
+	new(items: ObservableArray<any>): Observer<ObservableArray<any>> & ExtendedObserver & CustomObserverInterface;
 }
 
 /**
@@ -117,7 +113,7 @@ export interface ArrayObserverConstructor extends ObserverConstructor {
  * @param array The array to observe
  * @param asRootData The array is referenced as a component's data
  */
-export function observeArray<TItem>(array: ObservableArray<TItem>, asRootData: boolean = false): TypedObserver<ObservableArray<TItem>> & ExtendedObserver & CustomObserverInterface {
+export function observeArray<TItem>(array: ObservableArray<TItem>, asRootData: boolean = false): Observer<ObservableArray<TItem>> & ExtendedObserver & CustomObserverInterface {
 	if (Array.isArray(array)) {
 		if (ObservableArray.isObservableArray(array)) {
 			var ob = getArrayObserver(array, true);
@@ -140,7 +136,7 @@ export function observeArray<TItem>(array: ObservableArray<TItem>, asRootData: b
  * @param entity The entity begin observed
  * @param create If true, create the observer if it doesn't already exist
  */
-export function getArrayObserver<TItem>(array: ObservableArray<TItem>, create: boolean = false): TypedObserver<ObservableArray<TItem>> & ExtendedObserver & CustomObserverInterface {
+export function getArrayObserver<TItem>(array: ObservableArray<TItem>, create: boolean = false): Observer<ObservableArray<TItem>> & ExtendedObserver & CustomObserverInterface {
 	let ArrayObserver = getArrayObserverConstructor();
 	if (hasOwnProperty(array, "__ob__") && getProp(array, "__ob__") instanceof ArrayObserver) {
 		return getProp(array, "__ob__");

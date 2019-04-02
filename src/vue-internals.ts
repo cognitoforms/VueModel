@@ -12,14 +12,14 @@ export interface DepConstructor {
     target: any;
 }
 
-export interface Observer {
-    value: any;
+export interface Observer<T> {
+    value: T;
     dep: Dep;
     vmCount: number;
 }
 
 export interface ObserverConstructor {
-    new(value: any): Observer;
+    new<T>(value: T): Observer<T>;
 }
 
 export interface VueInternals {
@@ -48,7 +48,7 @@ export function ensureVueInternalTypes(target: VueInternals, Vue: VueConstructor
 		observableData = component.$data;
 	}
 
-	let observer = (observableData as any).__ob__ as Observer;
+	let observer = (observableData as any).__ob__ as Observer<any>;
 	let observerCtor = (observer as any).constructor as ObserverConstructor;
 	let depCtor = observer.dep.constructor as DepConstructor;
 
