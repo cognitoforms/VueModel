@@ -7,34 +7,40 @@ import { ExtendedObserver, getObjectMetaObserver } from "./vue-model-observabili
  * metadata to manage property access/change rather than property walking and rewriting
  */
 export class EntityObserver extends CustomObserver<Entity> implements ExtendedObserver {
-	ensureObservable(): void {
-		if ((this as any)._observable === true) {
-			return;
-		}
+
+    ensureObservable(): void {
+        if ((this as any)._observable === true) {
+            return;
+        }
     
-		this.value.accessed.subscribe(this._onAccess.bind(this));
-		this.value.changed.subscribe(this._onChange.bind(this));
+        this.value.accessed.subscribe(this._onAccess.bind(this));
+        this.value.changed.subscribe(this._onChange.bind(this));
 
 		if (this.value.meta) {
 			getObjectMetaObserver(this.value.meta).ensureObservable();
 		}
 
-		(this as any)._observable = true;
-	}
+        (this as any)._observable = true;
+    }
 
-	_onAccess(args: EntityAccessEventArgs): void {
-		// Get the current property value
-		var value = (args.entity as any)[args.property.fieldName];
+    _onAccess(args: EntityAccessEventArgs): void {
 
-		// Notify interested observers of the property access in order to track dependencies
-		this.onPropertyAccess(args.property.name, value);
-	}
+        // Get the current property value
+        var value = (args.entity as any)[args.property.fieldName];
 
-	_onChange(args: EntityChangeEventArgs): void {
-		// Get the current property value
-		var newValue = (args.entity as any)[args.property.fieldName];
+        // Notify interested observers of the property access in order to track dependencies
+        this.onPropertyAccess(args.property.name, value);
 
-		// Notify interested observers of the property change
-		this.onPropertyChange(args.property.name, newValue);
-	}
+    }
+
+    _onChange(args: EntityChangeEventArgs): void {
+    
+        // Get the current property value
+        var newValue = (args.entity as any)[args.property.fieldName];
+
+        // Notify interested observers of the property change
+        this.onPropertyChange(args.property.name, newValue);
+
+    }
+   
 }

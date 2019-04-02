@@ -5,6 +5,7 @@ import { Type } from "./type";
 import { Resource } from "./resource";
 
 export class ListLengthRule extends RangeRule {
+
 	constructor(rootType: Type, options: any) {
 		/// <summary>Creates a rule that validates a list property contains a specific range of items.</summary>
 		/// <param name="rootType" type="Type">The model type the rule is for.</param>
@@ -45,6 +46,7 @@ export class ListLengthRule extends RangeRule {
 	}
 
 	getMessage(obj: Entity): string {
+
 		var range = this.range(obj);
 
 		// ensure the error message is specified
@@ -54,6 +56,7 @@ export class ListLengthRule extends RangeRule {
 					Resource.get("listlength-at-least").replace("{min}", Property$format(this.property, range.min) || range.min) : // at least ordinal
 					Resource.get("listlength-at-most").replace("{max}", Property$format(this.property, range.max) || range.max)); // at most ordinal
 
-		return message.replace("{property}", this.property.label);
+		return message.replace('{property}', this.property.label);
 	}
+
 }

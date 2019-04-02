@@ -1,19 +1,20 @@
-import Vue from "vue";
-import { Component, Prop, Watch } from "vue-property-decorator";
-import { SourceAdapter } from "./source-adapter";
-import { Entity } from "../lib/model.js/src/entity";
-import { SourceRootAdapter } from "./source-root-adapter";
-import { observeEntity } from "./vue-model-observability";
+import Vue from 'vue';
+import { Component, Prop, Watch } from 'vue-property-decorator'
+import { SourceAdapter } from './source-adapter';
+import { Entity } from '../lib/model.js/src/entity';
+import { SourceRootAdapter } from './source-root-adapter';
+import { observeEntity } from './vue-model-observability';
 
 @Component
 export class SourceRootMixin extends Vue {
+
 	@Prop({ type: [Object, String] })
 	source: string | Entity;
 
 	@Prop({ type: Boolean, default: null })
 	readonly: boolean;
 
-	@Watch("readonly")
+	@Watch('readonly')
 	onReadonlyChanged(readonly: boolean): void {
 		this.$source.readonly = readonly;
 	}
@@ -35,4 +36,5 @@ export class SourceRootMixin extends Vue {
 
 		return new SourceRootAdapter<Entity>({ parent: this, propsData: { entity: entity } });
 	}
+
 }

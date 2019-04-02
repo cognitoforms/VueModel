@@ -7,6 +7,7 @@ import { ExtendedObserver } from "./vue-model-observability";
  * metadata to manage condition change rather than property walking and rewriting
  */
 export class ObjectMetaObserver extends CustomObserver<ObjectMeta> implements ExtendedObserver {
+
 	ensureObservable(): void {
 		if ((this as any)._observable === true) {
 			return;
@@ -18,7 +19,10 @@ export class ObjectMetaObserver extends CustomObserver<ObjectMeta> implements Ex
 	}
 
 	_onConditionsChanged(): void {
+
 		// Notify interested observers of the condition change in order to update dependants
-		this.onPropertyChange("conditions", null);
+        this.onPropertyChange("conditions", null);
+
 	}
+
 }

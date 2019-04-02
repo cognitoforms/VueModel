@@ -1,7 +1,6 @@
 ﻿import { Event, EventSubscriber } from "./events";
 import { hasOwnProperty } from "./helpers";
 
-// eslint-disable-next-line import/export
 export interface ObservableArray<ItemType> extends Array<ItemType> {
 
 	readonly __aob__: ArrayObserver<ItemType>;
@@ -95,8 +94,8 @@ export interface ObservableArrayMethods<ItemType> extends Array<ItemType> {
 
 }
 
-// eslint-disable-next-line import/export
 export class ObservableArray<ItemType> {
+
 	/**
 	 * Returns a value indicating whether the given array is observable
 	 * @param array The array to check for observability
@@ -110,12 +109,13 @@ export class ObservableArray<ItemType> {
 	 * @param array The array to make observable
 	 */
 	public static ensureObservable<ItemType>(array: ItemType[] | ObservableArray<ItemType>): ObservableArray<ItemType> {
+		
 		// Check to see if the array is already an observable list
 		if (ObservableArray.isObservableArray(array)) {
 			return array;
 		}
 
-		if (hasOwnProperty(array, "__aob__")) {
+		if (hasOwnProperty(array, '__aob__')) {
 			// TODO: Warn about invalid '__aob__' property?
 			return;
 		}
@@ -127,7 +127,7 @@ export class ObservableArray<ItemType> {
 			writable: false
 		});
 
-		Object.defineProperty(array, "changed", {
+		Object.defineProperty(array, 'changed', {
 			configurable: false,
 			enumerable: true,
 			get: function() {
@@ -140,6 +140,7 @@ export class ObservableArray<ItemType> {
 		ObservableArray$overrideNativeMethods.call(array);
 
 		return array as ObservableArray<ItemType>;
+
 	}
 
 	/**
@@ -156,6 +157,7 @@ export class ObservableArray<ItemType> {
 		ObservableArray.ensureObservable<ItemType>(array);
 		return array;
 	}
+
 }
 
 export interface ArrayChangedEventArgs<ItemType> {
@@ -177,6 +179,7 @@ export interface ArrayChange<ItemType> {
 }
 
 export class ObservableArrayImplementation<ItemType> extends Array<ItemType> implements ObservableArray<ItemType>, ObservableArrayMethods<ItemType> {
+
 	readonly __aob__: ArrayObserver<ItemType>;
 
 	/**
@@ -193,7 +196,7 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
 			writable: false
 		});
 
-		Object.defineProperty(this, "changed", {
+		Object.defineProperty(this, 'changed', {
 			get: function() {
 				return this.__aob__.changed;
 			}
@@ -316,6 +319,7 @@ export class ObservableArrayImplementation<ItemType> extends Array<ItemType> imp
 	unshift(...items: ItemType[]): number {
 		return ObservableArray$unshift.apply(this, arguments);
 	}
+
 }
 
 /**
@@ -504,6 +508,7 @@ export interface ObservableArrayConstructor<ItemType> {
 }
 
 export class ArrayObserver<ItemType> {
+
 	readonly array: ItemType[];
 
 	readonly changed: Event<ItemType[], ArrayChangedEventArgs<ItemType>>;
@@ -552,6 +557,7 @@ export class ArrayObserver<ItemType> {
 			delete this._queuedChanges;
 		}
 	}
+
 }
 
 function observableSplice(arr: any[], events: any[], index: number, removeCount: number, addItems: any[]): void {
@@ -572,7 +578,7 @@ function observableSplice(arr: any[], events: any[], index: number, removeCount:
 	
 		if (events) {
 			events.push({
-				action: "remove",
+				action: 'remove',
 				oldStartingIndex: index,
 				oldItems: removedItems,
 				newStartingIndex: null,
@@ -596,7 +602,7 @@ function observableSplice(arr: any[], events: any[], index: number, removeCount:
 
 		if (events) {
 			events.push({
-				action: "add",
+				action: 'add',
 				oldStartingIndex: null,
 				oldItems: null,
 				newStartingIndex: index,
@@ -607,11 +613,11 @@ function observableSplice(arr: any[], events: any[], index: number, removeCount:
 }
 
 export function updateArray(array: any[], values: any[] /*, trackEvents */): any[] {
-	var trackEvents: boolean = arguments[2];
-	var events: any[] = trackEvents ? [] : null;
-	var pointer = 0;
-	var srcSeek = 0;
-	var tgtSeek = 0;
+	var trackEvents: boolean = arguments[2],
+		events: any[] = trackEvents ? [] : null,
+		pointer = 0,
+		srcSeek = 0,
+		tgtSeek = 0;
 
 	while (srcSeek < array.length) {
 		if (array[srcSeek] === values[tgtSeek]) {

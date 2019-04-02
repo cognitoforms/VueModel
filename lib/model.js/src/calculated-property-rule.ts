@@ -106,6 +106,7 @@ export class CalculatedPropertyRule extends Rule {
 
 		// modify list properties to match the calculated value instead of overwriting the property
 		if (this.property.isList) {
+
 			// re-calculate the list values
 			var newList = newValue;
 

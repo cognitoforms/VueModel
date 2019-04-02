@@ -5,6 +5,7 @@ import { FormatError } from "./format-error";
 
 /** Represents the association of a condition to a specific target entity. */
 export class ConditionTarget {
+
 	/** The condition the target is for. */
 	condition: Condition;
 
@@ -21,6 +22,7 @@ export class ConditionTarget {
 	* @param properties The set of properties on the target entity the condition is related to.
 	*/
 	constructor(condition: Condition, target: Entity, properties: Property[]) {
+
 		this.condition = condition;
 		this.target = target;
 		this.properties = properties;
@@ -30,6 +32,7 @@ export class ConditionTarget {
 			target.meta.setCondition(this);
 		}
 	}
+
 }
 
 export interface ConditionTargetConstructor {

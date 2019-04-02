@@ -21,6 +21,7 @@ export interface FunctorItem {
 }
 
 export function Functor$create(returns: boolean = false): Functor & Function {
+
 	var funcs: FunctorItem[] = [];
 
 	// TODO: Detect functor invocation resulting in continually adding subscribers
@@ -29,7 +30,7 @@ export function Functor$create(returns: boolean = false): Functor & Function {
 		let returnsArray: any[];
 
 		if (returns) {
-			returnsArray = [];
+			returnsArray = []
 		}
 
 		for (var i = 0; i < funcs.length; ++i) {
@@ -76,6 +77,7 @@ export function Functor$create(returns: boolean = false): Functor & Function {
 	f.clear = Functor$clear;
 
 	return f as (Functor & Function);
+
 }
 
 export function FunctorItem$new(fn: Function, filter: () => boolean = null, once: boolean = false): FunctorItem {
