@@ -24,6 +24,7 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
   <ItemGroup>
+    <Content Include=".eslintignore" />
     <Content Include=".gitignore" />
     <Content Include="lib\model.js\.gitignore" />
     <Content Include="lib\model.js\LICENSE" />
@@ -35,7 +36,6 @@
     <Content Include="package-lock.json" />
     <Content Include="package.json" />
     <Content Include="tsconfig.json" />
-    <Content Include="tslint.json" />
     <Content Include="README.md" />
     <TypeScriptCompile Include="lib\model.js\src\allowed-values-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\calculated-property-rule.ts" />
@@ -46,6 +46,7 @@
     <TypeScriptCompile Include="lib\model.js\src\condition.ts" />
     <TypeScriptCompile Include="lib\model.js\src\entity-serializer.ts" />
     <TypeScriptCompile Include="lib\model.js\src\entity.ts" />
+    <TypeScriptCompile Include="lib\model.js\src\entity.unit.ts" />
     <TypeScriptCompile Include="lib\model.js\src\event-scope.ts" />
     <TypeScriptCompile Include="lib\model.js\src\events.ts" />
     <TypeScriptCompile Include="lib\model.js\src\format-error.ts" />
@@ -62,6 +63,7 @@
     <TypeScriptCompile Include="lib\model.js\src\property.ts" />
     <TypeScriptCompile Include="lib\model.js\src\range-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\required-rule.ts" />
+    <TypeScriptCompile Include="lib\model.js\src\resource-en.ts" />
     <TypeScriptCompile Include="lib\model.js\src\resource.ts" />
     <TypeScriptCompile Include="lib\model.js\src\rule-invocation-type.ts" />
     <TypeScriptCompile Include="lib\model.js\src\rule.ts" />
@@ -96,15 +98,21 @@
     <TypeScriptCompile Include="src\vue-model.ts" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="dist\" />
     <Folder Include="lib\" />
     <Folder Include="lib\model.js\" />
     <Folder Include="lib\model.js\src\" />
     <Folder Include="src" />
+    <Folder Include="testing\" />
+    <Folder Include="testing\unit\" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include=".eslintrc.js" />
+    <Compile Include=".prettierrc.js" />
+    <Compile Include="babel.config.js" />
+    <Compile Include="jest.config.js" />
     <Compile Include="lib\model.js\rollup.config.js" />
     <Compile Include="rollup.config.js" />
+    <Compile Include="testing\unit\setup.js" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <!--Do not delete the following Import Project.  While this appears to do nothing it is a marker for setting TypeScript properties before our import that depends on them.-->
