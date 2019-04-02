@@ -2,8 +2,7 @@ import { Rule, RuleInvocationOptions } from "./rule";
 import { Type } from "./type";
 import { Property, PropertyRuleOptions } from "./property";
 import { Entity } from "./entity";
-import { updateArray } from "./observable-array";
-import { ObservableArray } from "./observable-array/types";
+import { ObservableArray, updateArray } from "./observable-array";
 import { RuleInvocationType } from "./rule-invocation-type";
 
 let calculationErrorDefault: any;
@@ -79,7 +78,6 @@ export class CalculatedPropertyRule extends Rule {
 		if (this._calculateFn.constructor === String) {
 			// TODO: Calculation expression support
 			let calculateExpr = this._calculateFn as string;
-			// eslint-disable-next-line no-new-func
 			let calculateCompiledFn = new Function("return " + calculateExpr + ";");
 			calculateFn = this._calculateFn = calculateCompiledFn as (this: Entity) => any;
 		}
@@ -108,6 +106,7 @@ export class CalculatedPropertyRule extends Rule {
 
 		// modify list properties to match the calculated value instead of overwriting the property
 		if (this.property.isList) {
+
 			// re-calculate the list values
 			var newList = newValue;
 

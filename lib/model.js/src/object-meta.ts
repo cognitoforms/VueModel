@@ -7,6 +7,7 @@ import { ObservableArray } from "./observable-array";
 import { FormatError } from "./format-error";
 
 export class ObjectMeta {
+
 	readonly type: Type;
 	readonly entity: Entity;
 	
@@ -37,7 +38,7 @@ export class ObjectMeta {
 	 * @param conditionTarget The condition target to store
 	 */
 	setCondition(conditionTarget: ConditionTarget): void {
-		if (conditionTarget.condition.type !== FormatError.ConditionType) {
+		if (conditionTarget.condition.type != FormatError.ConditionType) {
 			this.conditions.push(conditionTarget);
 		}
 	}

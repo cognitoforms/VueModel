@@ -5,6 +5,7 @@ import { Type } from "./type";
 import { Resource } from "./resource";
 
 export class StringFormatRule extends ValidationRule {
+
 	private readonly description: string;
 
 	/**
@@ -13,48 +14,49 @@ export class StringFormatRule extends ValidationRule {
 	 * @param options The options for the rules.
 	 */
 	constructor(rootType: Type, options: StringFormatRuleOptions) {
+
 		// exit immediately if called with no arguments
-		if (arguments.length !== 0) {
+		if (arguments.length == 0) return;
+
 		// ensure the rule name is specified
-			options.name = options.name || "StringFormat";
+		options.name = options.name || "StringFormat";
 
-			// ensure the error message is specified
-			if (typeof options.message === "string") {
-				if (Resource.get(options.message)) {
-					options.message = Resource.get(options.message);
-				}
-				else {
-					delete options.message;
-				}
+		// ensure the error message is specified
+		if (typeof options.message === "string") {
+			if (Resource.get(options.message)) {
+				options.message = Resource.get(options.message);
 			}
-
-			// get the default validation message if not specified
-			if (!options.message) {
-				options.message = Resource.get("string-format").replace("{formatDescription}", options.description);
+			else {
+				delete options.message;
 			}
+		}
 
-			let expression = options.expression instanceof RegExp ? options.expression : RegExp(options.expression);
-			let reformat = options.reformat;
+		// get the default validation message if not specified
+		if (!options.message) {
+			options.message = Resource.get("string-format").replace("{formatDescription}", options.description);
+		}
 
-			// create the string format validation function
-			options.isValid = function(this: Entity, prop: Property, val: any): boolean {
-				var isValid = true;
-				if (val) {
-					expression.lastIndex = 0;
-					isValid = expression.test(val);
-					if (isValid && options.reformat) {
-						if (reformat instanceof Function) {
-							val = reformat(val);
-						}
-						else {
-							expression.lastIndex = 0;
-							val = val.replace(expression, reformat);
-						}
-						prop.value(this, val);
+		let expression = options.expression instanceof RegExp ? options.expression : RegExp(options.expression);
+		let reformat = options.reformat;
+
+		// create the string format validation function
+		options.isValid = function(this: Entity, prop: Property, val: any): boolean {
+			var isValid = true;
+			if (val && val != "") {
+				expression.lastIndex = 0;
+				isValid = expression.test(val);
+				if (isValid && options.reformat) {
+					if (reformat instanceof Function) {
+						val = reformat(val);
 					}
+					else {
+						expression.lastIndex = 0;
+						val = val.replace(expression, reformat);
+					}
+					prop.value(this, val);
 				}
-				return isValid;
-			};
+			}
+			return isValid;
 		}
 
 		// call the base type constructor
@@ -68,6 +70,7 @@ export class StringFormatRule extends ValidationRule {
 	toString(): string {
 		return `${this.property.containingType.fullName}.${this.property.name} formatted as ${this.description}`;
 	}
+
 }
 
 export interface StringFormatRuleOptions extends ValidationRuleOptions {

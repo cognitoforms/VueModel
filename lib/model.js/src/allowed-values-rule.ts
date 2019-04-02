@@ -7,6 +7,7 @@ import { Resource } from "./resource";
 import { PropertyPath } from "./property-path";
 
 export class AllowedValuesRule extends ValidationRule {
+
 	readonly source: ((this: Entity) => any[]);
 	readonly ignoreValidation: boolean;
 
@@ -16,6 +17,7 @@ export class AllowedValuesRule extends ValidationRule {
 	 * @param options The rule configuration options
 	 */
 	constructor(rootType: Type, options: AllowedValuesRuleOptions) {
+
 		// ensure the rule name is specified
 		options.name = options.name || "AllowedValues";
 
@@ -28,13 +30,14 @@ export class AllowedValuesRule extends ValidationRule {
 		if (options.source instanceof Property || options.source instanceof PropertyChain) {
 			let sourcePath = options.source;
 			options.onChangeOf = [sourcePath];
-			options.source = source = function () { return sourcePath.value(this); };
+			options.source = source = function () { return sourcePath.value(this); }
 		}
 		else
 			source = options.source as (this: Entity) => any[];
 
 		// create the validation function
 		options.isValid = function(this: Entity, prop: Property, value: any): boolean {
+
 			if (options.ignoreValidation) {
 				return true;
 			}
@@ -54,7 +57,7 @@ export class AllowedValuesRule extends ValidationRule {
 			else {
 				return allowed.indexOf(value) >= 0;
 			}
-		};
+		}
 
 		// call the base type constructor
 		super(rootType, options);
@@ -71,6 +74,7 @@ export class AllowedValuesRule extends ValidationRule {
 	toString(): string {
 		return `${this.property.containingType.fullName}.${this.property.name} allowed values`;
 	}
+
 }
 
 export interface AllowedValuesRuleOptions extends ValidationRuleOptions {

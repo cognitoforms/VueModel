@@ -1,10 +1,11 @@
 import { Model } from "./model";
-import { Entity } from "./entity";
-let Types: any;
+import { Entity, EntityConstructorForType } from "./entity";
+import { ObjectMeta } from "./object-meta";
+let Types: { [name: string]: EntityConstructorForType<Entity> };
 function resetModel() {
 	Types = {};
 	return new Model({
-		$namespace: Types,
+		$namespace: Types as any,
 		Person: {
 			FirstName: String,
 			LastName: String
@@ -13,8 +14,7 @@ function resetModel() {
 			Title: String,
 			Director: "Person",
 			ReleaseDate: Date,
-			Genres: "String[]",
-			Cast: "Person[]"
+			Genres: "String[]"
 		}
 	});
 }
@@ -22,12 +22,11 @@ function resetModel() {
 const Alien = {
 	Title: "Alien",
 	Director: { FirstName: "Ridley", LastName: "Scott" },
-	Genres: ["science fiction", "action"],
-	Cast: []
+	Genres: ["science fiction", "action"]
 };
 
 describe("Entity", () => {
-	beforeAll(() => {
+	beforeEach(() => {
 		resetModel();
 	});
 
@@ -44,7 +43,7 @@ describe("Entity", () => {
 		});
 
 		it("can be constructed with provided state", () => {
-			const movie = new Types.Movie(Alien);
+			const movie = new Types.Movie(Alien) as any;
 
 			expect(movie.Title).toBe(Alien.Title);
 			expect(movie.Director.FirstName).toBe(Alien.Director.FirstName);
@@ -64,6 +63,27 @@ describe("Entity", () => {
 		});
 	});
 
+	describe("events", () => {
+		describe("property change is not raised when initializing existing entity", () => {
+			test("value property", () => {
+				const changed = jest.fn();
+				Types.Person.meta.getProperty("FirstName").changed.subscribe(changed);
+				Types.Person.meta.getProperty("LastName").changed.subscribe(changed);
+				const person = new Types.Person("1", Alien.Director);
+
+				expect(changed).not.toBeCalled();
+			});
+
+			test("value list property", () => {
+				const changed = jest.fn();
+				Types.Movie.meta.getProperty("Genres").changed.subscribe(changed);
+				const movie = new Types.Movie("1", Alien);
+
+				expect(changed).not.toBeCalled();
+			});
+		});
+	});
+
 	it("can be serialized", () => {
 		const movie = new Types.Movie(Alien);
 
@@ -74,13 +94,11 @@ describe("Entity", () => {
 		const _default = {
 			Title: "Untitled",
 			Director: { FirstName: "John", LastName: "Doe" },
-			Genres: [] as string[]
+			Genres: new Array<string>()
 		};
 
 		describe("static", () => {
 			beforeAll(() => {
-				resetModel();
-
 				Types.Person.meta.extend({
 					FirstName: { default: _default.Director.FirstName },
 					LastName: { default: _default.Director.LastName }
@@ -105,9 +123,12 @@ describe("Entity", () => {
 		});
 
 		describe("rule", () => {
-			beforeAll(() => {
-				resetModel();
+			let calculated = jest.fn();
+			beforeEach(() => {
+				calculated.mockReset();
+			});
 
+			beforeAll(() => {
 				Types.Person.meta.extend({
 					FirstName: { default: () => _default.Director.FirstName },
 					LastName: { default: () => _default.Director.LastName }
@@ -128,36 +149,9 @@ describe("Entity", () => {
 			it("does not overwrite initial state of existing entity", () => {
 				const movie = new Types.Movie("1", Alien);
 
-				expect(movie.serialize()).toEqual(Alien);
+				const state = movie.serialize();
+				expect(state).toEqual(Alien);
 			});
-		});
-	});
-
-	describe("list", () => {
-		it("can add/remove primitive items", () => {
-			const movie = new Types.Movie(Alien);
-			const horror = "horror";
-
-			movie.Genres.push(horror);
-			expect(movie.Genres.slice()).toEqual([...Alien.Genres, horror]);
-
-			movie.Genres.pop();
-			expect(movie.Genres.slice()).toEqual(Alien.Genres);
-		});
-
-		it("can add/remove entity items", () => {
-			const movie = new Types.Movie(Alien);
-			const sigourney = new Types.Person({ FirstName: "Sigourney", LastName: "Weaver" });
-			const john = new Types.Person({ FirstName: "John", LastName: "Hurt" });
-
-			movie.Cast.push(sigourney);
-			expect(movie.Cast[0]).toBe(sigourney);
-
-			movie.Cast.push(john);
-			expect(movie.Cast[1]).toBe(john);
-
-			movie.Cast.pop();
-			expect(movie.Cast.slice()).toEqual([sigourney]);
 		});
 	});
 });
