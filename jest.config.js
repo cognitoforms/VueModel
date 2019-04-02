@@ -31,5 +31,10 @@ module.exports = {
 	// Set the `testURL` to a provided base URL if one exists, or the mock API base URL
 	// Solves: https://stackoverflow.com/questions/42677387/jest-returns-network-error-when-doing-an-authenticated-request-with-axios
 	testURL: process.env.API_BASE_URL || `http://localhost:${process.env.MOCK_API_PORT}`,
-	testEnvironment: "node"
+	testEnvironment: "node",
+	globals: {
+		"ts-jest": {
+			diagnostics: false
+		}
+	}
 };

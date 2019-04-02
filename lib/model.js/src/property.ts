@@ -795,7 +795,7 @@ export function Property$init(property: Property, obj: Entity, val: any): void {
 	Object.defineProperty(target, property.fieldName, { value: val, writable: true });
 
 	if (Array.isArray(val)) {
-		Property$subArrayEvents(obj, property, ObservableArray.create(val));
+		Property$subArrayEvents(obj, property, ObservableArray.ensureObservable(val));
 	}
 
 	// TODO: Implement observable?

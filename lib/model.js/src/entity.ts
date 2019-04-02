@@ -72,7 +72,7 @@ export class Entity {
 		let properties: ObjectLookup<any>;
 
 		// Convert property/value pair to a property dictionary
-		if (typeof property == "string") {
+		if (typeof property === "string") {
 			properties = {};
 			properties[property] = value;
 		}
@@ -110,7 +110,7 @@ export class Entity {
 		let properties: ObjectLookup<any>;
 
 		// Convert property/value pair to a property dictionary
-		if (typeof property == "string") {
+		if (typeof property === "string") {
 			properties = {};
 			properties[property] = value;
 		}
