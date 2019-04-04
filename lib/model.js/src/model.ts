@@ -105,6 +105,7 @@ export class Model {
 				let $namespace = options.$namespace as object;
 				if (!this.$namespace) {
 					Object.defineProperty(this, "$namespace", { configurable: false, enumerable: true, value: $namespace, writable: false });
+					delete options['$namespace'];
 				}
 				else if ($namespace !== this.$namespace) {
 					// TODO: Raise an error?
@@ -116,15 +117,11 @@ export class Model {
 				// TODO: Detect that the locale has already been set, or types have already been initialized under a different locale
 				let $locale = options.$locale as string;
 				Object.defineProperty(this, "$locale", { configurable: false, enumerable: true, value: $locale, writable: false });
+				delete options['$locale'];
 			}
 
 			// Create New Types
-			for (let [typeName, typeOptions] of Object.entries(options)) {
-				if (typeName === "$namespace" || typeName === "$locale") {
-					// Ignore the $namespace property since it is handled elsewhere
-					continue;
-				}
-
+			for (let [typeName, typeOptions] of Object.entries(options).filter(([typeName]) => !typeName.startsWith('$'))) {
 				let type = this.types[typeName];
 
 				if (!type) {
@@ -140,12 +137,7 @@ export class Model {
 			}
 
 			// Extend Types
-			for (let [typeName, typeOptions] of Object.entries(options)) {
-				if (typeName === "$namespace" || typeName === "$locale") {
-					// Ignore the $namespace property since it is handled elsewhere
-					continue;
-				}
-
+			for (let [typeName, typeOptions] of Object.entries(options).filter(([typeName]) => !typeName.startsWith('$')) {
 				this.types[typeName].extend(typeOptions);
 			}
 		});

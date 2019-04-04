@@ -376,6 +376,9 @@ export class Type {
 
 			// Type Members
 			for (let [name, member] of Object.entries(options)) {
+				if (name.startsWith('$'))
+					continue;
+
 				// Ignore Type and Format values, which do not represent type members
 				if (member instanceof Type || member instanceof Format)
 					continue;
