@@ -143,8 +143,16 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		}
 
 		let meta = this.parent.value.meta;
+
 		let metaOb = getObjectMetaObserver(meta);
+
+		// Make sure that the meta object is observable, ex: subscribes to conditions array changed
+		metaOb.ensureObservable();
+
 		let conditionsList = meta.conditions;
+
+		// Raise property access to let Vue know that array was accessed
+		// Changes to conditions will result in a Vue change notification for the 'conditions' property
 		metaOb.onPropertyAccess("conditions", conditionsList);
 
 		let formatError: ConditionTarget = vs.formatError;
