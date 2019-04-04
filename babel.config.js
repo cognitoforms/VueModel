@@ -5,7 +5,7 @@ module.exports = {
 			"@babel/preset-env",
 			{
 				corejs: 3,
-				targets: "> 0.25%, not dead",
+				targets: {node: "current"},
 				useBuiltIns: "usage"
 			}
 		]
@@ -13,6 +13,8 @@ module.exports = {
 	plugins: [
 		["@babel/plugin-proposal-decorators", { legacy: true }],
 		["@babel/plugin-proposal-class-properties"],
-		"@babel/plugin-proposal-object-rest-spread"
+		// Always transform classes because the Entity extension implementation requires it
+		["@babel/plugin-transform-classes"],
+		["@babel/plugin-proposal-object-rest-spread"]
 	]
 };
