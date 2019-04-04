@@ -120,9 +120,36 @@ export class Model {
 				delete options['$locale'];
 			}
 
+			let typesToCreate = Object.keys(options).filter(typeName => !typeName.startsWith('$'));
+
+			let typesToInitialize: string[] = [];
+
 			// Create New Types
-			for (let [typeName, typeOptions] of Object.entries(options).filter(([typeName]) => !typeName.startsWith('$'))) {
+			while (typesToCreate.length > 0) {
+				let typeName = typesToCreate.splice(0, 1)[0];
+
+				for (let typeNameIdx = -1, pos = typeName.length - 1, i = typeName.lastIndexOf('.', pos); i > 0; pos = i - 1, i = typeName.lastIndexOf('.', pos)) {
+					let typeNamespace = typeName.substring(0, i);
+					let typeNamespaceIdx = typesToCreate.indexOf(typeNamespace);
+					if (typeNamespaceIdx > typeNameIdx) {
+						if (process.env.NODE_ENV === "development") {
+							console.warn("Type '" + typeNamespace + "' should be created before type '" + typeName + "'.");
+						}
+
+						// Remove the current  type's "namespace" type and re-add the current type to the list
+						typesToCreate.splice(typeNamespaceIdx, 1);
+						typesToCreate.splice(0, 0, typeName);
+						typeNameIdx++;
+
+						// Resume the loop using the new namespace type (resetting index variables isn't necessary)
+						typeName = typeNamespace;
+					}
+				}
+
+				let typeOptions = options[typeName];
 				let type = this.types[typeName];
+				
+				typesToInitialize.push(typeName);
 
 				if (!type) {
 					let baseType = this.types[typeOptions.$extends];
@@ -137,7 +164,8 @@ export class Model {
 			}
 
 			// Extend Types
-			for (let [typeName, typeOptions] of Object.entries(options).filter(([typeName]) => !typeName.startsWith('$')) {
+			for (let typeName of typesToInitialize) {
+				let typeOptions = options[typeName];
 				this.types[typeName].extend(typeOptions);
 			}
 		});

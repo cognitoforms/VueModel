@@ -497,9 +497,11 @@ export function Type$generateConstructor(type: Type, fullName: string, baseType:
 	let nameTokens: string[] = fullName.split(".");
 	let token: string = nameTokens.shift();
 	let namespaceObj: any = type.model.$namespace || type.model;
+	let namespacePrefix = "";
 	let globalObj: any = global;
 
 	while (nameTokens.length > 0) {
+		namespacePrefix = namespacePrefix + token + ".";
 		namespaceObj = ensureNamespace(token, namespaceObj);
 		if (global) {
 			globalObj = ensureNamespace(token, globalObj);
@@ -538,22 +540,31 @@ export function Type$generateConstructor(type: Type, fullName: string, baseType:
 	}
 
 	let ctor = ctorFactory(construct) as any;
+
+	let namespaceKey = finalName;
+
 	// If the namespace already contains a type with this name, prepend a '$' to the name
-	if (!namespaceObj[finalName]) {
-		namespaceObj[finalName] = ctor;
-	}
-	else {
-		namespaceObj["$" + finalName] = ctor;
+	while (namespaceObj[namespaceKey]) {
+		if (process.env.NODE_ENV === "development") {
+			console.warn("Namespace path '" + namespacePrefix + namespaceKey + "' is already assigned.");
+		}
+		namespaceKey = "$" + namespaceKey;
 	}
 
+	namespaceObj[namespaceKey] = ctor;
+
 	if (global) {
+		let globalKey = finalName;
+
 		// If the global object already contains a type with this name, append a '$' to the name
-		if (!globalObj[finalName]) {
-			globalObj[finalName] = ctor;
+		while (globalObj[globalKey]) {
+			if (process.env.NODE_ENV === "development") {
+				console.warn("Global path '" + namespacePrefix + globalKey + "' is already assigned.");
+			}
+			globalKey = "$" + globalKey;
 		}
-		else {
-			globalObj["$" + finalName] = ctor;
-		}
+
+		globalObj[globalKey] = ctor;
 	}
 
 	// Setup inheritance
