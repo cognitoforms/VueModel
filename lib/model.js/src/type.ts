@@ -530,8 +530,10 @@ export function Type$generateConstructor(type: Type, fullName: string, baseType:
 		if (!disableConstruction) {
 			try {
 				Entity.ctorDepth++;
-				let baseTypeArgs: ArrayLike<any> = (arguments.length > 0 && arguments[0] instanceof Type) ? arguments : [type].concat(Array.from(arguments));
-				BaseConstructor.apply(this, baseTypeArgs);
+				const args = Array.from(arguments);
+				if (!(args[0] instanceof Type))
+					args.unshift(type);
+				BaseConstructor.apply(this, args);
 			}
 			finally {
 				Entity.ctorDepth--;
