@@ -27,7 +27,22 @@ export class RequiredRule extends ValidationRule {
 				return true;
 			}
 
-			return val !== undefined && val !== null && (val.constructor !== String || val.trim() !== "") && (!(val instanceof Array) || val.length > 0);
+			if (val === undefined || val === null)
+				return false;
+
+			// Blank string does not pass required check
+			if (typeof val === "string" && val.trim() === "")
+				return false;
+
+			// Empty array does not pass required check
+			if (Array.isArray(val) && val.length === 0)
+				return false;
+
+			// False does not pass required check
+			if (typeof val === "boolean" && val === false)
+				return false;
+
+			return true;
 		};
 
 		// call the base type constructor
