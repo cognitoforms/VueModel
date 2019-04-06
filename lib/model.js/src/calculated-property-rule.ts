@@ -1,4 +1,4 @@
-import { Rule, RuleInvocationOptions } from "./rule";
+import { Rule, RuleInvocationOptions, RuleOptions } from "./rule";
 import { Type } from "./type";
 import { Property, PropertyRuleOptions } from "./property";
 import { Entity } from "./entity";
@@ -143,7 +143,7 @@ export class CalculatedPropertyRule extends Rule {
 	}
 }
 
-export interface CalculatedPropertyRuleOptions extends PropertyRuleOptions {
+export interface CalculatedPropertyRuleOptions extends RuleOptions, PropertyRuleOptions {
 	/** A function that returns the value to assign to the property, or undefined if the value cannot be calculated */
 	calculate?: string | ((this: Entity) => any);
 

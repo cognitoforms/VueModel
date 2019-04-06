@@ -1,12 +1,12 @@
 import Vue from "vue";
 import { Component, Prop } from "vue-property-decorator";
 import { Entity } from "../lib/model.js/src/entity";
-import { Property, isPropertyBooleanFunction } from "../lib/model.js/src/property";
+import { Property, isPropertyBooleanFunction, isPropertyBooleanFunctionAndOptions } from "../lib/model.js/src/property";
 import { Format } from "../lib/model.js/src/format";
 import { SourceAdapter, SourcePropertyAdapter, isSourceAdapter } from "./source-adapter";
 import { SourceOptionAdapter } from "./source-option-adapter";
 import { AllowedValuesRule } from "../lib/model.js/src/allowed-values-rule";
-import { observeEntity, observeArray, getObjectMetaObserver } from "./vue-model-observability";
+import { observeEntity, observeArray, getObjectMetaObserver, preventVueObservability } from "./vue-model-observability";
 import { PropertyChain } from "../lib/model.js/src/property-chain";
 import { ObservableArray, updateArray } from "../lib/model.js/src/observable-array";
 import { PropertyPath } from "../lib/model.js/src/property-path";
@@ -44,11 +44,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 	get property(): PropertyPath {
 		let property = this.parent.value.meta.type.getPath(this.source);
-
-		// Make sure Property and PropertyChain aren't made observable by Vue
-		const Observer = Object.getPrototypeOf((this as any)._data.__ob__).constructor;
-		(property as any).__ob__ = new Observer({});
-
+		preventVueObservability(property);
 		return property;
 	}
 
@@ -108,7 +104,16 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	*  @returns True if the property is required, otherwise false
 	*/
 	get required(): boolean {
-		return isPropertyBooleanFunction(this.property.required) ? this.property.required.function.call(this.parent.value) : !!this.property.required;
+		if (isPropertyBooleanFunctionAndOptions(this.property.required)) {
+			if (isPropertyBooleanFunction(this.property.required.function)) {
+				return this.property.required.function.call(this.parent.value);
+			} else {
+				return true;
+			}
+		}
+		if(isPropertyBooleanFunction(this.property.required))
+			return this.property.required.call(this.parent.value);
+		return this.property.required === true;
 	}
 
 	/**
@@ -151,6 +156,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 		let conditionsList = meta.conditions;
 
+		conditionsList.forEach(condition => { preventVueObservability(condition); });
+
 		// Raise property access to let Vue know that array was accessed
 		// Changes to conditions will result in a Vue change notification for the 'conditions' property
 		metaOb.onPropertyAccess("conditions", conditionsList);
@@ -189,11 +196,16 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		}
 
 		if (err) {
+			preventVueObservability(err);
+
 			var formatErrorCondition = err.createCondition(this.property.getLastTarget(this.parent.value), this.property.lastProperty);
+
+			preventVueObservability(formatErrorCondition);
 
 			(formatErrorCondition as any)["formatError"] = err;
 
 			formatErrorCondition.targets.forEach(formatErrorConditionTarget => {
+				preventVueObservability(formatErrorConditionTarget);
 				(formatErrorConditionTarget as any)["formatError"] = err;
 				vs.formatError = formatErrorConditionTarget;
 				(err as any)["conditionTarget"] = formatErrorConditionTarget;
@@ -264,6 +276,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 			newValue = formatter.convertBack(text);
 
 			if (newValue instanceof FormatError) {
+				preventVueObservability(newValue);
 				this.formatError = newValue;
 				return;
 			}
@@ -287,7 +300,12 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		else if (this.property instanceof Property) {
 			property = this.property;
 		}
-		return property.rules.filter(r => r instanceof AllowedValuesRule)[0] as AllowedValuesRule;
+		let allowedValuesRules = property.rules.filter(r => r instanceof AllowedValuesRule);
+		if (allowedValuesRules.length) {
+			let allowedValuesRule = allowedValuesRules[0] as AllowedValuesRule;
+			preventVueObservability(allowedValuesRule);
+			return allowedValuesRule;
+		}
 	}
 
 	get allowedValues(): TValue[] {
@@ -318,6 +336,14 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 			// Clear out values since the property doesn't currently have any allowed values
 			this.clearInvalidOptions(null);
 		}
+
+		allowedValuesFromRule.forEach(value => {
+			if (value instanceof Entity) {
+				observeEntity(value).ensureObservable();
+			} else if (typeof value === "object") {
+				preventVueObservability(value);
+			}
+		});
 
 		return allowedValuesFromRule;
 	}

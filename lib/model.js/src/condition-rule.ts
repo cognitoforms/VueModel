@@ -48,11 +48,18 @@ export class ConditionRule extends Rule {
 
 	// asserts the condition and adds or removes it from the model if necessary
 	execute(entity: Entity): void {
-		let assert = this.assert.call(entity);
 
-		let message = typeof this.message === "string" ?
-			this.message :
-			this.message.call(entity);
+		let assert: boolean;
+		let message: string;
+
+		if (this.assert) {
+			// If an assert function is defined, then use it to determine whether to attach a condition
+			assert = this.assert.call(entity);
+			message = typeof this.message === "string" ? this.message : this.message.call(entity);
+		} else if (this.message instanceof Function) {
+			message = this.message.call(entity);
+			assert = typeof message === "string" && message.trim().length > 0;
+		}
 
 		// create or remove the condition if necessary
 		if (typeof assert !== "undefined") {
@@ -74,7 +81,7 @@ export interface ConditionRuleOptions extends RuleOptions {
 	assert?: (this: Entity) => boolean;
 
 	// the message to show the user when the validation fails
-	message?: string | (() => string);
+	message?: string | ((this: Entity) => string);
 
 	// an array of property paths the validation condition should be attached to when asserted, in addition to the target property
 	properties?: PropertyPath[];

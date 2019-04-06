@@ -25,6 +25,18 @@ export function getCustomObserverConstructor(): CustomObserverConstructor {
 	return CustomObserverConstructor || (CustomObserverConstructor = require("./custom-observer").CustomObserver);
 }
 
+export function preventVueObservability(obj: object): boolean {
+	if (obj) {
+		let CustomObserver = getCustomObserverConstructor();
+		if (!hasOwnProperty(obj, '__ob__')) {
+			new CustomObserver(obj);
+			return true;
+		} else {
+			return obj.__ob__ instanceof CustomObserver;
+		}
+	}
+}
+
 export interface EntityObserverConstructor extends ObserverConstructor {
 	new(value: Entity): Observer<Entity> & ExtendedObserver & CustomObserverInterface;
 }

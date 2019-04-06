@@ -17,33 +17,58 @@ export class RequiredRule extends ValidationRule {
 		// ensure the rule name is specified
 		options.name = options.name || "Required";
 
-		// ensure the error message is specified
-		options.message = options.message || getResource("required", rootType.model.$locale);
-
-		// create the validation function based on the rule options
-		options.isValid = function(this: Entity, prop: Property, val: any): boolean {
-			if (options.when && !options.when.call(this)) {
-				// Valid whether or not there is a value, since requiredness is not in effect
-				return true;
+		if (typeof options.message === "function") {
+			if (options.when) {
+				let messageFn = options.message;
+				options.message = function(this: Entity): string {
+					if (options.when && !options.when.call(this))
+						return null;
+					return messageFn.call(this);
+				};
 			}
+		} else {
+			// ensure the error message is specified
+			options.message = options.message || getResource("required", rootType.model.$locale);
 
-			if (val === undefined || val === null)
-				return false;
+			if (options.isValid) {
+				if (options.when) {
+					let isValidFn = options.isValid;
+					options.isValid = function(this: Entity, prop: Property, val: any): boolean {
+						if (options.when && !options.when.call(this)) {
+							// Valid whether or not there is a value, since requiredness is not in effect
+							return true;
+						}
 
-			// Blank string does not pass required check
-			if (typeof val === "string" && val.trim() === "")
-				return false;
+						return isValidFn.apply(this, arguments);
+					};
+				}
+			} else if (typeof options.message !== "function") {
+				// create the validation function based on the rule options
+				options.isValid = function(this: Entity, prop: Property, val: any): boolean {
+					if (options.when && !options.when.call(this)) {
+						// Valid whether or not there is a value, since requiredness is not in effect
+						return true;
+					}
 
-			// Empty array does not pass required check
-			if (Array.isArray(val) && val.length === 0)
-				return false;
+					if (val === undefined || val === null)
+						return false;
 
-			// False does not pass required check
-			if (typeof val === "boolean" && val === false)
-				return false;
+					// Blank string does not pass required check
+					if (typeof val === "string" && val.trim() === "")
+						return false;
 
-			return true;
-		};
+					// Empty array does not pass required check
+					if (Array.isArray(val) && val.length === 0)
+						return false;
+
+					// False does not pass required check
+					if (typeof val === "boolean" && val === false)
+						return false;
+
+					return true;
+				};
+			}
+		}
 
 		// call the base type constructor
 		super(rootType, options);

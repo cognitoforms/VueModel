@@ -1,4 +1,4 @@
-import { ConditionRule } from "./condition-rule";
+import { ConditionRule, ConditionRuleOptions } from "./condition-rule";
 import { PropertyRule, Property, PropertyRuleOptions } from "./property";
 import { Entity } from "./entity";
 import { Type } from "./type";
@@ -55,10 +55,12 @@ export class ValidationRule extends ConditionRule implements PropertyRule {
 			}
 		}
 
-		options.assert = function(this: Entity): boolean {
-			var isValid = options.isValid.call(this, options.property as Property, options.property.value(this));
-			return isValid === undefined ? isValid : !isValid;
-		};
+		if (options.isValid) {
+			options.assert = function(this: Entity): boolean {
+				var isValid = options.isValid.call(this, options.property as Property, options.property.value(this));
+				return isValid === undefined ? isValid : !isValid;
+			};
+		}
 
 		// call the base rule constructor
 		super(rootType, options);
@@ -70,12 +72,11 @@ export class ValidationRule extends ConditionRule implements PropertyRule {
 	}
 }
 
-export interface ValidationRuleOptions extends PropertyRuleOptions {
+export interface ValidationRuleOptions extends ConditionRuleOptions, PropertyRuleOptions {
 
 	// function (obj, prop, val) { return true; } (a predicate that returns true when the property is valid)
 	isValid?: ((this: Entity, prop: Property, val: any) => boolean);
 
-	message?: string | ((this: Entity) => string);
 }
 
 export interface ValidationRuleConstructor {
