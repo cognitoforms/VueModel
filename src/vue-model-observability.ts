@@ -32,7 +32,7 @@ export function preventVueObservability(obj: object): boolean {
 			new CustomObserver(obj);
 			return true;
 		} else {
-			return obj.__ob__ instanceof CustomObserver;
+			return (obj as any).__ob__ instanceof CustomObserver;
 		}
 	}
 }
