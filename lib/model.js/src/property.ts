@@ -517,7 +517,7 @@ export interface PropertyOptions {
 	required?: boolean | PropertyBooleanFunction | PropertyBooleanFunctionAndOptions;
 
 	/** An optional dependency function object that adds an error with the specified message when true. */
-	error?: PropertyErrorFunction | PropertyErrorFunction[];
+	error?: PropertyErrorFunctionAndOptions | PropertyErrorFunctionAndOptions[];
 }
 
 export interface PropertyFormatOptions {
@@ -533,7 +533,10 @@ export interface PropertyFormatOptions {
 
 }
 
-export type PropertyErrorFunction = { function: (this: Entity) => string; dependsOn: string };
+export interface PropertyErrorFunctionAndOptions {
+	function: (this: Entity) => string;
+	dependsOn: string;
+}
 
 export type PropertyValueFunction<T> = () => T;
 
