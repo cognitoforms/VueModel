@@ -68,6 +68,8 @@ export class Model {
 	/**
 	 * Gets the resource with the specified name
 	 * @param name The resource name/key
+	 * @param locale The locale of the resource
+	 * @param params The parameters to use for string format substitution
 	 */
 	static getResource(name: string, locale?: string): string;
 	static getResource(name: string, params?: ObjectLookup<string>): string;
