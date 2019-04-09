@@ -107,11 +107,12 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		if (isPropertyBooleanFunctionAndOptions(this.property.required)) {
 			if (isPropertyBooleanFunction(this.property.required.function)) {
 				return this.property.required.function.call(this.parent.value);
-			} else {
+			}
+			else {
 				return true;
 			}
 		}
-		if(isPropertyBooleanFunction(this.property.required))
+		if (isPropertyBooleanFunction(this.property.required))
 			return this.property.required.call(this.parent.value);
 		return this.property.required === true;
 	}
@@ -340,7 +341,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		allowedValuesFromRule.forEach(value => {
 			if (value instanceof Entity) {
 				observeEntity(value).ensureObservable();
-			} else if (typeof value === "object") {
+			}
+			else if (typeof value === "object") {
 				preventVueObservability(value);
 			}
 		});

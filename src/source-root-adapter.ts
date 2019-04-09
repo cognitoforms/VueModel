@@ -8,8 +8,7 @@ export class SourceRootAdapter<TEntity extends Entity> extends Vue implements So
     @Prop(Object)
     entity: TEntity;
 
-    @Prop(Boolean)
-    readonly: boolean;
+    readonly = false;
 
     get value(): TEntity {
     	return this.entity;
