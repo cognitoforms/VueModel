@@ -25,6 +25,6 @@
 	},
 	"include": [
 		"./src",
-		"./lib/model.js/src"
+		"./lib/model.js/src", "../../Cognito.Services/client/src/components/Phone.unit.ts"
 	]
 }

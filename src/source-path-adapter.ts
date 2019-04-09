@@ -95,7 +95,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	 *  @returns True if either the parent source or the source override is read only, otherwise false
 	 */
 	get readonly(): boolean {
-		return this.parent.readonly || (this.overrides ? this.overrides.readonly : false);
+		return this.parent.readonly || (this.overrides ? !!this.overrides.readonly : false);
 	}
 
 	/**
