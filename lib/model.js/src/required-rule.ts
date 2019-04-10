@@ -1,5 +1,4 @@
 import { ValidationRule, ValidationRuleOptions } from "./validation-rule";
-import { getResource } from "./resource";
 import { Type } from "./type";
 import { Entity } from "./entity";
 import { Property } from "./property";
@@ -28,7 +27,7 @@ export class RequiredRule extends ValidationRule {
 			}
 		} else {
 			// ensure the error message is specified
-			options.message = options.message || getResource("required", rootType.model.$locale);
+			options.message = options.message || rootType.model.getResource("required");
 
 			if (options.isValid) {
 				if (options.when) {

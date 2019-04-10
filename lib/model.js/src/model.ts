@@ -96,6 +96,15 @@ export class Model {
 	}
 
 	/**
+	 * Gets the resource with the specified name
+	 * @param name The resource name/key
+	 * @param params The parameters to use for string format substitution
+	 */
+	getResource(name: string, params: ObjectLookup<string> = null): string {
+		return getResource(name, this.$locale, params);
+	}
+
+	/**
 	 * Extends the model with the specified type information.
 	 * @param options The set of model types to add and/or extend.
 	 */
@@ -229,7 +238,7 @@ export class Model {
 		}
 		else {
 			// otherwise, call the format provider to create a new format
-			return (formats[format] = createFormat(type, format, this.$locale));
+			return (formats[format] = createFormat(this, type, format));
 		}
 	}
 

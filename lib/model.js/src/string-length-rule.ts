@@ -2,7 +2,6 @@ import { RangeRule } from "./range-rule";
 import { Property } from "./property";
 import { Entity } from "./entity";
 import { Type } from "./type";
-import { getResource } from "./resource";
 
 export class StringLengthRule extends RangeRule {
 	constructor(rootType: Type, options: any) {
@@ -25,9 +24,9 @@ export class StringLengthRule extends RangeRule {
 
 		// ensure the error message is specified
 		options.message = options.message ||
-			(options.min && options.max ? getResource("string-length-between", rootType.model.$locale).replace("{min}", options.min).replace("{max}", options.max) :
-				options.min ? getResource("string-length-at-least", rootType.model.$locale).replace("{min}", options.min) :
-					getResource("string-length-at-most", rootType.model.$locale).replace("{max}", options.max));
+			(options.min && options.max ? rootType.model.getResource("string-length-between").replace("{min}", options.min).replace("{max}", options.max) :
+				options.min ? rootType.model.getResource("string-length-at-least").replace("{min}", options.min) :
+					rootType.model.getResource("string-length-at-most").replace("{max}", options.max));
 
 		let min = options.min;
 		delete options.min;

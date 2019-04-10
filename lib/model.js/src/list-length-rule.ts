@@ -2,7 +2,6 @@ import { RangeRule } from "./range-rule";
 import { Property, Property$format } from "./property";
 import { Entity } from "./entity";
 import { Type } from "./type";
-import { getResource } from "./resource";
 
 export class ListLengthRule extends RangeRule {
 	constructor(rootType: Type, options: any) {
@@ -49,10 +48,10 @@ export class ListLengthRule extends RangeRule {
 
 		// ensure the error message is specified
 		var message =
-			(range.min && range.max ? getResource("listlength-between", this.rootType.model.$locale).replace("{min}", Property$format(this.property, range.min) || range.min).replace("{max}", Property$format(this.property, range.max) || range.max) :
+			(range.min && range.max ? this.rootType.model.getResource("listlength-between").replace("{min}", Property$format(this.property, range.min) || range.min).replace("{max}", Property$format(this.property, range.max) || range.max) :
 				range.min ?
-					getResource("listlength-at-least", this.rootType.model.$locale).replace("{min}", Property$format(this.property, range.min) || range.min) : // at least ordinal
-					getResource("listlength-at-most", this.rootType.model.$locale).replace("{max}", Property$format(this.property, range.max) || range.max)); // at most ordinal
+					this.rootType.model.getResource("listlength-at-least").replace("{min}", Property$format(this.property, range.min) || range.min) : // at least ordinal
+					this.rootType.model.getResource("listlength-at-most").replace("{max}", Property$format(this.property, range.max) || range.max)); // at most ordinal
 
 		return message.replace("{property}", this.property.label);
 	}
