@@ -1,5 +1,5 @@
 import Vue, { VueConstructor, ComponentOptions, PluginObject } from "vue";
-import { Model, ModelOptions, ModelConfiguration } from "../lib/model.js/src/model";
+import { Model, ModelOptions, ModelNamespaceOption, ModelLocaleOption, ModelConfiguration } from "../lib/model.js/src/model";
 import { Entity } from "../lib/model.js/src/entity";
 import { VueInternals, ensureVueInternalTypes } from "./vue-internals";
 import { VueModel$installGlobalMixin } from "./vue-global-mixin";
@@ -19,7 +19,7 @@ export class VueModel extends Model {
 	 * Creates a new model with the specified type information.
 	 * @param options The set of model types to add.
 	 */
-	constructor(options?: ModelOptions, config?: ModelConfiguration) {
+	constructor(options?: ModelOptions & ModelNamespaceOption & ModelLocaleOption, config?: ModelConfiguration) {
 		super(options, config);
 
 		if (!VueModel._Vue) {
