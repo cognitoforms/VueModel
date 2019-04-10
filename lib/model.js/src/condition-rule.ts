@@ -48,7 +48,6 @@ export class ConditionRule extends Rule {
 
 	// asserts the condition and adds or removes it from the model if necessary
 	execute(entity: Entity): void {
-
 		let assert: boolean;
 		let message: string;
 
@@ -56,7 +55,8 @@ export class ConditionRule extends Rule {
 			// If an assert function is defined, then use it to determine whether to attach a condition
 			assert = this.assert.call(entity);
 			message = typeof this.message === "string" ? this.message : this.message.call(entity);
-		} else if (this.message instanceof Function) {
+		}
+		else if (this.message instanceof Function) {
 			message = this.message.call(entity);
 			assert = typeof message === "string" && message.trim().length > 0;
 		}

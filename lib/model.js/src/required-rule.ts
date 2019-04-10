@@ -25,14 +25,15 @@ export class RequiredRule extends ValidationRule {
 					return messageFn.call(this);
 				};
 			}
-		} else {
+		}
+		else {
 			// ensure the error message is specified
 			options.message = options.message || rootType.model.getResource("required");
 
 			if (options.isValid) {
 				if (options.when) {
 					let isValidFn = options.isValid;
-					options.isValid = function(this: Entity, prop: Property, val: any): boolean {
+					options.isValid = function(this: Entity): boolean {
 						if (options.when && !options.when.call(this)) {
 							// Valid whether or not there is a value, since requiredness is not in effect
 							return true;
@@ -41,7 +42,8 @@ export class RequiredRule extends ValidationRule {
 						return isValidFn.apply(this, arguments);
 					};
 				}
-			} else if (typeof options.message !== "function") {
+			}
+			else if (typeof options.message !== "function") {
 				// create the validation function based on the rule options
 				options.isValid = function(this: Entity, prop: Property, val: any): boolean {
 					if (options.when && !options.when.call(this)) {

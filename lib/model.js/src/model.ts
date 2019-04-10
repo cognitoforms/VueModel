@@ -116,7 +116,7 @@ export class Model {
 				let $namespace = options.$namespace as object;
 				if (!this.$namespace) {
 					Object.defineProperty(this, "$namespace", { configurable: false, enumerable: true, value: $namespace, writable: false });
-					delete options['$namespace'];
+					delete options["$namespace"];
 				}
 				else if ($namespace !== this.$namespace) {
 					// TODO: Raise an error?
@@ -128,10 +128,10 @@ export class Model {
 				// TODO: Detect that the locale has already been set, or types have already been initialized under a different locale
 				let $locale = options.$locale as string;
 				Object.defineProperty(this, "$locale", { configurable: false, enumerable: true, value: $locale, writable: false });
-				delete options['$locale'];
+				delete options["$locale"];
 			}
 
-			let typesToCreate = Object.keys(options).filter(typeName => !typeName.startsWith('$'));
+			let typesToCreate = Object.keys(options).filter(typeName => !typeName.startsWith("$"));
 
 			let typesToInitialize: string[] = [];
 
@@ -139,7 +139,7 @@ export class Model {
 			while (typesToCreate.length > 0) {
 				let typeName = typesToCreate.splice(0, 1)[0];
 
-				for (let typeNameIdx = -1, pos = typeName.length - 1, i = typeName.lastIndexOf('.', pos); i > 0; pos = i - 1, i = typeName.lastIndexOf('.', pos)) {
+				for (let typeNameIdx = -1, pos = typeName.length - 1, i = typeName.lastIndexOf(".", pos); i > 0; pos = i - 1, i = typeName.lastIndexOf(".", pos)) {
 					let typeNamespace = typeName.substring(0, i);
 					let typeNamespaceIdx = typesToCreate.indexOf(typeNamespace);
 					if (typeNamespaceIdx > typeNameIdx) {
