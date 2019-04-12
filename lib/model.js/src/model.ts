@@ -1,10 +1,10 @@
 import { Event, EventSubscriber } from "./events";
-import { randomText, ObjectLookup } from "./helpers";
+import { replaceTokens, randomText, ObjectLookup } from "./helpers";
 import { EntityRegisteredEventArgs, EntityUnregisteredEventArgs, Entity } from "./entity";
 import { Type, PropertyType, isEntityType, ValueType, TypeOptions, TypeExtensionOptions } from "./type";
 import { Format, createFormat } from "./format";
 import { EntitySerializer } from "./entity-serializer";
-import { getResource, defineResources } from "./resource";
+import { LocalizedResourcesMap, setDefaultLocale, defineResources, getResource } from "./resource";
 
 const valueTypes: { [name: string]: ValueType } = { string: String, number: Number, date: Date, boolean: Boolean };
 
@@ -16,8 +16,8 @@ export class Model {
 	readonly fieldNamePrefix: string;
 
 	readonly $namespace: any;
-	
 	readonly $locale: string;
+	readonly $resources: LocalizedResourcesMap;
 	
 	readonly entityRegistered: EventSubscriber<Model, EntityRegisteredEventArgs>;
 	readonly entityUnregistered: EventSubscriber<Model, EntityUnregisteredEventArgs>;
@@ -27,28 +27,12 @@ export class Model {
 
 	readonly serializer = new EntitySerializer();
 
-	constructor(options?: ModelOptions & ModelNamespaceOption & ModelLocaleOption, config?: ModelConfiguration) {
+	constructor(options?: ModelOptions & ModelNamespaceOption & ModelLocalizationOptions, config?: ModelConfiguration) {
 		this.types = {};
 		this.settings = new ModelSettings(config);
-
 		this.fieldNamePrefix = "_fN" + randomText(3, false, true);
-		
 		this.entityRegistered = new Event<Model, EntityRegisteredEventArgs>();
 		this.entityUnregistered = new Event<Model, EntityUnregisteredEventArgs>();
-
-		if (options && options.$namespace) {
-			let $namespace = options.$namespace;
-
-			try {
-				delete options.$namespace;
-			}
-			catch {
-				// Ignore error, we'll ignore the property later
-			}
-
-			Object.defineProperty(this, "$namespace", { configurable: false, enumerable: true, value: $namespace, writable: false });
-		}
-
 		this._formats = {};
 
 		if (options) {
@@ -57,7 +41,15 @@ export class Model {
 	}
 
 	/**
-	 * Sets resource messages for the given locale
+	 * Sets the default locale to use when a model's locale is not explicitly set
+	 * @param locale The default locale
+	 */
+	static setDefaultLocale(locale: string): void {
+		setDefaultLocale(locale);
+	}
+
+	/**
+	 * Defines global resource messages for the given locale
 	 * @param locale The locale to set messages for
 	 * @param resources The resources messages
 	 */
@@ -92,7 +84,10 @@ export class Model {
 			params = arg3 as ObjectLookup<string>;
 		}
 
-		return getResource(name, locale, params);
+		let resource = getResource(name, locale);
+		if (params)
+			return replaceTokens(resource, params);
+		return resource;
 	}
 
 	/**
@@ -101,7 +96,10 @@ export class Model {
 	 * @param params The parameters to use for string format substitution
 	 */
 	getResource(name: string, params: ObjectLookup<string> = null): string {
-		return getResource(name, this.$locale, params);
+		let resource = getResource(name, this.$resources, this.$locale);
+		if (params)
+			return replaceTokens(resource, params);
+		return resource;
 	}
 
 	/**
@@ -112,23 +110,39 @@ export class Model {
 		// Use prepare() to defer property path resolution while the model is being extended
 		this.prepare(() => {
 			if (options.$namespace) {
-				// TODO: Guard against model being set after instances have been created
+				// TODO: Guard against namespace being set after types have been created
 				let $namespace = options.$namespace as object;
 				if (!this.$namespace) {
 					Object.defineProperty(this, "$namespace", { configurable: false, enumerable: true, value: $namespace, writable: false });
 					delete options["$namespace"];
 				}
 				else if ($namespace !== this.$namespace) {
-					// TODO: Raise an error?
-					console.error("Cannot redefine namespace for model.");
+					throw new Error("Cannot redefine namespace for model.");
 				}
 			}
 
 			if (options.$locale && typeof options.$locale === "string") {
-				// TODO: Detect that the locale has already been set, or types have already been initialized under a different locale
+				// TODO: Guard against locale being set after types have been created
 				let $locale = options.$locale as string;
-				Object.defineProperty(this, "$locale", { configurable: false, enumerable: true, value: $locale, writable: false });
-				delete options["$locale"];
+				if (!this.$locale) {
+					Object.defineProperty(this, "$locale", { configurable: false, enumerable: true, value: $locale, writable: false });
+					delete options["$locale"];
+				}
+				else if ($locale !== this.$locale) {
+					throw new Error("Cannot redefine locale for model.");
+				}
+			}
+
+			if (options.$resources && typeof options.$resources === "object") {
+				// TODO: Guard against resources being set after types have been created
+				let $resources = (options.$resources as any) as ObjectLookup<ObjectLookup<string>>;
+				if (!this.$resources) {
+					Object.defineProperty(this, "$resources", { configurable: false, enumerable: true, value: $resources, writable: false });
+					delete options["$resources"];
+				}
+				else if ($resources !== this.$resources) {
+					throw new Error("Cannot redefine resources for model.");
+				}
 			}
 
 			let typesToCreate = Object.keys(options).filter(typeName => !typeName.startsWith("$"));
@@ -267,11 +281,16 @@ export type ModelOptions = {
 	[name: string]: TypeOptions & TypeExtensionOptions<Entity>;
 }
 
-export type ModelLocaleOption = {
+export type ModelLocalizationOptions = {
 	/**
 	 * The model's locale (English is assumed by default)
 	 */
 	$locale?: string;
+
+	/**
+	 * The model's resource objects
+	 */
+	$resources?: LocalizedResourcesMap;
 }
 
 export type ModelNamespaceOption = {

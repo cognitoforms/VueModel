@@ -7,109 +7,79 @@ import { ObjectLookup, hasOwnProperty, merge } from "./helpers";
 export type LocalizedResources = ObjectLookup<string>;
 
 /**
- * Implements the ability to get and set localizable resource strings
- */
-export interface ResourceLocalizationImplementation {
-	setDefaultLocale(locale: string): void;
-	defineResources(locale: string, resources: LocalizedResources): void;
-	getResource(name: string, locale: string, params: ObjectLookup<string>): string;
-}
-
-/**
  * Alias type for a lookup of string locales to localized resource dictionary
  */
-type LocalizedResourcesMap = ObjectLookup<LocalizedResources>;
+export type LocalizedResourcesMap = ObjectLookup<LocalizedResources>;
 
 /**
  * The dictionary of localized resource messages
  */
-const localizedResources: LocalizedResourcesMap = { };
+export const Resources: LocalizedResourcesMap = { };
 
 /**
- * The default locale, can be changed via `Resource.setDefaultLocale(locale)`.
+ * The default locale, can be changed via `setDefaultLocale(locale)`.
  */
 let defaultLocale: string = null;
 
 /**
- * Default resource localization implementation
- */
-let localizationImplementation: ResourceLocalizationImplementation = {
-	setDefaultLocale: function Resource$setDefaultLocale(locale: string): void {
-		if (!hasOwnProperty(localizedResources, locale)) throw new Error("Resources are not defined for locale '" + locale + "'.");
-		defaultLocale = locale;
-	},
-	defineResources: function Resource$defineResources(locale: string, resources: ObjectLookup<string>): void {
-		if (!resources) throw new Error("Resources cannot be unset for locale '" + locale + "'.");
-		localizedResources[locale] = hasOwnProperty(localizedResources, locale) ? merge(localizedResources[locale], resources) : resources;
-	},
-	getResource: function Resource$getResource(name: string, locale: string, params: ObjectLookup<string>) {
-		if (!locale) locale = defaultLocale || "en";
-		if (!hasOwnProperty(localizedResources, locale)) throw new Error("Resources are not defined for locale '" + locale + "'.");
-		var localeResources = localizedResources[locale];
-		if (!hasOwnProperty(localeResources, name)) throw new Error("Resource '" + name + "' is not defined for locale '" + locale + "'.");
-		let res = localeResources[name];
-		if (params) {
-			return res.replace(/{([^}]+)}/g, (match: string, key: string): string => {
-				return hasOwnProperty(params, key) ? params[key] : match;
-			});
-		}
-		return res;
-	}
-};
-
-/**
- * Defines the implementation of resource localization (`setDefaultLocale` and `defineResources`, and `getResource` functions).
- * This is optional, since a default implementation is provided.
- * @param implementation The resource localization implementation
- */
-export function setResourceImplementation(implementation: ResourceLocalizationImplementation): void {
-	if (!implementation) throw new Error("Cannot unset localization implementation.");
-	localizationImplementation = implementation;
-}
-
-/**
- * Sets the current locale
- * @param locale The locale to use
+ * Sets the default locale
+ * @param locale The default locale
  */
 export function setDefaultLocale(locale: string): void {
-	localizationImplementation.setDefaultLocale(locale);
+	defaultLocale = locale;
 }
 
 /**
- * Sets resource messages for the given locale
+ * Globally defined resources
+ */
+const globalResources: LocalizedResourcesMap = { };
+
+/**
+ * Globally define localized resource messages for the given locale
  * @param locale The locale to set messages for
  * @param resources The resources messages
  */
 export function defineResources(locale: string, resources: LocalizedResources): void {
-	localizationImplementation.defineResources(locale, resources);
+	globalResources[locale] = hasOwnProperty(globalResources, locale) ? merge(globalResources[locale], resources) : resources;
 }
 
 /**
  * Gets the resource with the specified name
  * @param name The resource name/key
- * @param locale The locale of the resource
- * @param params The parameters to use for string format substitution
+ * @param customResources The optional custom resource strings lookup object
+ * @param locale The requested locale
  */
 export function getResource(name: string, locale?: string): string;
-export function getResource(name: string, params?: ObjectLookup<string>): string;
-export function getResource(name: string, locale?: string, params?: ObjectLookup<string>): string;
-export function getResource(name: string, arg2?: string | ObjectLookup<string>, arg3?: ObjectLookup<string>): string {
+export function getResource(name: string, customResources?: LocalizedResourcesMap): string;
+export function getResource(name: string, customResources?: LocalizedResourcesMap, locale?: string): string;
+export function getResource(name: string, arg2?: LocalizedResourcesMap | string, arg3?: string): string {
+	let customResources: LocalizedResourcesMap;
 	let locale: string;
-	let params: ObjectLookup<string>;
 	if (arguments.length === 2) {
-		if (typeof arg2 === "string") {
-			locale = arg2;
-			params = null;
-		}
-		else if (typeof arg2 === "object") {
+		if (typeof arg2 === "object") {
+			customResources = arg2;
 			locale = null;
-			params = arg2;
+		}
+		else if (typeof arg2 === "string") {
+			customResources = null;
+			locale = arg2;
 		}
 	}
 	else if (arguments.length >= 3) {
-		locale = arg2 as string;
-		params = arg3 as ObjectLookup<string>;
+		customResources = arg2 as LocalizedResourcesMap;
+		locale = arg3 as string;
 	}
 
-	return localizationImplementation.getResource(name, locale, params);
+	if (!locale) locale = defaultLocale || "en";
+
+	let res: string;
+
+	if (customResources && hasOwnProperty(customResources, locale) && hasOwnProperty(customResources[locale], name))
+		res = customResources[locale][name];
+	else if (hasOwnProperty(globalResources, locale) && hasOwnProperty(globalResources[locale], name))
+		res = globalResources[locale][name];
+	else
+		throw new Error("Resource '" + name + "' is not defined for locale '" + locale + "'.");
+
+	return res;
 }

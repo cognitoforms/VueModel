@@ -117,6 +117,20 @@ export function evalPath(obj: any, path: string, nullValue: any = null, undefine
 	return value;
 }
 
+/**
+ * Replace tokens (ex: {0}) in the given string
+ * @param template The template string
+ * @param params The replacement parameters
+ */
+export function replaceTokens(template: string, params: ObjectLookup<string>): string {
+	if (params) {
+		return template.replace(/{([^}]+)}/g, (match: string, key: string): string => {
+			return hasOwnProperty(params, key) ? params[key] : match;
+		});
+	}
+	return template;
+}
+
 var fnRegex = /function\s*([\w_$]*)/i;
 
 export function parseFunctionName(fn: Function): string {
