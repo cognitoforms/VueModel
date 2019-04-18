@@ -7,6 +7,7 @@ import { SourcePathMixin } from "./source-path-mixin";
 import { SourceRootMixin } from "./source-root-mixin";
 import { makeEntitiesVueObservable } from "./vue-model-observability";
 import { VMSource } from "./vm-source-component";
+import { CultureInfo } from "../lib/model.js/src/globalization";
 
 // TODO: Do we need to take `toggleObserving()` into account?
 
@@ -41,6 +42,8 @@ export class VueModel extends Model {
 	};
 
 	static Entity = Entity;
+
+	static CultureInfo = CultureInfo;
 
 	/**
 	 * Implement the Vue plugin interface:

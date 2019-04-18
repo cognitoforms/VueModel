@@ -9,7 +9,7 @@ export interface ObjectLookup<T> {
 	[key: string]: T;
 }
 
-export function getGlobalObject(): Window | NodeJS.Global | void {
+export function getGlobalObject(): any {
 	if (typeof window === "object" && Object.prototype.toString.call(window) === "[object Window]") {
 		return window;
 	}
@@ -286,4 +286,19 @@ export function mixin<T>(ctor: { new(...args: any[]): T }, methods: { [name: str
 			ctor.prototype[key] = methods[key];
 		}
 	}
+}
+
+/**
+ * Recursively clone an object and its children
+ * @param value The object to clone
+ */
+export function clone<T>(obj: T): T {
+	var result: any = {};
+	for (var prop in obj) {
+		if (hasOwnProperty(obj, prop)) {
+			let value = obj[prop];
+			result[prop] = value instanceof Array ? (value.length === 1 ? [value[0]] : Array.apply(null, value)) : typeof value === "object" ? clone(value) : value;
+		}
+	}
+	return result;
 }

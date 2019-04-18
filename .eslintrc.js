@@ -22,6 +22,7 @@ module.exports = {
 		// Only allow `console.log` in development
 		//"no-console": process.env.PRE_COMMIT ? ["error", { allow: ["warn", "error"] }] : "off",
 		"no-console": "off",
+		"brace-style": "stroustrup",
 		"indent": ["error", "tab", { "SwitchCase": 1 }],
 		"object-curly-spacing": ["error", "always"],
 		"linebreak-style": ["error", "windows"],

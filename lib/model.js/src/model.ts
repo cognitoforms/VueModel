@@ -5,6 +5,7 @@ import { Type, PropertyType, isEntityType, ValueType, TypeOptions, TypeExtension
 import { Format, createFormat } from "./format";
 import { EntitySerializer } from "./entity-serializer";
 import { LocalizedResourcesMap, setDefaultLocale, defineResources, getResource } from "./resource";
+import { CultureInfo, formatNumber, parseNumber, formatDate, parseDate } from "./globalization";
 
 const valueTypes: { [name: string]: ValueType } = { string: String, number: Number, date: Date, boolean: Boolean };
 
@@ -18,6 +19,7 @@ export class Model {
 	readonly $namespace: any;
 	readonly $locale: string;
 	readonly $resources: LocalizedResourcesMap;
+	readonly $culture: CultureInfo;
 	
 	readonly entityRegistered: EventSubscriber<Model, EntityRegisteredEventArgs>;
 	readonly entityUnregistered: EventSubscriber<Model, EntityUnregisteredEventArgs>;
@@ -103,6 +105,40 @@ export class Model {
 	}
 
 	/**
+	 * Formats a date as text using the given format string
+	 * @param date The date to format
+	 * @param format The format specifier
+	 */
+	formatDate(date: Date, format: string): string {
+		return formatDate(date, format, this.$culture);
+	}
+
+	/**
+	 * Parses a date from text
+	 * @param text The text to parse
+	 */
+	parseDate(text: string): Date {
+		return parseDate(text, this.$culture);
+	}
+
+	/**
+	 * Formats a number as text using the given format string
+	 * @param number The number to format
+	 * @param format The format specifier
+	 */
+	formatNumber(number: number, format: string): string {
+		return formatNumber(number, format, this.$culture);
+	}
+
+	/**
+	 * Parses a number from text
+	 * @param text The text to parse
+	 */
+	parseNumber(text: string): number {
+		return parseNumber(text, this.$culture);
+	}
+
+	/**
 	 * Extends the model with the specified type information.
 	 * @param options The set of model types to add and/or extend.
 	 */
@@ -142,6 +178,18 @@ export class Model {
 				}
 				else if ($resources !== this.$resources) {
 					throw new Error("Cannot redefine resources for model.");
+				}
+			}
+
+			if (options.$culture && typeof options.$culture === "object") {
+				// TODO: Guard against culture being set after types have been created
+				let $culture = (options.$culture as any) as CultureInfo;
+				if (!this.$culture) {
+					Object.defineProperty(this, "$culture", { configurable: false, enumerable: true, value: $culture, writable: false });
+					delete options["$culture"];
+				}
+				else if ($culture !== this.$culture) {
+					throw new Error("Cannot redefine culture for model.");
 				}
 			}
 
@@ -291,6 +339,11 @@ export type ModelLocalizationOptions = {
 	 * The model's resource objects
 	 */
 	$resources?: LocalizedResourcesMap;
+
+	/**
+	 * The model's culture
+	 */
+	$culture: CultureInfo;
 }
 
 export type ModelNamespaceOption = {

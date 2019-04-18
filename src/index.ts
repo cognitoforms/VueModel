@@ -7,6 +7,7 @@ import { PropertyConverter, PropertyInjector, PropertySerializationResult } from
 import { TypeExtensionOptions, RuleOrMethodFunctionOrOptions } from "../lib/model.js/src/type";
 import { Entity } from "../lib/model.js/src/entity";
 import { Property } from "../lib/model.js/src/property";
+import { CultureInfo } from "../lib/model.js/src/globalization";
 
 // Include English resources by default
 import "../lib/model.js/src/resource-en.ts";
@@ -20,6 +21,7 @@ export type ModelOptions = ModelOptions;
 export type TypeExtensionOptions<TEntity extends Entity> = TypeExtensionOptions<TEntity>;
 export type RuleOrMethodFunctionOrOptions<TEntity extends Entity> = RuleOrMethodFunctionOrOptions<TEntity>;
 export type Entity = Entity;
+export type CultureInfo = CultureInfo;
 export type Property = Property;
 export type PropertyConverter = PropertyConverter;
 export type PropertyInjector = PropertyInjector;
