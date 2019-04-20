@@ -142,7 +142,7 @@ export class Model {
 	 * Extends the model with the specified type information.
 	 * @param options The set of model types to add and/or extend.
 	 */
-	extend(options: ModelOptions): void {
+	extend(options: ModelOptions & ModelNamespaceOption & ModelLocalizationOptions): void {
 		// Use prepare() to defer property path resolution while the model is being extended
 		this.prepare(() => {
 			if (options.$namespace) {
@@ -181,15 +181,28 @@ export class Model {
 				}
 			}
 
-			if (options.$culture && typeof options.$culture === "object") {
+			if (options.$culture) {
+				let $culture: CultureInfo;
 				// TODO: Guard against culture being set after types have been created
-				let $culture = (options.$culture as any) as CultureInfo;
-				if (!this.$culture) {
-					Object.defineProperty(this, "$culture", { configurable: false, enumerable: true, value: $culture, writable: false });
-					delete options["$culture"];
+				if (typeof options.$culture === "object") {
+					$culture = options.$culture;
+				} else if (typeof options.$culture === "string") {
+					CultureInfo.setup();
+					if (CultureInfo.CurrentCulture.name === options.$culture) {
+						$culture = CultureInfo.CurrentCulture;
+					}
+					if (!$culture) {
+						throw new Error("Could not find culture '" + options.$culture + "'.");
+					}
 				}
-				else if ($culture !== this.$culture) {
-					throw new Error("Cannot redefine culture for model.");
+				if ($culture) {
+					if (!this.$culture) {
+						Object.defineProperty(this, "$culture", { configurable: false, enumerable: true, value: $culture, writable: false });
+						delete options["$culture"];
+					}
+					else if ($culture !== this.$culture) {
+						throw new Error("Cannot redefine culture for model.");
+					}
 				}
 			}
 
@@ -343,7 +356,7 @@ export type ModelLocalizationOptions = {
 	/**
 	 * The model's culture
 	 */
-	$culture: CultureInfo;
+	$culture?: CultureInfo | string;
 }
 
 export type ModelNamespaceOption = {

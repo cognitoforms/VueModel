@@ -1057,6 +1057,8 @@ export class CultureInfo {
 	numberFormat: NumberFormatInfo;
 	dateTimeFormat: DateTimeFormatInfo;
 
+	private static _defaultCulture: CultureInfo;
+
 	private _dateTimeFormats: string[];
 
 	private _upperMonths: string[];
@@ -1087,18 +1089,24 @@ export class CultureInfo {
 		if (cultureInfo != null && typeof cultureInfo === "object") {
 			CultureInfo.CurrentCulture = CultureInfo.parse(cultureInfo);
 		}
-		else {
-			let cultureInfoObject = clone(invariantCultureInfo);
-			cultureInfoObject.name = "en-US";
-			cultureInfoObject.numberFormat.CurrencySymbol = "$";
-			var dtf = cultureInfoObject.dateTimeFormat;
-			dtf.FullDateTimePattern = "dddd, MMMM dd, yyyy h:mm:ss tt";
-			dtf.LongDatePattern = "dddd, MMMM dd, yyyy";
-			dtf.LongTimePattern = "h:mm:ss tt";
-			dtf.ShortDatePattern = "M/d/yyyy";
-			dtf.ShortTimePattern = "h:mm tt";
-			dtf.YearMonthPattern = "MMMM, yyyy";
-			CultureInfo.CurrentCulture = CultureInfo.parse(cultureInfoObject);
+		else if (!CultureInfo.CurrentCulture) {
+			// Set up default culture
+			let defaultCulture = CultureInfo._defaultCulture;
+			if (!CultureInfo._defaultCulture) {
+				let cultureInfoObject = clone(invariantCultureInfo);
+				cultureInfoObject.name = "en-US";
+				cultureInfoObject.numberFormat.CurrencySymbol = "$";
+				var dtf = cultureInfoObject.dateTimeFormat;
+				dtf.FullDateTimePattern = "dddd, MMMM dd, yyyy h:mm:ss tt";
+				dtf.LongDatePattern = "dddd, MMMM dd, yyyy";
+				dtf.LongTimePattern = "h:mm:ss tt";
+				dtf.ShortDatePattern = "M/d/yyyy";
+				dtf.ShortTimePattern = "h:mm tt";
+				dtf.YearMonthPattern = "MMMM, yyyy";
+				defaultCulture = CultureInfo.parse(cultureInfoObject);
+				CultureInfo._defaultCulture = defaultCulture;
+			}
+			CultureInfo.CurrentCulture = defaultCulture;
 		}
 	}
 
