@@ -84,6 +84,25 @@ describe("Entity", () => {
 				expect(changed).not.toBeCalled();
 			});
 		});
+
+		describe("property change is raised when initializing new entity", () => {
+			test("value property", () => {
+				const changed = jest.fn();
+				Types.Person.meta.getProperty("FirstName").changed.subscribe(changed);
+				Types.Person.meta.getProperty("LastName").changed.subscribe(changed);
+				new Types.Person(Alien.Director);
+
+				expect(changed).toBeCalledTimes(2);
+			});
+
+			test("value list property", () => {
+				const changed = jest.fn();
+				Types.Movie.meta.getProperty("Genres").changed.subscribe(changed);
+				new Types.Movie(Alien);
+
+				expect(changed).toBeCalled();
+			});
+		});
 	});
 
 	it("can be serialized", () => {
