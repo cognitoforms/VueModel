@@ -339,7 +339,7 @@ export type ModelOptions = {
 	/**
 	 * Standard type options ($extends and $format), properties, and methods/rules
 	 */
-	[name: string]: TypeOptions & TypeExtensionOptions<Entity>;
+	[name: string]: (TypeOptions & TypeExtensionOptions<Entity>) | string;
 }
 
 export type ModelLocalizationOptions = {
