@@ -1,13 +1,13 @@
 import Vue from "vue";
 import { Component, Prop, Watch } from "vue-property-decorator";
-import { SourceAdapter, isSourceAdapter, isSourcePropertyAdapter } from "./source-adapter";
+import { isSourceAdapter, isSourcePropertyAdapter } from "./source-adapter";
 import { Entity } from "../lib/model.js/src/entity";
 import { SourcePathAdapter } from "./source-path-adapter";
 
 @Component
 export class SourcePathMixin extends Vue {
 	@Prop({ type: [String, Object] })
-	source: string | SourceAdapter<any>;
+	source: string | SourcePathAdapter<Entity, any>;
 
 	@Prop(String)
 	label: string;
@@ -33,7 +33,7 @@ export class SourcePathMixin extends Vue {
 		this.onOverrideValueChanged(readonly, Boolean);
 	}
 
-	get $source(): SourceAdapter<any> {
+	get $source(): SourcePathAdapter<Entity, any> {
 		// If the source is an adapter, then potentially apply overrides, and return it
 		if (isSourceAdapter(this.source)) {
 			let hasOverrides = hasOverrideValue(this.label, String) || hasOverrideValue(this.helptext, String) || hasOverrideValue(this.readonly, Boolean);
@@ -51,7 +51,7 @@ export class SourcePathMixin extends Vue {
 			}
 			else {
 				if (hasOverrides) {
-					throw new Error("Cannot apply overrides to source of type '" + this.source.constructor.name + "'.");
+					throw new Error("Cannot apply overrides to source of type '" + (this.source as any).constructor.name + "'.");
 				}
 
 				return this.source;

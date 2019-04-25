@@ -22,6 +22,8 @@ export type SourcePathOverrides = {
 	readonly?: boolean;
 };
 
+let _id = 0;
+
 @Component
 export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue implements SourcePropertyAdapter<TValue>, SourceAdapter<TValue> {
 	@Prop(String)
@@ -31,6 +33,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	overrides: SourcePathOverrides;
 
 	viewState: { formatError: ConditionTarget } = { formatError: null };
+
+	id = _id++;
 
 	get parent(): SourceAdapter<TEntity> {
 		for (let parentVm: Vue = this.$parent.$parent, parentLevel = 1; parentVm != null; parentVm = parentVm.$parent, parentLevel += 1) {
