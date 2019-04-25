@@ -34,7 +34,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 	viewState: { formatError: ConditionTarget } = { formatError: null };
 
-	id = _id++;
+	id = `${_id++}`;
 
 	get parent(): SourceAdapter<TEntity> {
 		for (let parentVm: Vue = this.$parent.$parent, parentLevel = 1; parentVm != null; parentVm = parentVm.$parent, parentLevel += 1) {
