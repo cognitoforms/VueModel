@@ -51,14 +51,8 @@ export class VueModel extends Model {
 	 */
 	static install(vue: typeof Vue): void {
 		// Detect if the plugin install has already been called
-		if (VueModel._Vue) {
-			if (process.env.NODE_ENV !== "production") {
-				console.error("[vuemodel] already installed. Vue.use(VueModel) should be called only once.");
-				return;
-			}
-
-			throw new Error("Vue.use(VueModel) should be called only once.");
-		}	
+		if (VueModel._Vue)
+			return;
 
 		// Register components globally for use in templates
 		vue.component("vm-source", VMSource);
