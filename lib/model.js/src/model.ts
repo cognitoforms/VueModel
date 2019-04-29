@@ -143,44 +143,47 @@ export class Model {
 	 * @param options The set of model types to add and/or extend.
 	 */
 	extend(options: ModelOptions & ModelNamespaceOption & ModelLocalizationOptions): void {
+		
 		// Use prepare() to defer property path resolution while the model is being extended
 		this.prepare(() => {
+
+			// Namespace
 			if (options.$namespace) {
 				// TODO: Guard against namespace being set after types have been created
 				let $namespace = options.$namespace as object;
 				if (!this.$namespace) {
 					Object.defineProperty(this, "$namespace", { configurable: false, enumerable: true, value: $namespace, writable: false });
-					delete options["$namespace"];
 				}
 				else if ($namespace !== this.$namespace) {
 					throw new Error("Cannot redefine namespace for model.");
 				}
 			}
 
+			// Locale
 			if (options.$locale && typeof options.$locale === "string") {
 				// TODO: Guard against locale being set after types have been created
 				let $locale = options.$locale as string;
 				if (!this.$locale) {
 					Object.defineProperty(this, "$locale", { configurable: false, enumerable: true, value: $locale, writable: false });
-					delete options["$locale"];
 				}
 				else if ($locale !== this.$locale) {
 					throw new Error("Cannot redefine locale for model.");
 				}
 			}
 
+			// Resources
 			if (options.$resources && typeof options.$resources === "object") {
 				// TODO: Guard against resources being set after types have been created
 				let $resources = (options.$resources as any) as ObjectLookup<ObjectLookup<string>>;
 				if (!this.$resources) {
 					Object.defineProperty(this, "$resources", { configurable: false, enumerable: true, value: $resources, writable: false });
-					delete options["$resources"];
 				}
 				else if ($resources !== this.$resources) {
 					throw new Error("Cannot redefine resources for model.");
 				}
 			}
 
+			// Culture
 			if (options.$culture) {
 				let $culture: CultureInfo;
 				// TODO: Guard against culture being set after types have been created
@@ -198,7 +201,6 @@ export class Model {
 				if ($culture) {
 					if (!this.$culture) {
 						Object.defineProperty(this, "$culture", { configurable: false, enumerable: true, value: $culture, writable: false });
-						delete options["$culture"];
 					}
 					else if ($culture !== this.$culture) {
 						throw new Error("Cannot redefine culture for model.");
