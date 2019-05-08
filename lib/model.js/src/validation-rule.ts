@@ -17,14 +17,14 @@ export class ValidationRule extends ConditionRule implements PropertyRule {
 		// ensure the properties and predicates to include the target property
 		if (!options.properties) {
 			options.properties = [property];
-		} 
+		}
 		else if (options.properties.indexOf(property) < 0) {
 			options.properties.push(property);
 		}
 
 		if (!options.onChangeOf) {
 			options.onChangeOf = [property];
-		} 
+		}
 		else if (options.onChangeOf.indexOf(property) < 0) {
 			options.onChangeOf.push(property);
 		}
@@ -46,7 +46,7 @@ export class ValidationRule extends ConditionRule implements PropertyRule {
 				options.message = function () { return message.replace("{property}", format.convert(this)); };
 
 				// ensure tokens included in the format trigger rule execution
-				Array.prototype.push.apply(options.properties, format.paths);
+				format.paths.forEach(p => Array.prototype.push.apply(options.properties, rootType.getPaths(p)));
 			}
 
 			// Static property label
