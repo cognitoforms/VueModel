@@ -5,7 +5,7 @@ import { Entity } from "./entity";
 import { ObservableArray, updateArray } from "./observable-array";
 import { RuleInvocationType } from "./rule-invocation-type";
 
-let calculationErrorDefault: any;
+let calculationErrorDefault: any = null;
 
 export class CalculatedPropertyRule extends Rule {
 	// Public read-only properties: aspects of the object that cannot be
@@ -47,7 +47,9 @@ export class CalculatedPropertyRule extends Rule {
 				name = options.name = (rootType.fullName + "." + (typeof property === "string" ? property : property.name) + ".Calculated");	
 			}
 
-			defaultIfError = options.defaultIfError;
+			if (options.hasOwnProperty("defaultIfError"))
+				defaultIfError = options.defaultIfError;
+
 			calculateFn = options.calculate;
 		}
 

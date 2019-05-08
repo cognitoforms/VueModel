@@ -11,15 +11,17 @@ import { StringFormatRule } from "./string-format-rule";
 import { ValidationRule } from "./validation-rule";
 import { AllowedValuesRule } from "./allowed-values-rule";
 import { RequiredRule } from "./required-rule";
+import { EntitySerializer } from "./entity-serializer";
 import { PropertyPath, PropertyAccessEventArgs, PropertyChangeEventArgs } from "./property-path";
+import { open } from "fs";
 
 export class Property implements PropertyPath {
 	readonly containingType: Type;
 	readonly name: string;
 	readonly propertyType: PropertyType;
 	readonly isList: boolean;
-	readonly isStatic: boolean;
 
+	constant: any;
 	label: string;
 	helptext: string;
 	isCalculated: boolean;
@@ -36,12 +38,11 @@ export class Property implements PropertyPath {
 	readonly changed: EventSubscriber<Entity, PropertyChangeEventArgs>;
 	readonly accessed: EventSubscriber<Entity, PropertyAccessEventArgs>;
 
-	constructor(containingType: Type, name: string, propertyType: PropertyType, isList: boolean, isStatic: boolean, options?: PropertyOptions) {
+	constructor(containingType: Type, name: string, propertyType: PropertyType, isList: boolean, options?: PropertyOptions) {
 		this.containingType = containingType;
 		this.name = name;
 		this.propertyType = propertyType;
 		this.isList = isList;
-		this.isStatic = isStatic;
 		this.required = false;
 		this.rules = [];
 		this.getter = Property$makeGetter(this, Property$getter);
@@ -58,8 +59,12 @@ export class Property implements PropertyPath {
 		return this.containingType.model.fieldNamePrefix + "_" + this.name;
 	}
 
+	get isConstant(): boolean {
+		return this.constant !== null && this.constant !== undefined;
+	}
+
 	get path(): string {
-		return this.isStatic ? (this.containingType + "." + this.name) : this.name;
+		return this.name;
 	}
 
 	get firstProperty(): Property {
@@ -107,6 +112,7 @@ export class Property implements PropertyPath {
 
 		// Use prepare() to defer property path resolution while the model is being extended
 		targetType.model.prepare(() => {
+
 			// Label
 			if (options.label)
 				this.label = options.label;
@@ -152,7 +158,14 @@ export class Property implements PropertyPath {
 				}
 			}
 
-			// Get - calculated property
+			// Constant
+			if (options.constant !== null && options.constant !== undefined) {
+				targetType.model.ready(() => {
+					this.constant = targetType.model.serializer.deserialize(options.constant, this);
+				});
+			}
+
+			// Get
 			if (options.get) {
 				if (typeof (options.get) === "function") {
 					options.get = { function: options.get, dependsOn: "" };
@@ -179,7 +192,7 @@ export class Property implements PropertyPath {
 				}
 			}
 
-			// Default value or function
+			// Default
 			if (options.default) {
 				let defaultConstant: Value;
 
@@ -188,15 +201,16 @@ export class Property implements PropertyPath {
 					options.default = { function: options.default, dependsOn: "" };
 				}
 				else if (isValue(options.default)) {
+
 					// Constant
 					defaultConstant = options.default;
 
-					// Can't set default contant value for entity-typed property
+					// Cannot set default constant value for entity-typed property
 					if (isEntityType(this.propertyType)) {
 						throw new Error(`Cannot set a constant default value for a property of type '${this.propertyType.meta.fullName}'.`);
 					}
 
-					// Verify that the contant value is of the proper built-in type
+					// Verify that the constant value is of the proper built-in type
 					let defaultOptionTypeName = getTypeName(defaultConstant);
 					let propertyTypeName = getConstructorName(this.propertyType).toLowerCase();
 					if (defaultOptionTypeName !== propertyTypeName) {
@@ -294,6 +308,7 @@ export class Property implements PropertyPath {
 						});
 					}
 				}
+
 				// Conditionally Required
 				else {
 					let requiredFn: (this: Entity) => boolean;
@@ -359,15 +374,11 @@ export class Property implements PropertyPath {
 	}
 
 	toString(): string {
-		if (this.isStatic) {
-			return `${this.containingType}.${this.name}`;
-		}
-		else {
-			return `this<${this.containingType}>.${this.name}`;
-		}
+		return `this<${this.containingType}>.${this.name}`;
 	}
 
 	canSetValue(obj: Entity, val: any): boolean {
+
 		// NOTE: only allow values of the correct data type to be set in the model
 
 		if (val === undefined) {
@@ -460,10 +471,8 @@ export class Property implements PropertyPath {
 	}
 
 	value(obj: Entity = null, val: any = null, additionalArgs: any = null): any {
-		var target = (this.isStatic ? this.containingType.jstype : obj);
-
-		if (target === undefined || target === null) {
-			throw new Error(`Cannot ${(arguments.length > 1 ? "set" : "get")} value for ${(this.isStatic ? "" : "non-")}static property "${this.name}" on type "${this.containingType}": target is null or undefined.`);
+		if (obj === undefined || obj === null) {
+			throw new Error(`Cannot ${(arguments.length > 1 ? "set" : "get")} value for property "${this.name}" on type "${this.containingType}": target is null or undefined.`);
 		}
 
 		if (arguments.length > 1) {
@@ -476,8 +485,7 @@ export class Property implements PropertyPath {
 
 	isInited(obj: Entity): boolean {
 		// If the backing field has been created, the property is initialized
-		var target = (this.isStatic ? this.containingType.jstype : obj);
-		return target.hasOwnProperty(this.fieldName);
+		return obj.hasOwnProperty(this.fieldName);
 	}
 }
 
@@ -485,9 +493,6 @@ export interface PropertyOptions {
 
 	/** The name or Javascript type of the property */
 	type?: string | PropertyType;
-
-	/** True if the property is static, or type level. */
-	static?: boolean;
 
 	/**
 	*  The optional label for the property.
@@ -500,6 +505,9 @@ export interface PropertyOptions {
 
 	/** The optional format specifier for the property. */
 	format?: string | Format<PropertyType> | PropertyFormatOptions;
+
+	/** A non-null value if the property is constant */
+	constant?: any;
 
 	/** An optional function or dependency function object that calculates the value of this property. */
 	get?: PropertyValueFunction<any> | PropertyValueFunctionAndOptions<any>;
@@ -570,7 +578,7 @@ export function isPropertyOptions<TOptions>(obj: any, check: (options: any) => b
 }
 
 export interface PropertyConstructor {
-	new(containingType: Type, name: string, jstype: PropertyType, isList: boolean, isStatic: boolean, options?: PropertyOptions): Property;
+	new(containingType: Type, name: string, jstype: PropertyType, isList: boolean, options?: PropertyOptions): Property;
 }
 
 export type PropertyGetMethod = (property: Property, entity: Entity, additionalArgs: any) => any;
@@ -722,13 +730,11 @@ export function Property$generateOwnPropertyWithClosure(property: Property, obj:
 export function Property$pendingInit(obj: Entity | EntityConstructorForType<Entity>, prop: Property, value: boolean = null): boolean | void {
 	let pendingInit: ObjectLookup<boolean>;
 
-	var target = (prop.isStatic ? prop.containingType.jstype : obj);
-
-	if (Object.prototype.hasOwnProperty.call(target, "_pendingInit")) {
-		pendingInit = (target as any)._pendingInit;
+	if (Object.prototype.hasOwnProperty.call(obj, "_pendingInit")) {
+		pendingInit = (obj as any)._pendingInit;
 	}
 	else {
-		Object.defineProperty(target, "_pendingInit", { enumerable: false, value: (pendingInit = {}), writable: true });
+		Object.defineProperty(obj, "_pendingInit", { enumerable: false, value: (pendingInit = {}), writable: true });
 	}
 
 	if (arguments.length > 2) {
@@ -740,14 +746,7 @@ export function Property$pendingInit(obj: Entity | EntityConstructorForType<Enti
 		}
 	}
 	else {
-		let storageTarget: any;
-		if (prop.isStatic) {
-			storageTarget = prop.containingType.jstype;
-		}
-		else {
-			storageTarget = obj;
-		}
-		let currentValue = storageTarget[prop.fieldName];
+		let currentValue = obj[prop.fieldName];
 		return currentValue === undefined || pendingInit[prop.name] === true;
 	}
 }
@@ -771,6 +770,11 @@ function Property$subArrayEvents(obj: Entity, property: Property, array: Observa
 }
 
 function Property$getInitialValue(property: Property): any {
+
+	// Constant
+	if (property.isConstant)
+		return property.constant;
+
 	var val = property.defaultValue;
 
 	if (Array.isArray(val)) {
@@ -785,11 +789,10 @@ function Property$getInitialValue(property: Property): any {
 }
 
 export function Property$init(property: Property, obj: Entity, val: any): void {
-	var target = (property.isStatic ? property.containingType.jstype : obj);
+	
+	Property$pendingInit(obj, property, false);
 
-	Property$pendingInit(target, property, false);
-
-	Object.defineProperty(target, property.fieldName, { value: val, writable: true });
+	Object.defineProperty(obj, property.fieldName, { value: val, writable: true });
 
 	if (Array.isArray(val)) {
 		Property$subArrayEvents(obj, property, ObservableArray.ensureObservable(val));
@@ -800,13 +803,12 @@ export function Property$init(property: Property, obj: Entity, val: any): void {
 }
 
 function Property$ensureInited(property: Property, obj: Entity): void {
-	var target = (property.isStatic ? property.containingType.jstype : obj);
 
 	// Determine if the property has been initialized with a value
 	// and initialize the property if necessary
-	if (!target.hasOwnProperty(property.fieldName)) {
+	if (!obj.hasOwnProperty(property.fieldName)) {
 		// Mark the property as pending initialization
-		Property$pendingInit(target, property, true);
+		Property$pendingInit(obj, property, true);
 
 		// Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.
 		if (!property.isCalculated) {
@@ -844,7 +846,10 @@ function Property$shouldSetValue(property: Property, obj: Entity, old: any, val:
 	}
 
 	// Update lists as batch remove/add operations
-	if (property.isList) {
+	if (property.isConstant) {
+		throw new Error("Constant properties cannot be modified.");
+	}
+	else if (property.isList) {
 		throw new Error("Property set on lists is not permitted.");
 	}
 	else {

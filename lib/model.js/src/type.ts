@@ -125,9 +125,7 @@ export class Type {
 			for (let prop in this._properties) {
 				if (Object.prototype.hasOwnProperty.call(this._properties, prop)) {
 					let property = this._properties[prop];
-					if (!property.isStatic) {
-						Property$generateOwnProperty(property, obj);
-					}
+					Property$generateOwnProperty(property, obj);
 				}
 			}
 		}
@@ -424,16 +422,13 @@ export class Type {
 						}
 
 						// Add Property
-						let property = new Property(this, name, member.type, isList, member.static, member);
+						let property = new Property(this, name, member.type, isList, member);
 
 						this._properties[name] = property;
 
 						Property$generateShortcuts(property, this.jstype);
 
-						if (property.isStatic) {
-							Property$generateStaticProperty(property, this.jstype);
-						}
-						else if (!this.model.settings.createOwnProperties) {
+						if (!this.model.settings.createOwnProperties) {
 							Property$generatePrototypeProperty(property, this.jstype.prototype);
 						}
 					}

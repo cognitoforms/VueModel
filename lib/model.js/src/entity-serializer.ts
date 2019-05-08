@@ -84,7 +84,7 @@ export class EntitySerializer {
 		const type = entity.meta.type;
 		this.getPropertyInjectors(type).flatMap(i => i.inject(entity))
 			.concat(type.properties
-				.filter(p => !p.isCalculated && !p.isStatic)
+				.filter(p => !p.isCalculated && !p.isConstant)
 				.map(prop => {
 					let value = prop.value(entity);
 					let converter = this._propertyConverters.find(c => c.shouldConvert(prop));
@@ -105,10 +105,38 @@ export class EntitySerializer {
 	}
 
 	deserialize(data: any, property: Property): any {
+
+		// Apply custom convertors before deserializing
 		const converter = this._propertyConverters.find(c => c.shouldConvert(property));
 		if (converter)
-			return converter.deserialize(property, data);
-		return data;
+			data = converter.deserialize(property, data);
+
+		let value;
+
+		// Entities
+		if (isEntityType(property.propertyType)) {
+			const ChildEntity = property.propertyType;
+
+			// Entity List
+			if (property.isList && Array.isArray(data))
+				value = data.map(s => s instanceof ChildEntity ? s : new ChildEntity(s.$id, s));
+
+			// Entity
+			else if (data instanceof ChildEntity)
+				value = data;
+			else if (data instanceof Object)
+				value = new ChildEntity(data.$id, data);
+		}
+
+		// Value List
+		else if (property.isList && Array.isArray(data))
+			value = data.map(i => this.deserialize(i, property));
+
+		// Value
+		else
+			value = data;
+
+		return value;
 	}
 
 	private static defaultPropertyConverter(prop: Property, value: any): PropertySerializationResult {

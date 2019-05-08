@@ -42,11 +42,6 @@ export class PropertyChain implements PropertyPath {
 				throw new Error(`Path '${path}' references unknown property '${step}' on type '${currentType}'.`);
 			}
 
-			// Ensure the property is not static because property chains are not valid for static properties
-			if (property.isStatic) {
-				throw new Error(`Path '${path}' references static property "${step}" on type '${currentType}'.`);
-			}
-
 			// Get the current type of the step
 			currentType = (property.propertyType as EntityConstructorForType<Entity>).meta;
 			if (parsed[3]) {
@@ -277,10 +272,6 @@ export class PropertyChain implements PropertyPath {
 		return this.lastProperty.isList;
 	}
 
-	get isStatic(): boolean {
-		return this.lastProperty.isStatic;
-	}
-
 	get isCalculated(): boolean {
 		return this.lastProperty.isCalculated;
 	}
@@ -323,10 +314,6 @@ function getPropertyChainPathFromIndex(chain: PropertyChain, startIndex: number)
 	var steps: string[] = [];
 
 	let props = chain.toPropertyArray();
-
-	if (props[startIndex].isStatic) {
-		steps.push(props[startIndex].containingType.fullName);
-	}
 
 	let previousStepType: Type;
 
