@@ -20,7 +20,7 @@ export class Model {
 	readonly $locale: string;
 	readonly $resources: LocalizedResourcesMap;
 	readonly $culture: CultureInfo;
-	
+
 	readonly entityRegistered: EventSubscriber<Model, EntityRegisteredEventArgs>;
 	readonly entityUnregistered: EventSubscriber<Model, EntityUnregisteredEventArgs>;
 
@@ -143,10 +143,8 @@ export class Model {
 	 * @param options The set of model types to add and/or extend.
 	 */
 	extend(options: ModelOptions & ModelNamespaceOption & ModelLocalizationOptions): void {
-		
 		// Use prepare() to defer property path resolution while the model is being extended
 		this.prepare(() => {
-
 			// Namespace
 			if (options.$namespace) {
 				// TODO: Guard against namespace being set after types have been created
@@ -189,7 +187,8 @@ export class Model {
 				// TODO: Guard against culture being set after types have been created
 				if (typeof options.$culture === "object") {
 					$culture = options.$culture;
-				} else if (typeof options.$culture === "string") {
+				}
+				else if (typeof options.$culture === "string") {
 					CultureInfo.setup();
 					if (CultureInfo.CurrentCulture.name === options.$culture) {
 						$culture = CultureInfo.CurrentCulture;
@@ -236,7 +235,7 @@ export class Model {
 
 				let typeOptions = options[typeName];
 				let type = this.types[typeName];
-				
+
 				typesToInitialize.push(typeName);
 
 				if (!type) {
@@ -268,11 +267,11 @@ export class Model {
 		// Create a model initialization scope
 		if (!this._ready) {
 			// Create an array to track model initialization callbacks
-			this._ready = []; 
+			this._ready = [];
 
 			// Extend the model
 			extend();
-			
+
 			// Complete pending model initialization steps
 			this._ready.forEach(init => init());
 			this._ready = null;
