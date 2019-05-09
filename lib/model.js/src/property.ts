@@ -131,7 +131,7 @@ export class Property implements PropertyPath {
 					// TODO: convert description/expression/reformat into a Format object
 					this.format = options.format;
 				}
-				
+
 				// String Format
 				else if (isType<PropertyFormatOptions>(options.format, (f: any) => getTypeName(f) === "object" && f.expression)) {
 					let format = options.format;
@@ -144,8 +144,8 @@ export class Property implements PropertyPath {
 						})
 							.register();
 					});
-				} 
-				
+				}
+
 				// Error
 				else {
 					throw new Error(`Invalid 'format' option for '${this}'.`);
@@ -173,7 +173,7 @@ export class Property implements PropertyPath {
 						})
 							.register();
 					});
-				} 
+				}
 				else {
 					throw new Error(`Invalid property 'get' option of type '${getTypeName(options.get)}'.`);
 				}
@@ -203,7 +203,7 @@ export class Property implements PropertyPath {
 						throw new Error(`Cannot set a default value of type '${defaultOptionTypeName}' for a property of type '${propertyTypeName}'.`);
 					}
 
-					// If extending baseType property specifically for a child type, use a rule 
+					// If extending baseType property specifically for a child type, use a rule
 					if (this.containingType === targetType)
 					 	this._defaultValue = defaultConstant;
 					else
@@ -551,7 +551,7 @@ export interface PropertyRepeatingValueFunctionAndOptions<T> extends PropertyVal
 
 export type PropertyBooleanFunction = (this: Entity) => boolean;
 
-export interface PropertyBooleanFunctionAndOptions extends PropertyBooleanFunction {
+export interface PropertyBooleanFunctionAndOptions {
 	function?: (this: Entity) => boolean;
 	dependsOn?: string;
 	message?: string | ((this: Entity) => string);
@@ -660,7 +660,7 @@ export function Property$generateOwnPropertyWithClosure(property: Property, obj:
 
 	var _ensureInited = function (): void {
 		if (!isInitialized) {
-			// Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.  
+			// Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.
 			if (!property.isCalculated) {
 				Property$pendingInit(obj, property, false);
 
@@ -709,12 +709,12 @@ export function Property$generateOwnPropertyWithClosure(property: Property, obj:
 
 					Property$pendingInit(obj, property, false);
 
-					// Do not raise change if the property has not been initialized. 
+					// Do not raise change if the property has not been initialized.
 					if (old !== undefined) {
 						(property.changed as EventPublisher<Entity, PropertyChangeEventArgs>).publish(obj, { entity: obj, property, newValue: val, oldValue: old });
 					}
 				}
-			}	
+			}
 		}
 	});
 }
@@ -754,7 +754,7 @@ export function Property$pendingInit(obj: Entity | EntityConstructorForType<Enti
 
 function Property$subArrayEvents(obj: Entity, property: Property, array: ObservableArray<any>): void {
 	array.changed.subscribe(function (args) {
-		// NOTE: property change should be broadcast before rules are run so that if 
+		// NOTE: property change should be broadcast before rules are run so that if
 		// any rule causes a roundtrip to the server these changes will be available
 		// TODO: Implement notifyListChanged?
 		// property.containingType.model.notifyListChanged(target, property, changes);
@@ -808,7 +808,7 @@ function Property$ensureInited(property: Property, obj: Entity): void {
 		// Mark the property as pending initialization
 		Property$pendingInit(target, property, true);
 
-		// Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.  
+		// Do not initialize calculated properties. Calculated properties should be initialized using a property get rule.
 		if (!property.isCalculated) {
 			Property$init(property, obj, Property$getInitialValue(property));
 		}
@@ -880,7 +880,7 @@ function Property$setValue(property: Property, obj: Entity, currentValue: any, n
 
 		Property$pendingInit(obj, property, false);
 
-		// Do not raise change if the property has not been initialized. 
+		// Do not raise change if the property has not been initialized.
 		if (oldValue !== undefined) {
 			var eventArgs: PropertyChangeEventArgs = { entity: obj, property, newValue, oldValue };
 			(property.changed as EventPublisher<Entity, PropertyChangeEventArgs>).publish(obj, additionalArgs ? merge(eventArgs, additionalArgs) : eventArgs);
