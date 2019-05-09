@@ -4,9 +4,9 @@ import { SourcePathAdapter } from "./source-path-adapter";
 import { SourceItemAdapter } from "./source-item-adapter";
 import { Model, ModelOptions, ModelLocalizationOptions } from "../lib/model.js/src/model";
 import { PropertyConverter, PropertyInjector, PropertySerializationResult } from "../lib/model.js/src/entity-serializer";
-import { TypeExtensionOptions, RuleOrMethodFunctionOrOptions } from "../lib/model.js/src/type";
+import { TypeOptions, TypeExtensionOptions, RuleOrMethodFunctionOrOptions } from "../lib/model.js/src/type";
 import { Entity } from "../lib/model.js/src/entity";
-import { Property } from "../lib/model.js/src/property";
+import { Property, PropertyOptions } from "../lib/model.js/src/property";
 import { CultureInfo } from "../lib/model.js/src/globalization";
 
 // Include English resources by default
@@ -19,11 +19,13 @@ export default VueModel;
 export type Model = Model;
 export type ModelOptions = ModelOptions;
 export type ModelLocalizationOptions = ModelLocalizationOptions;
+export type TypeOptions = TypeOptions;
 export type TypeExtensionOptions<TEntity extends Entity> = TypeExtensionOptions<TEntity>;
 export type RuleOrMethodFunctionOrOptions<TEntity extends Entity> = RuleOrMethodFunctionOrOptions<TEntity>;
 export type Entity = Entity;
 export type CultureInfo = CultureInfo;
 export type Property = Property;
+export type PropertyOptions = PropertyOptions;
 export type PropertyConverter = PropertyConverter;
 export type PropertyInjector = PropertyInjector;
 export type PropertySerializationResult = PropertySerializationResult;

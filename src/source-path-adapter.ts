@@ -20,6 +20,7 @@ export type SourcePathOverrides = {
 	label?: string;
 	helptext?: string;
 	readonly?: boolean;
+	required?: boolean;
 };
 
 let _id = 0;
@@ -108,6 +109,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	*  @returns True if the property is required, otherwise false
 	*/
 	get required(): boolean {
+		if (this.overrides && this.overrides.required != null)
+			return this.overrides.required;
 		if (isPropertyBooleanFunctionAndOptions(this.property.required)) {
 			if (isPropertyBooleanFunction(this.property.required.function)) {
 				return this.property.required.function.call(this.parent.value);
@@ -301,7 +304,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		let property: Property;
 		if (this.property instanceof PropertyChain) {
 			property = this.property.lastProperty;
-		} 
+		}
 		else if (this.property instanceof Property) {
 			property = this.property;
 		}
@@ -315,7 +318,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 	get allowedValues(): TValue[] {
 		var allowedValuesRule = this.allowedValuesRule;
-		
+
 		if (!allowedValuesRule) {
 			// If there is no rule, return an empty list
 			return;

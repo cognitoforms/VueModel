@@ -33,6 +33,14 @@ export class SourcePathMixin extends Vue {
 		this.onOverrideValueChanged(readonly, Boolean);
 	}
 
+	@Prop({ type: Boolean, default: null })
+	required: boolean;
+
+	@Watch("required")
+	onRequiredChanged(required: boolean): void {
+		this.onOverrideValueChanged(required, Boolean);
+	}
+
 	get $source(): SourcePathAdapter<Entity, any> {
 		// If the source is an adapter, then potentially apply overrides, and return it
 		if (isSourceAdapter(this.source)) {
