@@ -233,7 +233,7 @@ export class Model {
 					}
 				}
 
-				let typeOptions = options[typeName];
+				let typeOptions = options[typeName] as TypeOptions & TypeExtensionOptions<Entity>;
 				let type = this.types[typeName];
 
 				typesToInitialize.push(typeName);
@@ -252,7 +252,7 @@ export class Model {
 
 			// Extend Types
 			for (let typeName of typesToInitialize) {
-				let typeOptions = options[typeName];
+				let typeOptions = options[typeName] as TypeOptions & TypeExtensionOptions<Entity>;
 				this.types[typeName].extend(typeOptions);
 			}
 		});
