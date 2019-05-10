@@ -35,23 +35,62 @@ export class ValidationRule extends ConditionRule implements PropertyRule {
 		}
 
 		// replace the property label token in the validation message if present
-		if (options.message && typeof (options.message) !== "function" && options.message.indexOf("{property}") >= 0) {
+		if (options.message && (typeof options.message === "function" || (typeof options.message === "string" && options.message.indexOf("{property}") >= 0))) {
+
 			// Property label with dynamic format tokens
 			if (Format.hasTokens(property.label)) {
 				// convert the property label into a model format
-				let format = Format.fromTemplate(rootType, property.label);
-
-				// create a function to apply the format to the property label when generating the message
-				let message = options.message;
-				options.message = function () { return message.replace("{property}", format.convert(this)); };
+				let format = rootType.model.getFormat(rootType.jstype, property.label);
 
 				// ensure tokens included in the format trigger rule execution
-				format.paths.forEach(p => Array.prototype.push.apply(options.properties, rootType.getPaths(p)));
-			}
+				format.paths.forEach(p => {
+					rootType.getPaths(p).forEach(prop => {
+						if (!options.onChangeOf) {
+							options.onChangeOf = [prop];
+						}
+						else if (options.onChangeOf.indexOf(prop) < 0) {
+							options.onChangeOf.push(prop);
+						}
+					});
+				});
 
+				if (typeof options.message === "function") {
+					let messageFunction = options.message;
+
+					// Create a function to apply the format to the property label when generating the message
+					options.message = function () {
+						let message = messageFunction.call(this);
+						if (typeof message === "string" && message.trim().length > 0 && message.indexOf("{property}") >= 0) {
+							message = message.replace("{property}", format.convert(this));
+						}
+						return message;
+					};
+				}
+				else if (typeof options.message === "string") {
+					let messageTemplate = options.message;
+
+					// Create a function to apply the format to the property label when generating the message
+					options.message = function () {
+						return messageTemplate.replace("{property}", format.convert(this));
+					};
+				}
+			}
 			// Static property label
-			else {
+			else if (typeof options.message === "string") {
 				options.message = options.message.replace("{property}", property.label);
+			}
+			// Use static property label in function return value
+			else if (typeof options.message === "function") {
+				let messageFunction = options.message;
+
+				// Create a function to apply the format to the property label when generating the message
+				options.message = function () {
+					let message = messageFunction.call(this);
+					if (typeof message === "string" && message.trim().length > 0 && message.indexOf("{property}") >= 0) {
+						message = message.replace("{property}", property.label);
+					}
+					return message;
+				};
 			}
 		}
 

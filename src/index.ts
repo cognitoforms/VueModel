@@ -6,7 +6,7 @@ import { Model, ModelOptions, ModelLocalizationOptions } from "../lib/model.js/s
 import { PropertyConverter, PropertyInjector, PropertySerializationResult } from "../lib/model.js/src/entity-serializer";
 import { TypeOptions, TypeExtensionOptions, RuleOrMethodFunctionOrOptions } from "../lib/model.js/src/type";
 import { Entity } from "../lib/model.js/src/entity";
-import { Property, PropertyOptions } from "../lib/model.js/src/property";
+import { Property, PropertyOptions, PropertyBooleanFunction, PropertyBooleanFunctionAndOptions } from "../lib/model.js/src/property";
 import { CultureInfo } from "../lib/model.js/src/globalization";
 
 // Include English resources by default
@@ -26,6 +26,8 @@ export type Entity = Entity;
 export type CultureInfo = CultureInfo;
 export type Property = Property;
 export type PropertyOptions = PropertyOptions;
+export type PropertyBooleanFunction = PropertyBooleanFunction;
+export type PropertyBooleanFunctionAndOptions = PropertyBooleanFunctionAndOptions;
 export type PropertyConverter = PropertyConverter;
 export type PropertyInjector = PropertyInjector;
 export type PropertySerializationResult = PropertySerializationResult;
