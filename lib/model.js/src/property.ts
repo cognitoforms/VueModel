@@ -1,7 +1,7 @@
 import { Event, EventSubscriber, EventPublisher } from "./events";
 import { Entity, EntityConstructorForType, EntityChangeEventArgs, EntityAccessEventArgs } from "./entity";
 import { Format } from "./format";
-import { Type, PropertyType, isEntityType, Value, isValue } from "./type";
+import { Type, PropertyType, isEntityType, Value, isValue, isValueArray } from "./type";
 import { PropertyChain } from "./property-chain";
 import { getTypeName, getDefaultValue, parseFunctionName, ObjectLookup, merge, getConstructorName, isType, hasOwnProperty } from "./helpers";
 import { ObservableArray, updateArray } from "./observable-array";
@@ -193,14 +193,14 @@ export class Property implements PropertyPath {
 			}
 
 			// Default
-			if (options.default) {
+			if (options.default !== undefined) {
 				let defaultConstant: Value;
 
 				if (typeof (options.default) === "function") {
 					// Always generate a rule for default function
 					options.default = { function: options.default, dependsOn: "" };
 				}
-				else if (isValue(options.default)) {
+				else if (options.default === null || isValue(options.default) || isValueArray(options.default)) {
 
 					// Constant
 					defaultConstant = options.default;
@@ -211,10 +211,12 @@ export class Property implements PropertyPath {
 					}
 
 					// Verify that the constant value is of the proper built-in type
-					let defaultOptionTypeName = getTypeName(defaultConstant);
-					let propertyTypeName = getConstructorName(this.propertyType).toLowerCase();
-					if (defaultOptionTypeName !== propertyTypeName) {
-						throw new Error(`Cannot set a default value of type '${defaultOptionTypeName}' for a property of type '${propertyTypeName}'.`);
+					if (options.default !== null && isValue(options.default)) {
+						let defaultOptionTypeName = getTypeName(defaultConstant);
+						let propertyTypeName = getConstructorName(this.propertyType).toLowerCase();
+						if (defaultOptionTypeName !== propertyTypeName) {
+							throw new Error(`Cannot set a default value of type '${defaultOptionTypeName}' for a property of type '${propertyTypeName}'.`);
+						}
 					}
 
 					// If extending baseType property specifically for a child type, use a rule
@@ -516,7 +518,7 @@ export interface PropertyOptions {
 	set?: (this: Entity, value: any) => void;
 
 	/** An optional constant default value, or a function or dependency function object that calculates the default value of this property. */
-	default?: PropertyValueFunction<any> | PropertyValueFunctionAndOptions<any> | PropertyRepeatingValueFunctionAndOptions<any> | Value;
+	default?: PropertyValueFunction<any> | PropertyValueFunctionAndOptions<any> | PropertyRepeatingValueFunctionAndOptions<any> | Value | Value[];
 
 	/** An optional constant default value, or a function or dependency function object that calculates the default value of this property. */
 	allowedValues?: PropertyValueFunction<any[]> | PropertyValueFunctionAndOptions<any[]> | Value[];

@@ -8,6 +8,7 @@ import { RuleOptions, Rule } from "./rule";
 import { Format } from "./format";
 import { PropertyChain } from "./property-chain";
 import { PropertyPath } from "./property-path";
+import { isArray } from "util";
 
 export const Type$newIdPrefix = "+c";
 
@@ -473,6 +474,16 @@ export function isValueType(type: any): type is ValueType {
 export function isValue(value: any, valueType: any = null): value is Value {
 	if (!valueType)
 		valueType = value.constructor;
+	return isValueType(valueType);
+}
+
+export function isValueArray(value: any, valueType: any = null): value is Value[] {
+	if (!isArray(value))
+		return false;
+	if (value.length === 0)
+		return true;
+	if (!valueType)
+		valueType = value[0].constructor;
 	return isValueType(valueType);
 }
 
