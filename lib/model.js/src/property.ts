@@ -285,6 +285,7 @@ export class Property implements PropertyPath {
 						(new AllowedValuesRule(targetType, {
 							property: this,
 							source: allowedValuesOptions.function,
+							ignoreValidation: allowedValuesOptions.ignoreValidation,
 							onChangeOf: resolveDependsOn(this, "allowedValues", allowedValuesOptions.dependsOn)
 						})).register();
 					});
@@ -521,7 +522,7 @@ export interface PropertyOptions {
 	default?: PropertyValueFunction<any> | PropertyValueFunctionAndOptions<any> | PropertyRepeatingValueFunctionAndOptions<any> | Value | Value[];
 
 	/** An optional constant default value, or a function or dependency function object that calculates the default value of this property. */
-	allowedValues?: PropertyValueFunction<any[]> | PropertyValueFunctionAndOptions<any[]> | Value[];
+	allowedValues?: PropertyValueFunction<any[]> | AllowedValuesFunctionAndOptions<any[]> | Value[];
 
 	/** True if the property is always required, or a dependency function object for conditionally required properties. */
 	required?: boolean | PropertyBooleanFunction | PropertyBooleanFunctionAndOptions;
@@ -552,7 +553,11 @@ export type PropertyValueFunction<T> = () => T;
 
 export interface PropertyValueFunctionAndOptions<T> {
 	function: (this: Entity) => T;
-	dependsOn: string;
+	dependsOn?: string;
+}
+
+export interface AllowedValuesFunctionAndOptions<T> extends PropertyValueFunctionAndOptions<T> {
+	ignoreValidation?: boolean;
 }
 
 export interface PropertyRepeatingValueFunctionAndOptions<T> extends PropertyValueFunctionAndOptions<T> {
