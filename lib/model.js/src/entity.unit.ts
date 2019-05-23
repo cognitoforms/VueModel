@@ -1,7 +1,9 @@
 /* eslint-disable no-new */
 import { Model } from "./model";
 import { Entity, EntityConstructorForType } from "./entity";
+
 let Types: { [name: string]: EntityConstructorForType<Entity> };
+
 function resetModel() {
 	Types = {};
 	return new Model({
@@ -61,6 +63,14 @@ describe("Entity", () => {
 			});
 			const movie = new Types.Movie(state);
 
+			expect(movie.serialize()).toEqual(Alien);
+		});
+	});
+
+	describe("set", () => {
+		it("can be used to update an entity", () => {
+			const movie = new Types.Movie();
+			movie.set(Alien);
 			expect(movie.serialize()).toEqual(Alien);
 		});
 	});
