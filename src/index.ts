@@ -31,6 +31,7 @@ export type PropertyBooleanFunctionAndOptions = PropertyBooleanFunctionAndOption
 export type PropertyConverter = PropertyConverter;
 export type PropertyInjector = PropertyInjector;
 export type PropertySerializationResult = PropertySerializationResult;
+export { IgnoreProperty } from '../lib/model.js/src/entity-serializer';
 export type SourceRootAdapter<TEntity extends Entity> = SourceRootAdapter<TEntity>;
 export type SourcePathAdapter<TEntity extends Entity, TValue> = SourcePathAdapter<TEntity, TValue>;
 export type SourceItemAdapter<TEntity extends Entity, TValue> = SourceItemAdapter<TEntity, TValue>;

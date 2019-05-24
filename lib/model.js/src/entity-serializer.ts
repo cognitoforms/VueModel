@@ -7,6 +7,11 @@ export interface PropertySerializationResult {
 	value: any;
 }
 
+export const IgnoreProperty: PropertySerializationResult = {
+	key: 'ignore',
+	value: 'ignore'
+}
+
 /**
  * Allows additional key/value pairs to be introduced to serialization output.
  * Note: duplicate keys will favor model properties.
@@ -21,11 +26,16 @@ export interface PropertyInjector {
 export interface PropertyConverter {
 	shouldConvert(prop: Property): boolean;
 	/**
-	 * Return null to prevent serialization of the property.
+	 * Return `IgnoreProperty` to prevent serialization of the property.
 	 * @param prop The current property being serialized.
 	 * @param value The value of the property on the entity currently being serialized.
 	 */
 	serialize(prop: Property, value: any): PropertySerializationResult;
+	/**
+	 * Return `IgnoreProperty` to prevent deserialization of the property.
+	 * @param prop The current property being deserialized.
+	 * @param value The value to deserialize.
+	 */
 	deserialize(prop: Property, value: any): any;
 }
 
@@ -93,7 +103,7 @@ export class EntitySerializer {
 					return EntitySerializer.defaultPropertyConverter(prop, value);
 				}))
 			.forEach(pair => {
-				if (pair) {
+				if (pair && pair !== IgnoreProperty) {
 					if (result.hasOwnProperty(pair.key))
 						throw new Error(`Property '${pair.key}' was encountered twice during serialization. Make sure injected properties do not collide with model properties.`);
 
@@ -110,6 +120,9 @@ export class EntitySerializer {
 		const converter = this._propertyConverters.find(c => c.shouldConvert(property));
 		if (converter)
 			data = converter.deserialize(property, data);
+		
+		if (data === IgnoreProperty)
+			return;
 
 		let value;
 
