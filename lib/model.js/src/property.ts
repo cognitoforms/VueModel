@@ -11,9 +11,7 @@ import { StringFormatRule } from "./string-format-rule";
 import { ValidationRule } from "./validation-rule";
 import { AllowedValuesRule } from "./allowed-values-rule";
 import { RequiredRule } from "./required-rule";
-import { EntitySerializer } from "./entity-serializer";
 import { PropertyPath, PropertyAccessEventArgs, PropertyChangeEventArgs } from "./property-path";
-import { open } from "fs";
 
 export class Property implements PropertyPath {
 	readonly containingType: Type;
@@ -26,7 +24,7 @@ export class Property implements PropertyPath {
 	helptext: string;
 	isCalculated: boolean;
 	format: Format<any>;
-	required: boolean | PropertyBooleanFunction;
+	required: boolean | PropertyBooleanFunction | PropertyBooleanFunctionAndOptions;
 
 	private _defaultValue: any;
 
@@ -112,7 +110,6 @@ export class Property implements PropertyPath {
 
 		// Use prepare() to defer property path resolution while the model is being extended
 		targetType.model.prepare(() => {
-
 			// Label
 			if (options.label)
 				this.label = options.label;
@@ -194,16 +191,16 @@ export class Property implements PropertyPath {
 
 			// Default
 			if (options.default !== undefined) {
-				let defaultConstant: Value;
-
-				if (typeof (options.default) === "function") {
+				if (isPropertyValueFunction<any>(options.default)) {
 					// Always generate a rule for default function
 					options.default = { function: options.default, dependsOn: "" };
 				}
+				else if (isPropertyOptions<PropertyValueFunctionAndOptions<any>>(options.default)) {
+					// Use default object as specified
+				}
 				else if (options.default === null || isValue(options.default) || isValueArray(options.default)) {
-
 					// Constant
-					defaultConstant = options.default;
+					let defaultConstant: Value | Value[] = options.default;
 
 					// Cannot set default constant value for entity-typed property
 					if (isEntityType(this.propertyType)) {
@@ -225,6 +222,9 @@ export class Property implements PropertyPath {
 					else
 						options.default = { function: function () { return defaultConstant; }, dependsOn: "" };
 				}
+				else {
+					throw new Error(`Invalid property 'default' option of type '${getTypeName(options.default)}'.`);
+				}
 
 				if (isPropertyOptions<PropertyValueFunctionAndOptions<any>>(options.default)) {
 					let defaultOptions = options.default;
@@ -237,7 +237,7 @@ export class Property implements PropertyPath {
 
 					// For list property, if `count` is specified, then invoke the function
 					// the specified number of times and return the array of values
-					if (this.isList && isPropertyOptions<PropertyRepeatingValueFunctionAndOptions<any>>(options.default, o => hasOwnProperty(o, 'count') && typeof o.count === "number")) {
+					if (this.isList && isPropertyOptions<PropertyRepeatingValueFunctionAndOptions<any>>(options.default, o => hasOwnProperty(o, "count") && typeof o.count === "number")) {
 						let defaultFn = options.default.function;
 						let defaultCount = options.default.count;
 
@@ -260,9 +260,6 @@ export class Property implements PropertyPath {
 						})
 							.register();
 					});
-				}
-				else if (typeof defaultConstant === "undefined") {
-					throw new Error(`Invalid property 'default' option of type '${getTypeName(options.default)}'.`);
 				}
 			}
 
@@ -321,7 +318,8 @@ export class Property implements PropertyPath {
 						requiredFn = options.required.function;
 						requiredMessage = options.required.message;
 						requiredDependsOn = options.required.dependsOn;
-					} else {
+					}
+					else {
 						requiredFn = options.required;
 					}
 					this.containingType.model.ready(() => {
@@ -381,7 +379,6 @@ export class Property implements PropertyPath {
 	}
 
 	canSetValue(obj: Entity, val: any): boolean {
-
 		// NOTE: only allow values of the correct data type to be set in the model
 
 		if (val === undefined) {
@@ -554,6 +551,10 @@ export type PropertyValueFunction<T> = () => T;
 export interface PropertyValueFunctionAndOptions<T> {
 	function: (this: Entity) => T;
 	dependsOn?: string;
+}
+
+export function isPropertyValueFunction<T>(obj: any): obj is PropertyValueFunction<T> {
+	return typeof (obj) === "function";
 }
 
 export interface AllowedValuesFunctionAndOptions<T> extends PropertyValueFunctionAndOptions<T> {
@@ -753,7 +754,7 @@ export function Property$pendingInit(obj: Entity | EntityConstructorForType<Enti
 		}
 	}
 	else {
-		let currentValue = obj[prop.fieldName];
+		let currentValue = (obj as any)[prop.fieldName];
 		return currentValue === undefined || pendingInit[prop.name] === true;
 	}
 }
@@ -777,7 +778,6 @@ function Property$subArrayEvents(obj: Entity, property: Property, array: Observa
 }
 
 function Property$getInitialValue(property: Property): any {
-
 	// Constant
 	if (property.isConstant)
 		return property.constant;
@@ -796,7 +796,6 @@ function Property$getInitialValue(property: Property): any {
 }
 
 export function Property$init(property: Property, obj: Entity, val: any): void {
-	
 	Property$pendingInit(obj, property, false);
 
 	Object.defineProperty(obj, property.fieldName, { value: val, writable: true });
@@ -810,7 +809,6 @@ export function Property$init(property: Property, obj: Entity, val: any): void {
 }
 
 function Property$ensureInited(property: Property, obj: Entity): void {
-
 	// Determine if the property has been initialized with a value
 	// and initialize the property if necessary
 	if (!obj.hasOwnProperty(property.fieldName)) {
