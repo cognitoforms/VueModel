@@ -470,30 +470,32 @@ export function isValueType(type: any): type is ValueType {
 	return type === String || type === Number || type === Date || type === Boolean;
 }
 
-export function isValue(value: any, valueType: any = null): value is Value {
-	if (!valueType) {
-		if (value == null)
-			return false;
-		valueType = value.constructor;
-	}
+export function isValue<T = Value | string | number | Date | boolean>(value: any, type: ValueType = null): value is T {
+	if (value == null)
+		return false;
+
+	let valueType = value.constructor;
+
+	if (type != null)
+		return valueType === type;
+
 	return isValueType(valueType);
 }
 
-export function isValueArray(value: any, valueType: any = null): value is Value[] {
+export function isValueArray(value: any): value is Value[] {
 	if (value == null)
 		return false;
 	if (!Array.isArray(value))
 		return false;
 	if (value.length === 0)
 		return true;
-	if (!valueType) {
-		let item = value[0];
-		if (item == null)
-			return false;
 
-		valueType = item.constructor;
-	}
-	return isValueType(valueType);
+	let item = value[0];
+	if (item == null)
+		return false;
+
+	let itemType = item.constructor;
+	return isValueType(itemType);
 }
 
 export function isEntityType(type: any): type is EntityType {

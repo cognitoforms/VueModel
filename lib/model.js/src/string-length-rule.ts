@@ -1,54 +1,72 @@
-import { RangeRule } from "./range-rule";
-import { Property } from "./property";
+import { ValidationRule, ValidationRuleOptions } from "./validation-rule";
 import { Entity } from "./entity";
 import { Type } from "./type";
 
-export class StringLengthRule extends RangeRule {
+/**
+ * A rule that validates that validates that the length of a string property is within a specific range
+ */
+export class StringLengthRule extends ValidationRule {
+	/**
+	 * Creates a rule that validates that the length of a string property is within a specific range
+	 * @param rootType The model type the rule is for
+	 * @param options The options for the rule
+	 */
 	constructor(rootType: Type, options: any) {
-		/// <summary>Creates a rule that validates that the length of a string property is within a specific range.</summary>
-		/// <param name="rootType" type="Type">The model type the rule is for.</param>
-		/// <param name="options" type="Object">
-		///		The options for the rule, including:
-		///			property:			the property being validated (either a Property instance or string property name)
-		///			min:				the minimum length of the property
-		///			max:				the maximum length of the property
-		///			name:				the optional unique name of the type of validation rule
-		///			conditionType:		the optional condition type to use, which will be automatically created if not specified
-		///			category:			ConditionType.Error || ConditionType.Warning (defaults to ConditionType.Error)
-		///			message:			the message to show the user when the validation fails
-		/// </param>
-		/// <returns type="RangeRule">The new range rule.</returns>
-
 		// ensure the rule name is specified
 		options.name = options.name || "StringLength";
 
-		// ensure the error message is specified
-		options.message = options.message ||
-			(options.min && options.max ? rootType.model.getResource("string-length-between").replace("{min}", options.min).replace("{max}", options.max) :
-				options.min ? rootType.model.getResource("string-length-at-least").replace("{min}", options.min) :
-					rootType.model.getResource("string-length-at-most").replace("{max}", options.max));
+		options.message = function(this: Entity): string {
+			var range: { min?: number; max?: number } = {};
 
-		let min = options.min;
-		delete options.min;
+			if (options.min && options.min instanceof Function) {
+				try {
+					range.min = options.min.call(this);
+				}
+				catch (e) {
+					// Silently ignore min errors
+				}
+			}
 
-		let max = options.max;
-		delete options.max;
+			if (options.max && options.max instanceof Function) {
+				try {
+					range.max = options.max.call(this);
+				}
+				catch (e) {
+					// Silently ignore max errors
+				}
+			}
+
+			var val: string = options.property.value(this);
+
+			if (val == null || typeof val !== "string" || val.length === 0) {
+				return null;
+			}
+
+			if ((range.min == null || val.length >= range.min) && (range.max == null || val.length <= range.max)) {
+				// Value is within range
+				return null;
+			}
+
+			if (range.min != null && range.max != null)
+				return rootType.model.getResource("string-length-between").replace("{min}", range.min.toString()).replace("{max}", range.max.toString());
+
+			if (range.min != null)
+				return rootType.model.getResource("string-length-at-least").replace("{min}", range.min.toString());
+			else
+				return rootType.model.getResource("string-length-at-most").replace("{max}", range.max.toString());
+		};
 
 		// call the base type constructor
 		super(rootType, options);
-
-		// store the min and max lengths
-		Object.defineProperty(this, "_min", { value: min });
-		Object.defineProperty(this, "_max", { value: max });
-	}
-
-	// returns true if the property is valid, otherwise false
-	isValid(obj: Entity, prop: Property, val: any): boolean {
-		return !val || val === "" || ((!this._min || val.length >= this._min) && (!this._max || val.length <= this._max));
 	}
 
 	// get the string representation of the rule
 	toString(): string {
-		return `${this.property.containingType.fullName}.${this.property.name} in range, min: , max: `;
+		return `${this.property.containingType.fullName}.${this.property.name} string length, min: , max: `;
 	}
+}
+
+export interface StringLengthRuleOptions extends ValidationRuleOptions {
+	min?: (this: Entity) => number;
+	max?: (this: Entity) => number;
 }

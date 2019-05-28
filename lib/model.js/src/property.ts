@@ -13,6 +13,7 @@ import { AllowedValuesRule } from "./allowed-values-rule";
 import { RequiredRule } from "./required-rule";
 import { PropertyPath, PropertyAccessEventArgs, PropertyChangeEventArgs } from "./property-path";
 import { RangeRule } from "./range-rule";
+import { StringLengthRule } from "./string-length-rule";
 
 export class Property implements PropertyPath {
 	readonly containingType: Type;
@@ -302,7 +303,8 @@ export class Property implements PropertyPath {
 						min = options.range.min;
 					}
 					else if (isValue(options.range.min)) {
-						min = function() { return options.range.min; };
+						const minConstant = options.range.min;
+						min = function() { return minConstant; };
 					}
 					else {
 						throw new Error(`Invalid property 'range.min' option of type '${getTypeName(options.range.min)}'.`);
@@ -316,7 +318,8 @@ export class Property implements PropertyPath {
 						max = options.range.max;
 					}
 					else if (isValue(options.range.max)) {
-						max = function() { return options.range.max; };
+						const maxConstant = options.range.max;
+						max = function() { return maxConstant; };
 					}
 					else {
 						throw new Error(`Invalid property 'range.max' option of type '${getTypeName(options.range.max)}'.`);
@@ -326,6 +329,44 @@ export class Property implements PropertyPath {
 				targetType.model.ready(() => {
 					let onChangeOf: PropertyPath[] = resolveDependsOn(this, "range", options.range.dependsOn);
 					new RangeRule(targetType, { property: this, onChangeOf, min, max }).register();
+				});
+			}
+
+			// Length
+			if (options.length) {
+				let min: (this: Entity) => number;
+
+				if (options.length.min != null) {
+					if (isPropertyValueFunction<any>(options.length.min)) {
+						min = options.length.min;
+					}
+					else if (isValue<number>(options.length.min, Number)) {
+						const minConstant = options.length.min;
+						min = function() { return minConstant; };
+					}
+					else {
+						throw new Error(`Invalid property 'length.min' option of type '${getTypeName(options.length.min)}'.`);
+					}
+				}
+
+				let max: (this: Entity) => number;
+
+				if (options.length.max != null) {
+					if (isPropertyValueFunction<any>(options.length.max)) {
+						max = options.length.max;
+					}
+					else if (isValue<number>(options.length.max, Number)) {
+						const maxConstant = options.length.max;
+						max = function() { return maxConstant; };
+					}
+					else {
+						throw new Error(`Invalid property 'length.max' option of type '${getTypeName(options.length.max)}'.`);
+					}
+				}
+
+				targetType.model.ready(() => {
+					let onChangeOf: PropertyPath[] = resolveDependsOn(this, "length", options.length.dependsOn);
+					new StringLengthRule(targetType, { property: this, onChangeOf, min, max }).register();
 				});
 			}
 
@@ -566,6 +607,9 @@ export interface PropertyOptions {
 
 	/** Optional contant or function-based min and max values. */
 	range?: PropertyRangeOptions<any>;
+
+	/** Optional contant or function-based min and max length. */
+	length?: PropertyLengthOptions;
 }
 
 export interface PropertyFormatOptions {
@@ -608,6 +652,12 @@ type BoundFunction<ThisType, ReturnType> = (this: ThisType) => ReturnType;
 export interface PropertyRangeOptions<T> {
 	min: T | LambdaFunction<T> | BoundFunction<Entity, T>;
 	max: T | LambdaFunction<T> | BoundFunction<Entity, T>;
+	dependsOn?: string;
+}
+
+export interface PropertyLengthOptions {
+	min: number | LambdaFunction<number> | BoundFunction<Entity, number>;
+	max: number | LambdaFunction<number> | BoundFunction<Entity, number>;
 	dependsOn?: string;
 }
 
