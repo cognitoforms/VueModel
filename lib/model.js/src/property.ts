@@ -650,14 +650,14 @@ type LambdaFunction<ReturnType> = () => ReturnType;
 type BoundFunction<ThisType, ReturnType> = (this: ThisType) => ReturnType;
 
 export interface PropertyRangeOptions<T> {
-	min: T | LambdaFunction<T> | BoundFunction<Entity, T>;
-	max: T | LambdaFunction<T> | BoundFunction<Entity, T>;
+	min?: T | LambdaFunction<T> | BoundFunction<Entity, T>;
+	max?: T | LambdaFunction<T> | BoundFunction<Entity, T>;
 	dependsOn?: string;
 }
 
 export interface PropertyLengthOptions {
-	min: number | LambdaFunction<number> | BoundFunction<Entity, number>;
-	max: number | LambdaFunction<number> | BoundFunction<Entity, number>;
+	min?: number | LambdaFunction<number> | BoundFunction<Entity, number>;
+	max?: number | LambdaFunction<number> | BoundFunction<Entity, number>;
 	dependsOn?: string;
 }
 
