@@ -12,6 +12,7 @@ import { ValidationRule } from "./validation-rule";
 import { AllowedValuesRule } from "./allowed-values-rule";
 import { RequiredRule } from "./required-rule";
 import { PropertyPath, PropertyAccessEventArgs, PropertyChangeEventArgs } from "./property-path";
+import { RangeRule } from "./range-rule";
 
 export class Property implements PropertyPath {
 	readonly containingType: Type;
@@ -292,6 +293,42 @@ export class Property implements PropertyPath {
 				}
 			}
 
+			// Range
+			if (options.range) {
+				let min: (this: Entity) => any;
+
+				if (options.range.min != null) {
+					if (isPropertyValueFunction<any>(options.range.min)) {
+						min = options.range.min;
+					}
+					else if (isValue(options.range.min)) {
+						min = function() { return options.range.min; };
+					}
+					else {
+						throw new Error(`Invalid property 'range.min' option of type '${getTypeName(options.range.min)}'.`);
+					}
+				}
+
+				let max: (this: Entity) => any;
+
+				if (options.range.max != null) {
+					if (isPropertyValueFunction<any>(options.range.max)) {
+						max = options.range.max;
+					}
+					else if (isValue(options.range.max)) {
+						max = function() { return options.range.max; };
+					}
+					else {
+						throw new Error(`Invalid property 'range.max' option of type '${getTypeName(options.range.max)}'.`);
+					}
+				}
+
+				targetType.model.ready(() => {
+					let onChangeOf: PropertyPath[] = resolveDependsOn(this, "range", options.range.dependsOn);
+					new RangeRule(targetType, { property: this, onChangeOf, min, max }).register();
+				});
+			}
+
 			// Required
 			if (options.required) {
 				let requiredOptions = options.required;
@@ -526,6 +563,9 @@ export interface PropertyOptions {
 
 	/** An optional dependency function object that adds an error with the specified message when true. */
 	error?: PropertyErrorFunctionAndOptions | PropertyErrorFunctionAndOptions[];
+
+	/** Optional contant or function-based min and max values. */
+	range?: PropertyRangeOptions<any>;
 }
 
 export interface PropertyFormatOptions {
@@ -559,6 +599,16 @@ export function isPropertyValueFunction<T>(obj: any): obj is PropertyValueFuncti
 
 export interface AllowedValuesFunctionAndOptions<T> extends PropertyValueFunctionAndOptions<T> {
 	ignoreValidation?: boolean;
+}
+
+type LambdaFunction<ReturnType> = () => ReturnType;
+
+type BoundFunction<ThisType, ReturnType> = (this: ThisType) => ReturnType;
+
+export interface PropertyRangeOptions<T> {
+	min: T | LambdaFunction<T> | BoundFunction<Entity, T>;
+	max: T | LambdaFunction<T> | BoundFunction<Entity, T>;
+	dependsOn?: string;
 }
 
 export interface PropertyRepeatingValueFunctionAndOptions<T> extends PropertyValueFunctionAndOptions<T> {
