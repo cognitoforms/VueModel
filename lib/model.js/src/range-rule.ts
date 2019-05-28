@@ -75,6 +75,6 @@ export class RangeRule extends ValidationRule {
 }
 
 export interface RangeRuleOptions extends ValidationRuleOptions {
-	min: (this: Entity) => any;
-	max: (this: Entity) => any;
+	min?: (this: Entity) => any;
+	max?: (this: Entity) => any;
 }

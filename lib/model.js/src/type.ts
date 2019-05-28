@@ -1,6 +1,6 @@
 import { Model } from "./model";
 import { Entity, EntityConstructorForType, EntityDestroyEventArgs, EntityInitNewEventArgs, EntityInitExistingEventArgs, EntityRegisteredEventArgs, EntityUnregisteredEventArgs, EntityConstructor } from "./entity";
-import { Property, PropertyOptions, Property$generateOwnProperty, Property$generatePrototypeProperty, Property$generateShortcuts, Property$generateStaticProperty } from "./property";
+import { Property, PropertyOptions, Property$generateOwnProperty, Property$generatePrototypeProperty, Property$generateShortcuts } from "./property";
 import { navigateAttribute, getTypeName, parseFunctionName, ensureNamespace, getGlobalObject } from "./helpers";
 import { Event, EventSubscriber } from "./events";
 import { ObservableArray } from "./observable-array";
@@ -8,7 +8,6 @@ import { RuleOptions, Rule } from "./rule";
 import { Format } from "./format";
 import { PropertyChain } from "./property-chain";
 import { PropertyPath } from "./property-path";
-import { isArray } from "util";
 
 export const Type$newIdPrefix = "+c";
 
@@ -483,7 +482,7 @@ export function isValue(value: any, valueType: any = null): value is Value {
 export function isValueArray(value: any, valueType: any = null): value is Value[] {
 	if (value == null)
 		return false;
-	if (!isArray(value))
+	if (!Array.isArray(value))
 		return false;
 	if (value.length === 0)
 		return true;
