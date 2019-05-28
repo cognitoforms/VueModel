@@ -283,7 +283,12 @@ export class Model {
 	}
 
 	ready(init: () => void): void {
-		this._ready.push(init);
+		if (this._ready) {
+			this._ready.push(init);
+		}
+		else {
+			init();
+		}
 	}
 
 	/**

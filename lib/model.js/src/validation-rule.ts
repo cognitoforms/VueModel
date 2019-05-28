@@ -36,7 +36,6 @@ export class ValidationRule extends ConditionRule implements PropertyRule {
 
 		// replace the property label token in the validation message if present
 		if (options.message && (typeof options.message === "function" || (typeof options.message === "string" && options.message.indexOf("{property}") >= 0))) {
-
 			// Property label with dynamic format tokens
 			if (Format.hasTokens(property.label)) {
 				// convert the property label into a model format

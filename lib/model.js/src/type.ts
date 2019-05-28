@@ -104,7 +104,7 @@ export class Type {
 			throw new Error(`Id cannot be a blank string (entity = ${this.fullName}).`);
 		}
 	}
-	
+
 	register(obj: Entity): void {
 		this.assertValidId(obj.meta.id);
 
@@ -472,18 +472,28 @@ export function isValueType(type: any): type is ValueType {
 }
 
 export function isValue(value: any, valueType: any = null): value is Value {
-	if (!valueType)
+	if (!valueType) {
+		if (value == null)
+			return false;
 		valueType = value.constructor;
+	}
 	return isValueType(valueType);
 }
 
 export function isValueArray(value: any, valueType: any = null): value is Value[] {
+	if (value == null)
+		return false;
 	if (!isArray(value))
 		return false;
 	if (value.length === 0)
 		return true;
-	if (!valueType)
-		valueType = value[0].constructor;
+	if (!valueType) {
+		let item = value[0];
+		if (item == null)
+			return false;
+
+		valueType = item.constructor;
+	}
 	return isValueType(valueType);
 }
 
