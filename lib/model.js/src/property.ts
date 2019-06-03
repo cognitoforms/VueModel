@@ -787,7 +787,7 @@ export function Property$generateOwnPropertyWithClosure(property: Property, obj:
 				}
 
 				// TODO: Account for static properties (obj is undefined)
-				(obj.changed as Event<Entity, EntityChangeEventArgs>).publish(obj, { entity: obj, property: property });
+				(obj.changed as Event<Entity, EntityChangeEventArgs>).publish(obj, { entity: obj, property: property, newValue: val });
 			}
 
 			// Mark the property as pending initialization
@@ -873,7 +873,7 @@ function Property$subArrayEvents(obj: Entity, property: Property, array: Observa
 		(eventArgs as any)["collectionChanged"] = true;
 
 		(property.changed as EventPublisher<Entity, PropertyChangeEventArgs>).publish(obj, eventArgs);
-		(obj.changed as Event<Entity, EntityChangeEventArgs>).publish(obj, { entity: obj, property });
+		(obj.changed as Event<Entity, EntityChangeEventArgs>).publish(obj, { entity: obj, property, newValue: array });
 	});
 }
 
@@ -905,7 +905,7 @@ export function Property$init(property: Property, obj: Entity, val: any): void {
 	}
 
 	// TODO: Implement observable?
-	(obj.changed as Event<Entity, EntityChangeEventArgs>).publish(obj, { entity: obj, property });
+	(obj.changed as Event<Entity, EntityChangeEventArgs>).publish(obj, { entity: obj, property, newValue: val });
 }
 
 function Property$ensureInited(property: Property, obj: Entity): void {
@@ -994,7 +994,7 @@ function Property$setValue(property: Property, obj: Entity, currentValue: any, n
 		if (oldValue !== undefined) {
 			var eventArgs: PropertyChangeEventArgs = { entity: obj, property, newValue, oldValue };
 			(property.changed as EventPublisher<Entity, PropertyChangeEventArgs>).publish(obj, additionalArgs ? merge(eventArgs, additionalArgs) : eventArgs);
-			(obj.changed as Event<Entity, EntityChangeEventArgs>).publish(obj, { entity: obj, property });
+			(obj.changed as Event<Entity, EntityChangeEventArgs>).publish(obj, { entity: obj, property, oldValue, newValue });
 		}
 	}
 }

@@ -240,4 +240,6 @@ export interface EntityChangeEventHandler {
 export interface EntityChangeEventArgs {
 	entity: Entity;
 	property: Property;
+	oldValue?: any;
+	newValue: any;
 }
