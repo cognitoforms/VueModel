@@ -17,8 +17,8 @@ export class StringFormatRule extends ValidationRule {
 			// ensure the rule name is specified
 			options.name = options.name || "StringFormat";
 
-			// ensure the error message is specified
-			if (typeof options.message === "string") {
+			// ensure the error message is a valid resource
+			if (typeof options.message === "string" && /^{[^{}]+}$/.test(options.message)) {
 				if (rootType.model.getResource(options.message)) {
 					options.message = rootType.model.getResource(options.message);
 				}
@@ -58,7 +58,7 @@ export class StringFormatRule extends ValidationRule {
 
 		// call the base type constructor
 		super(rootType, options);
-	
+
 		// define properties for the rule
 		this.description = options.description;
 	}

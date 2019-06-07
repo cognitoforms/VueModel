@@ -144,6 +144,7 @@ export class Property implements PropertyPath {
 						new StringFormatRule(targetType, {
 							property: this,
 							description: format.description,
+							message: format.message,
 							expression: format.expression,
 							reformat: format.reformat
 						})
@@ -623,6 +624,7 @@ export interface PropertyFormatOptions {
 	/** An optional regular expression reformat string that will be used to correct the value if it matches */
 	reformat: string;
 
+	message?: string | ((this: Entity) => string);
 }
 
 export interface PropertyErrorFunctionAndOptions {
