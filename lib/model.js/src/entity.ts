@@ -94,9 +94,9 @@ export class Entity {
 						value = new ChildEntity(state.$id, state);
 				}
 				else if (prop.isList && Array.isArray(state))
-					value = state.map(i => this.meta.type.model.serializer.deserialize(i, prop));
+					value = state.map(i => this.meta.type.model.serializer.deserialize(this, i, prop));
 				else
-					value = this.meta.type.model.serializer.deserialize(state, prop);
+					value = this.meta.type.model.serializer.deserialize(this, state, prop);
 
 				Property$init(prop, this, value);
 			}
@@ -150,9 +150,9 @@ export class Entity {
 					}
 				}
 				else if (prop.isList && Array.isArray(state) && Array.isArray(currentValue))
-					currentValue.splice(0, currentValue.length, ...state.map(s => this.meta.type.model.serializer.deserialize(s, prop)));
+					currentValue.splice(0, currentValue.length, ...state.map(s => this.meta.type.model.serializer.deserialize(this, s, prop)));
 				else
-					value = this.meta.type.model.serializer.deserialize(state, prop);
+					value = this.meta.type.model.serializer.deserialize(this, state, prop);
 
 				if (value !== undefined)
 					Property$setter(prop, this, value);

@@ -4,7 +4,7 @@ import { Format } from "./format";
 import { Type, PropertyType, isEntityType, Value, isValue, isValueArray } from "./type";
 import { PropertyChain } from "./property-chain";
 import { getTypeName, getDefaultValue, parseFunctionName, ObjectLookup, merge, getConstructorName, isType, hasOwnProperty } from "./helpers";
-import { ObservableArray, updateArray } from "./observable-array";
+import { ObservableArray, updateArray, ArrayChangeType } from "./observable-array";
 import { Rule, RuleOptions } from "./rule";
 import { CalculatedPropertyRule } from "./calculated-property-rule";
 import { StringFormatRule } from "./string-format-rule";
@@ -161,7 +161,7 @@ export class Property implements PropertyPath {
 			// Constant
 			if (options.constant !== null && options.constant !== undefined) {
 				targetType.model.ready(() => {
-					this.constant = targetType.model.serializer.deserialize(options.constant, this);
+					this.constant = targetType.model.serializer.deserialize(null, options.constant, this);
 				});
 			}
 
@@ -192,6 +192,9 @@ export class Property implements PropertyPath {
 				}
 			}
 
+			if (typeof options.set === "function") {
+				this.changed.subscribe(function(e) { options.set.call(this, e.newValue); });
+			}
 			// Default
 			if (options.default !== undefined) {
 				if (isPropertyValueFunction<any>(options.default)) {
@@ -240,16 +243,26 @@ export class Property implements PropertyPath {
 
 					// For list property, if `count` is specified, then invoke the function
 					// the specified number of times and return the array of values
-					if (this.isList && isPropertyOptions<PropertyRepeatingValueFunctionAndOptions<any>>(options.default, o => hasOwnProperty(o, "count") && typeof o.count === "number")) {
-						let defaultFn = options.default.function;
-						let defaultCount = options.default.count;
+					if (this.isList && isPropertyOptions<PropertyRepeatingValueFunctionAndOptions<any>>(options.default, o => hasOwnProperty(o, "count"))) {
+						const PropJsType = this.propertyType;
+						const defaultFn = options.default.function;
 
 						ruleCalculateFn = function (this: Entity): any {
-							let values = [];
-							for (var i = 0; i < defaultCount; i++) {
-								let value = defaultFn.call(this);
-								values.push(value);
+							const values = ObservableArray.ensureObservable([]);
+
+							// For entities
+							if (typeof defaultInitializer === "function" && isEntityType(PropJsType)) {
+								values.changed.subscribe(e => {
+									e.changes
+										.filter(c => c.type === ArrayChangeType.add || c.type === ArrayChangeType.replace)
+										.flatMap(c => c.items)
+										.forEach(item => item.set(defaultInitializer.call(this)));
+								});
 							}
+
+							for (let i = 0; i < defaultCount; i++)
+								values.push(defaultFn ? defaultFn.call(this) : new PropJsType());
+
 							return values;
 						};
 					}
@@ -260,8 +273,7 @@ export class Property implements PropertyPath {
 							calculate: ruleCalculateFn,
 							onChangeOf: resolveDependsOn(this, "default", defaultOptions.dependsOn),
 							isDefaultValue: true
-						})
-							.register();
+						}).register();
 					});
 				}
 			}
@@ -661,10 +673,6 @@ export interface PropertyLengthOptions {
 	min?: number | LambdaFunction<number> | BoundFunction<Entity, number>;
 	max?: number | LambdaFunction<number> | BoundFunction<Entity, number>;
 	dependsOn?: string;
-}
-
-export interface PropertyRepeatingValueFunctionAndOptions<T> extends PropertyValueFunctionAndOptions<T> {
-	count: number;
 }
 
 export type PropertyBooleanFunction = (this: Entity) => boolean;

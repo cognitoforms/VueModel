@@ -46,7 +46,8 @@ module.exports = {
 		"@typescript-eslint/no-namespace": "error",
 		"@typescript-eslint/no-useless-constructor": "warn",
 		"@typescript-eslint/no-use-before-define": ["warn", { "classes": false, "functions": false }],
-		"@typescript-eslint/no-unused-vars": "error"
+		"@typescript-eslint/no-unused-vars": "error",
+		"new-cap": "off"
 	},
 	overrides: [
 		{

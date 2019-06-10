@@ -8,9 +8,9 @@ export interface PropertySerializationResult {
 }
 
 export const IgnoreProperty: PropertySerializationResult = {
-	key: 'ignore',
-	value: 'ignore'
-}
+	key: "ignore",
+	value: "ignore"
+};
 
 /**
  * Allows additional key/value pairs to be introduced to serialization output.
@@ -24,19 +24,25 @@ export interface PropertyInjector {
  * Allows transformation of the serialized name and value of a model property.
  */
 export interface PropertyConverter {
-	shouldConvert(prop: Property): boolean;
+	/**
+	 * @param context The `Entity` containing the specified property.
+	 * @param prop The property being serialized/deserialized.
+	 */
+	shouldConvert(context: Entity, prop: Property): boolean;
 	/**
 	 * Return `IgnoreProperty` to prevent serialization of the property.
+	 * @param context The `Entity` containing the specified property.
 	 * @param prop The current property being serialized.
 	 * @param value The value of the property on the entity currently being serialized.
 	 */
-	serialize(prop: Property, value: any): PropertySerializationResult;
+	serialize(context: Entity, value: any, property: Property): PropertySerializationResult;
 	/**
 	 * Return `IgnoreProperty` to prevent deserialization of the property.
+	 * @param context The `Entity` containing the specified property.
 	 * @param prop The current property being deserialized.
 	 * @param value The value to deserialize.
 	 */
-	deserialize(prop: Property, value: any): any;
+	deserialize(context: Entity, value: any, property: Property): any;
 }
 
 export class EntitySerializer {
@@ -97,9 +103,9 @@ export class EntitySerializer {
 				.filter(p => !p.isCalculated && !p.isConstant)
 				.map(prop => {
 					let value = prop.value(entity);
-					let converter = this._propertyConverters.find(c => c.shouldConvert(prop));
+					let converter = this._propertyConverters.find(c => c.shouldConvert(entity, prop));
 					if (converter)
-						return converter.serialize(prop, value);
+						return converter.serialize(entity, value, prop);
 					return EntitySerializer.defaultPropertyConverter(prop, value);
 				}))
 			.forEach(pair => {
@@ -114,12 +120,11 @@ export class EntitySerializer {
 		return result;
 	}
 
-	deserialize(data: any, property: Property): any {
-
+	deserialize(context: Entity, data: any, property: Property): any {
 		// Apply custom convertors before deserializing
-		const converter = this._propertyConverters.find(c => c.shouldConvert(property));
+		const converter = this._propertyConverters.find(c => c.shouldConvert(context, property));
 		if (converter)
-			data = converter.deserialize(property, data);
+			data = converter.deserialize(context, data, property);
 		
 		if (data === IgnoreProperty)
 			return;
@@ -143,7 +148,7 @@ export class EntitySerializer {
 
 		// Value List
 		else if (property.isList && Array.isArray(data))
-			value = data.map(i => this.deserialize(i, property));
+			value = data.map(i => this.deserialize(context, i, property));
 
 		// Value
 		else
@@ -152,7 +157,7 @@ export class EntitySerializer {
 		return value;
 	}
 
-	private static defaultPropertyConverter(prop: Property, value: any): PropertySerializationResult {
+	private static defaultPropertyConverter(value: any, prop: Property): PropertySerializationResult {
 		let result = { key: prop.name, value };
 		if (value) {
 			if (isEntityType(prop.propertyType)) {
