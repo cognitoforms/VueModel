@@ -78,5 +78,5 @@ export interface StringFormatRuleOptions extends ValidationRuleOptions {
 	expression: RegExp | string;
 
 	/** An optional regular expression reformat string or reformat function that will be used to correct the value if it matches */
-	reformat: string | ((val: any) => string);
+	reformat?: string | ((val: any) => string);
 }

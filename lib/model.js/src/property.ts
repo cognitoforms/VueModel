@@ -622,7 +622,7 @@ export interface PropertyFormatOptions {
 	expression: RegExp;
 
 	/** An optional regular expression reformat string that will be used to correct the value if it matches */
-	reformat: string;
+	reformat?: string;
 
 	message?: string | ((this: Entity) => string);
 }
