@@ -3,8 +3,8 @@ import { Entity, EntityConstructorForType, EntityChangeEventArgs, EntityAccessEv
 import { Format } from "./format";
 import { Type, PropertyType, isEntityType, Value, isValue, isValueArray } from "./type";
 import { PropertyChain } from "./property-chain";
-import { getTypeName, getDefaultValue, parseFunctionName, ObjectLookup, merge, getConstructorName, isType, hasOwnProperty } from "./helpers";
-import { ObservableArray, updateArray, ArrayChangeType } from "./observable-array";
+import { getTypeName, getDefaultValue, parseFunctionName, ObjectLookup, merge, getConstructorName, isType } from "./helpers";
+import { ObservableArray, updateArray } from "./observable-array";
 import { Rule, RuleOptions } from "./rule";
 import { CalculatedPropertyRule } from "./calculated-property-rule";
 import { StringFormatRule } from "./string-format-rule";
@@ -239,38 +239,11 @@ export class Property implements PropertyPath {
 						throw new Error(`Invalid property 'default' function of type '${getTypeName(options.default.function)}'.`);
 					}
 
-					let ruleCalculateFn = options.default.function;
-
-					// For list property, if `count` is specified, then invoke the function
-					// the specified number of times and return the array of values
-					if (this.isList && isPropertyOptions<PropertyRepeatingValueFunctionAndOptions<any>>(options.default, o => hasOwnProperty(o, "count"))) {
-						const PropJsType = this.propertyType;
-						const defaultFn = options.default.function;
-
-						ruleCalculateFn = function (this: Entity): any {
-							const values = ObservableArray.ensureObservable([]);
-
-							// For entities
-							if (typeof defaultInitializer === "function" && isEntityType(PropJsType)) {
-								values.changed.subscribe(e => {
-									e.changes
-										.filter(c => c.type === ArrayChangeType.add || c.type === ArrayChangeType.replace)
-										.flatMap(c => c.items)
-										.forEach(item => item.set(defaultInitializer.call(this)));
-								});
-							}
-
-							for (let i = 0; i < defaultCount; i++)
-								values.push(defaultFn ? defaultFn.call(this) : new PropJsType());
-
-							return values;
-						};
-					}
-
+					const defaultFn = options.default.function;
 					targetType.model.ready(() => {
 						new CalculatedPropertyRule(targetType, null, {
 							property: this,
-							calculate: ruleCalculateFn,
+							calculate: defaultFn,
 							onChangeOf: resolveDependsOn(this, "default", defaultOptions.dependsOn),
 							isDefaultValue: true
 						}).register();
@@ -607,7 +580,7 @@ export interface PropertyOptions {
 	set?: (this: Entity, value: any) => void;
 
 	/** An optional constant default value, or a function or dependency function object that calculates the default value of this property. */
-	default?: PropertyValueFunction<any> | PropertyValueFunctionAndOptions<any> | PropertyRepeatingValueFunctionAndOptions<any> | Value | Value[];
+	default?: PropertyValueFunction<any> | PropertyValueFunctionAndOptions<any> | Value | Value[];
 
 	/** An optional constant default value, or a function or dependency function object that calculates the default value of this property. */
 	allowedValues?: PropertyValueFunction<any[]> | AllowedValuesFunctionAndOptions<any[]> | Value[];

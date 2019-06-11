@@ -11,6 +11,7 @@ import { CultureInfo } from "../lib/model.js/src/globalization";
 
 // Include English resources by default
 import "../lib/model.js/src/resource-en.ts";
+import { ObjectLookup } from "model/helpers";
 
 export default VueModel;
 
@@ -22,16 +23,16 @@ export type ModelLocalizationOptions = ModelLocalizationOptions;
 export type TypeOptions = TypeOptions;
 export type TypeExtensionOptions<TEntity extends Entity> = TypeExtensionOptions<TEntity>;
 export type RuleOrMethodFunctionOrOptions<TEntity extends Entity> = RuleOrMethodFunctionOrOptions<TEntity>;
-export type Entity = Entity;
+export type Entity = Entity & ObjectLookup<any>;
 export type CultureInfo = CultureInfo;
 export type Property = Property;
 export type PropertyOptions = PropertyOptions;
 export type PropertyBooleanFunction = PropertyBooleanFunction;
 export type PropertyBooleanFunctionAndOptions = PropertyBooleanFunctionAndOptions;
-export type PropertyConverter = PropertyConverter;
 export type PropertyInjector = PropertyInjector;
 export type PropertySerializationResult = PropertySerializationResult;
-export { IgnoreProperty } from '../lib/model.js/src/entity-serializer';
+export { PropertyConverter, IgnoreProperty } from '../lib/model.js/src/entity-serializer';
+export { isEntityType, isValueType } from '../lib/model.js/src/type';
 export type SourceRootAdapter<TEntity extends Entity> = SourceRootAdapter<TEntity>;
 export type SourcePathAdapter<TEntity extends Entity, TValue> = SourcePathAdapter<TEntity, TValue>;
 export type SourceItemAdapter<TEntity extends Entity, TValue> = SourceItemAdapter<TEntity, TValue>;

@@ -61,6 +61,12 @@ export class Entity {
 		}
 	}
 
+	private static getSortedPropertyData(properties: ObjectLookup<any>) {
+		return Object.entries(properties).sort((a: [string,any], b: [string,any]) => {
+			return Number(b[1] instanceof Entity) - Number(a[1] instanceof Entity);
+		});
+	}
+
 	private init(properties: ObjectLookup<any>): void;
 	private init(property: string, value: any): void;
 	private init(property: any, value?: any): void {
@@ -79,24 +85,29 @@ export class Entity {
 			properties = property;
 		}
 
+		// Pass all unspecified properties through the deserializer to allow initialization logic via converters
+		for (const prop of this.meta.type.properties.filter(p => !(p.name in properties))) {
+			const value = this.serializer.deserialize(this, undefined, prop);
+			if (value !== undefined)
+				Property$init(prop, this, value);
+		}
+
 		// Initialize the specified properties
-		for (const [propName, state] of Object.entries(properties)) {
+		for (const [propName, state] of Entity.getSortedPropertyData(properties)) {
 			const prop = this.meta.type.getProperty(propName);
 			if (prop) {
 				let value;
 				if (isEntityType(prop.propertyType)) {
 					const ChildEntity = prop.propertyType;
 					if (prop.isList && Array.isArray(state))
-						value = state.map(s => s instanceof ChildEntity ? s : new ChildEntity(s.$id, s));
-					else if (state instanceof ChildEntity)
-						value = state;
-					else if (state instanceof Object)
-						value = new ChildEntity(state.$id, state);
+						value = state.map(s => this.serializer.deserialize(this, s, prop));
+					else
+						value = this.serializer.deserialize(this, state, prop);
 				}
 				else if (prop.isList && Array.isArray(state))
-					value = state.map(i => this.meta.type.model.serializer.deserialize(this, i, prop));
+					value = state.map(i => this.serializer.deserialize(this, i, prop));
 				else
-					value = this.meta.type.model.serializer.deserialize(this, state, prop);
+					value = this.serializer.deserialize(this, state, prop);
 
 				Property$init(prop, this, value);
 			}
@@ -118,7 +129,7 @@ export class Entity {
 		}
 
 		// Set the specified properties
-		for (const [propName, state] of Object.entries(properties)) {
+		for (let [propName, state] of Entity.getSortedPropertyData(properties)) {
 			const prop = this.meta.type.getProperty(propName);
 			if (prop) {
 				let value;
@@ -127,6 +138,9 @@ export class Entity {
 					const ChildEntity = prop.propertyType;
 					if (prop.isList && Array.isArray(state) && Array.isArray(currentValue)) {
 						state.forEach((s, idx) => {
+							if (!(s instanceof ChildEntity))
+								s = this.serializer.deserialize(this, s, prop, false);
+
 							// Modifying/replacing existing list item
 							if (idx < currentValue.length) {
 								if (s instanceof ChildEntity)
@@ -142,6 +156,7 @@ export class Entity {
 					else if (state instanceof ChildEntity)
 						value = state;
 					else if (state instanceof Object) {
+						state = this.serializer.deserialize(this, state, prop, false);
 						// Update the entity's state
 						if (currentValue)
 							currentValue.set(state);
@@ -150,9 +165,9 @@ export class Entity {
 					}
 				}
 				else if (prop.isList && Array.isArray(state) && Array.isArray(currentValue))
-					currentValue.splice(0, currentValue.length, ...state.map(s => this.meta.type.model.serializer.deserialize(this, s, prop)));
+					currentValue.splice(0, currentValue.length, ...state.map(s => this.serializer.deserialize(this, s, prop)));
 				else
-					value = this.meta.type.model.serializer.deserialize(this, state, prop);
+					value = this.serializer.deserialize(this, state, prop);
 
 				if (value !== undefined)
 					Property$setter(prop, this, value);
@@ -183,12 +198,16 @@ export class Entity {
 		}
 	}
 
+	get serializer() {
+		return this.meta.type.model.serializer;
+	}
+
 	/**
 	 * Produces a JSON-valid object representation of the entity.
 	 * @param entity
 	 */
 	serialize(): object {
-		return this.meta.type.model.serializer.serialize(this);
+		return this.serializer.serialize(this);
 	}
 }
 

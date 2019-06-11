@@ -23,31 +23,49 @@ export interface PropertyInjector {
 /**
  * Allows transformation of the serialized name and value of a model property.
  */
-export interface PropertyConverter {
+export class PropertyConverter {
 	/**
 	 * @param context The `Entity` containing the specified property.
 	 * @param prop The property being serialized/deserialized.
 	 */
-	shouldConvert(context: Entity, prop: Property): boolean;
+	shouldConvert(context: Entity, prop: Property): boolean {
+		return true;
+	}
 	/**
 	 * Return `IgnoreProperty` to prevent serialization of the property.
 	 * @param context The `Entity` containing the specified property.
 	 * @param prop The current property being serialized.
 	 * @param value The value of the property on the entity currently being serialized.
 	 */
-	serialize(context: Entity, value: any, property: Property): PropertySerializationResult;
+	serialize(context: Entity, value: any, property: Property): PropertySerializationResult {
+		const result = { key: property.name, value };
+		if (value) {
+			if (isEntityType(property.propertyType)) {
+				if (property.isList && Array.isArray(value))
+					result.value = value.map((ent: Entity) => ent.serialize());
+				else
+					result.value = value.serialize();
+			}
+			else if (property.isList)
+				result.value = value.slice();
+		}
+		return result;
+	}
 	/**
 	 * Return `IgnoreProperty` to prevent deserialization of the property.
 	 * @param context The `Entity` containing the specified property.
 	 * @param prop The current property being deserialized.
 	 * @param value The value to deserialize.
 	 */
-	deserialize(context: Entity, value: any, property: Property): any;
+	deserialize(context: Entity, value: any, property: Property): any {
+		return value;
+	}
 }
 
 export class EntitySerializer {
 	private _propertyConverters: PropertyConverter[] = [];
 	private _propertyInjectors = new Map<Type | string, PropertyInjector[]>();
+	private static defaultPropertyConverter = new PropertyConverter();
 
 	/**
 	 * Property converters should be registered in order of increasing specificity.
@@ -106,7 +124,7 @@ export class EntitySerializer {
 					let converter = this._propertyConverters.find(c => c.shouldConvert(entity, prop));
 					if (converter)
 						return converter.serialize(entity, value, prop);
-					return EntitySerializer.defaultPropertyConverter(prop, value);
+					return EntitySerializer.defaultPropertyConverter.serialize(entity, value, prop);
 				}))
 			.forEach(pair => {
 				if (pair && pair !== IgnoreProperty) {
@@ -120,7 +138,7 @@ export class EntitySerializer {
 		return result;
 	}
 
-	deserialize(context: Entity, data: any, property: Property): any {
+	deserialize(context: Entity, data: any, property: Property, constructEntity = true): any {
 		// Apply custom convertors before deserializing
 		const converter = this._propertyConverters.find(c => c.shouldConvert(context, property));
 		if (converter)
@@ -135,10 +153,11 @@ export class EntitySerializer {
 		if (isEntityType(property.propertyType)) {
 			const ChildEntity = property.propertyType;
 
+			if (!constructEntity)
+				value = data;
 			// Entity List
-			if (property.isList && Array.isArray(data))
+			else if (property.isList && Array.isArray(data))
 				value = data.map(s => s instanceof ChildEntity ? s : new ChildEntity(s.$id, s));
-
 			// Entity
 			else if (data instanceof ChildEntity)
 				value = data;
@@ -155,20 +174,5 @@ export class EntitySerializer {
 			value = data;
 
 		return value;
-	}
-
-	private static defaultPropertyConverter(value: any, prop: Property): PropertySerializationResult {
-		let result = { key: prop.name, value };
-		if (value) {
-			if (isEntityType(prop.propertyType)) {
-				if (prop.isList && Array.isArray(value))
-					result.value = value.map((ent: Entity) => ent.serialize());
-				else
-					result.value = value.serialize();
-			}
-			else if (prop.isList)
-				result.value = value.slice();
-		}
-		return result;
 	}
 }
