@@ -698,7 +698,14 @@ export function formatDate(date: Date, format: string, cultureInfo: CultureInfo)
  * @param cultureInfo The culture
  */
 export function parseNumber(value: string, cultureInfo: CultureInfo): number {
+	if (typeof value !== 'string')
+		return value;
+
 	value = value.trim();
+	let isPercent = value.endsWith("%");
+	if (isPercent)
+		value = value.replace("%", "").trim();		
+	
 	if (value.match(/^[+-]?infinity$/i)) {
 		return parseFloat(value);
 	}
@@ -754,10 +761,11 @@ export function parseNumber(value: string, cultureInfo: CultureInfo): number {
 			expSignInfo[0] = "+";
 		}
 		p += "e" + expSignInfo[0] + expSignInfo[1];
-	}
+	}	
 
-	if (p.match(/^[+-]?\d*\.?\d*(e[+-]?\d+)?$/)) {
-		return parseFloat(p);
+	if (p.match(/^[+-]?\d*\.?\d*(e[+-]?\d+)?$/)) {		
+		let val = parseFloat(p);
+		return isPercent ? val / 100.0 : val;
 	}
 	return Number.NaN;
 };
