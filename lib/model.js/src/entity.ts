@@ -220,6 +220,9 @@ export interface EntityConstructor {
 
 export interface EntityConstructorForType<TEntity extends Entity> extends EntityConstructor {
 	new(): TEntity;
+	new(id: string, properties?: ObjectLookup<any>): TEntity; // Construct existing instance with state
+	new(properties?: ObjectLookup<any>): TEntity; // Construct new instance with state
+	new(id?: string | ObjectLookup<any>, properties?: ObjectLookup<any>): TEntity;
 	meta: Type;
 }
 
