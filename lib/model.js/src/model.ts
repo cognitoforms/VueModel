@@ -239,11 +239,15 @@ export class Model {
 				typesToInitialize.push(typeName);
 
 				if (!type) {
-					let baseType = this.types[typeOptions.$extends];
-					delete typeOptions["$extends"];
+					let baseType: Type = null;
+					if (typeOptions.$extends) {
+						baseType = this.types[typeOptions.$extends];
+						if (!baseType) {
+							throw new Error("Base type '" + typeOptions.$extends + "' for type '" + typeName + "' wasn't found.");
+						}
+					}
 
 					let format = typeOptions.$format;
-					delete typeOptions["$format"];
 
 					type = new Type(this, typeName, baseType, format);
 					this.types[typeName] = type;
