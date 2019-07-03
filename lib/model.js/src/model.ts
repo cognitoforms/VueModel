@@ -5,7 +5,7 @@ import { Type, PropertyType, isEntityType, ValueType, TypeOptions, TypeExtension
 import { Format, createFormat } from "./format";
 import { EntitySerializer } from "./entity-serializer";
 import { LocalizedResourcesMap, setDefaultLocale, defineResources, getResource } from "./resource";
-import { CultureInfo, formatNumber, parseNumber, formatDate, parseDate } from "./globalization";
+import { CultureInfo, formatNumber, parseNumber, formatDate, parseDate, expandDateFormat } from "./globalization";
 
 const valueTypes: { [name: string]: ValueType } = { string: String, number: Number, date: Date, boolean: Boolean };
 
@@ -117,8 +117,16 @@ export class Model {
 	 * Parses a date from text
 	 * @param text The text to parse
 	 */
-	parseDate(text: string): Date {
-		return parseDate(text, this.$culture);
+	parseDate(text: string, formats?: string[]): Date {
+		return parseDate(text, this.$culture, formats);
+	}
+
+	/**
+	 * Expands a date/time format string, which may be a predefined short format, into the equivalent full format strin
+	 * @param format The format string
+	 */
+	expandDateFormat(format: string): string {
+		return expandDateFormat(this.$culture.dateTimeFormat, format);
 	}
 
 	/**
