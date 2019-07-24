@@ -193,9 +193,11 @@ export class Property implements PropertyPath {
 				}
 			}
 
+			// Set
 			if (typeof options.set === "function") {
 				this.changed.subscribe(function(e) { options.set.call(this, e.newValue); });
 			}
+
 			// Default
 			if (options.default !== undefined) {
 				if (isPropertyValueFunction<any>(options.default)) {
