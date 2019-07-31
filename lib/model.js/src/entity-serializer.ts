@@ -1,6 +1,7 @@
 import { isEntityType, Type } from "./type";
 import { Entity } from "./entity";
 import { Property } from "./property";
+import { ObjectLookup } from "./helpers";
 
 export interface PropertySerializationResult {
 	key: string;
@@ -65,6 +66,7 @@ export class PropertyConverter {
 export class EntitySerializer {
 	private _propertyConverters: PropertyConverter[] = [];
 	private _propertyInjectors = new Map<Type | string, PropertyInjector[]>();
+	private _propertyAliases = new Map<Type | string, ObjectLookup<string>>();
 	private static defaultPropertyConverter = new PropertyConverter();
 
 	/**
@@ -86,6 +88,12 @@ export class EntitySerializer {
 		let injectors = this._propertyInjectors.get(type) || [];
 		injectors.push(injector);
 		this._propertyInjectors.set(type, injectors);
+	}
+
+	registerPropertyAlias(type: Type | string, alias: string, propertyName: string) {
+		let aliases = this._propertyAliases.get(type) || {};
+		aliases[alias] = propertyName;
+		this._propertyAliases.set(type, aliases);
 	}
 
 	/**
@@ -176,7 +184,16 @@ export class EntitySerializer {
 		return value;
 	}
 
+	getPropertyAliases(type: Type) {
+		return Object.assign({}, this._propertyAliases.get(type), this._propertyAliases.get(type.fullName));
+	}
+
 	resolveProperty(context: Entity, propName: string) {
+		let prop = context.meta.type.getProperty(propName);
+		if (prop)
+			return prop;
+
+		propName = this.getPropertyAliases(context.meta.type)[propName];
 		return context.meta.type.getProperty(propName);
 	}
 }

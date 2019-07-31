@@ -85,17 +85,12 @@ export class Entity {
 			properties = property;
 		}
 
-		// Pass all unspecified properties through the deserializer to allow initialization logic via converters
-		for (const prop of this.meta.type.properties.filter(p => !(p.name in properties))) {
-			const value = this.serializer.deserialize(this, undefined, prop);
-			if (value !== undefined)
-				Property$init(prop, this, value);
-		}
-
+		const initializedProps = new Set<Property>();
 		// Initialize the specified properties
 		for (const [propName, state] of Entity.getSortedPropertyData(properties)) {
 			const prop = this.serializer.resolveProperty(this, propName);
 			if (prop) {
+				initializedProps.add(prop);
 				let value;
 				if (isEntityType(prop.propertyType)) {
 					if (prop.isList && Array.isArray(state))
@@ -110,6 +105,13 @@ export class Entity {
 
 				Property$init(prop, this, value);
 			}
+		}
+
+		// Pass all unspecified properties through the deserializer to allow initialization logic via converters
+		for (const prop of this.meta.type.properties.filter(p => !initializedProps.has(p))) {
+			const value = this.serializer.deserialize(this, undefined, prop);
+			if (value !== undefined)
+				Property$init(prop, this, value);
 		}
 	}
 
@@ -129,7 +131,7 @@ export class Entity {
 
 		// Set the specified properties
 		for (let [propName, state] of Entity.getSortedPropertyData(properties)) {
-			const prop = this.meta.type.getProperty(propName);
+			const prop = this.serializer.resolveProperty(this, propName);
 			if (prop) {
 				let value;
 				const currentValue = prop.value(this);
