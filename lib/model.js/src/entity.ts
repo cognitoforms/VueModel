@@ -62,7 +62,7 @@ export class Entity {
 	}
 
 	private static getSortedPropertyData(properties: ObjectLookup<any>) {
-		return Object.entries(properties).sort((a: [string,any], b: [string,any]) => {
+		return Object.entries(properties).sort((a: [string, any], b: [string, any]) => {
 			return Number(b[1] instanceof Entity) - Number(a[1] instanceof Entity);
 		});
 	}
@@ -94,11 +94,10 @@ export class Entity {
 
 		// Initialize the specified properties
 		for (const [propName, state] of Entity.getSortedPropertyData(properties)) {
-			const prop = this.meta.type.getProperty(propName);
+			const prop = this.serializer.resolveProperty(this, propName);
 			if (prop) {
 				let value;
 				if (isEntityType(prop.propertyType)) {
-					const ChildEntity = prop.propertyType;
 					if (prop.isList && Array.isArray(state))
 						value = state.map(s => this.serializer.deserialize(this, s, prop));
 					else
@@ -220,6 +219,9 @@ export interface EntityConstructor {
 
 export interface EntityConstructorForType<TEntity extends Entity> extends EntityConstructor {
 	new(): TEntity;
+	new(id: string, properties?: ObjectLookup<any>): TEntity; // Construct existing instance with state
+	new(properties?: ObjectLookup<any>): TEntity; // Construct new instance with state
+	new(id?: string | ObjectLookup<any>, properties?: ObjectLookup<any>): TEntity;
 	meta: Type;
 }
 

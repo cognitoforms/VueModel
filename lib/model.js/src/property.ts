@@ -14,7 +14,6 @@ import { RequiredRule } from "./required-rule";
 import { PropertyPath, PropertyAccessEventArgs, PropertyChangeEventArgs } from "./property-path";
 import { RangeRule } from "./range-rule";
 import { StringLengthRule } from "./string-length-rule";
-import { ListLengthRule } from "./list-length-rule";
 
 export class Property implements PropertyPath {
 	readonly containingType: Type;
@@ -193,11 +192,9 @@ export class Property implements PropertyPath {
 				}
 			}
 
-			// Set
 			if (typeof options.set === "function") {
 				this.changed.subscribe(function(e) { options.set.call(this, e.newValue); });
 			}
-
 			// Default
 			if (options.default !== undefined) {
 				if (isPropertyValueFunction<any>(options.default)) {
@@ -355,12 +352,7 @@ export class Property implements PropertyPath {
 
 				targetType.model.ready(() => {
 					let onChangeOf: PropertyPath[] = resolveDependsOn(this, "length", options.length.dependsOn);
-					if (isEntityType(this.propertyType)) {
-						new ListLengthRule(targetType, { property: this, onChangeOf, min, max }).register();
-					}
-					else {
-						new StringLengthRule(targetType, { property: this, onChangeOf, min, max }).register();
-					}
+					new StringLengthRule(targetType, { property: this, onChangeOf, min, max }).register();
 				});
 			}
 

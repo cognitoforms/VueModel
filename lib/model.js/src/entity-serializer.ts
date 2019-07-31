@@ -175,4 +175,8 @@ export class EntitySerializer {
 
 		return value;
 	}
+
+	resolveProperty(context: Entity, propName: string) {
+		return context.meta.type.getProperty(propName);
+	}
 }
