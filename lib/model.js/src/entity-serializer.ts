@@ -155,7 +155,7 @@ export class EntitySerializer {
 		if (data === IgnoreProperty)
 			return;
 
-		let value;
+		let value: any;
 
 		// Entities
 		if (isEntityType(property.propertyType)) {
@@ -178,6 +178,8 @@ export class EntitySerializer {
 			value = data.map(i => this.deserialize(context, i, property));
 
 		// Value
+		else if (property.format && data && typeof(data) === "string" && data.constructor !== property.propertyType)
+			value = property.format.convertFromString(data);
 		else
 			value = data;
 

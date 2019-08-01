@@ -692,12 +692,67 @@ export function formatDate(date: Date, format: string, cultureInfo: CultureInfo)
 	return ret.toString();
 }
 
+export function getNumberStyle(format: string): string {
+	format = format || "";
+
+	if (format.match(/[$c]+/i))
+		return "Currency";
+
+	if (format.match(/[%p]+/i))
+		return "Percent";
+
+	if (format.match(/[dnfg]0/i))
+		return "Integer";
+
+	return "Number";	
+}
+
+export function parseNumber(value: string, style: string = "Number" || "Integer" || "Currency" || "Percent", cultureInfo: CultureInfo) : number {
+	// Handle use of () to denote negative numbers
+	var sign = 1;
+	if (value.match(/^\(.*\)$/)) {
+		value = value.substring(1, value.length - 1);
+		sign = -1;
+	}
+
+	var result;
+
+	// Remove currency symbols before parsing
+	if (style === "Currency") {
+		result = _parseNumber(value.replace(cultureInfo.numberFormat.CurrencySymbol, ""), cultureInfo) * sign;
+
+		// if there is a decimal place, check the precision isnt greater than allowed for currency. 
+		// Floating points in js can be skewed under certain circumstances, we are just checking the decimals instead of multiplying results.
+		var resultvalue = result.toString();
+		if (resultvalue.indexOf('.') > -1 && (resultvalue.length - (resultvalue.indexOf('.') + 1)) > cultureInfo.numberFormat.CurrencyDecimalDigits	) {
+			result = NaN;
+		}
+	}
+	// Remove percentage symbols before parsing and divide by 100
+	else if (style === "Percent")
+		result = _parseNumber(value.replace(cultureInfo.numberFormat.PercentSymbol, ""), cultureInfo) / 100 * sign;
+
+	// Ensure integers are actual whole numbers
+	else if (style === "Integer" && !isInteger(_parseNumber(value, cultureInfo)))
+		result = NaN;
+
+	// Just parse a simple number
+	else
+		result = _parseNumber(value, cultureInfo) * sign;
+	
+	return result;
+}
+
+function isInteger(obj) {
+	return typeof (obj) === "number" && !isNaN(obj) && /^-?[0-9]{1,10}$/.test(obj.toString()) && (obj >= -2147483648 && obj <= 2147483647);
+}
+
 /**
  * Parses the given text as a number
  * @param value The text to parse
  * @param cultureInfo The culture
  */
-export function parseNumber(value: string, cultureInfo: CultureInfo): number {
+export function _parseNumber(value: string, cultureInfo: CultureInfo): number {	
 	value = value.trim();
 	if (value.match(/^[+-]?infinity$/i)) {
 		return parseFloat(value);
@@ -710,16 +765,16 @@ export function parseNumber(value: string, cultureInfo: CultureInfo): number {
 	var signInfo = parseNumberNegativePattern(value, numFormat, numFormat.NumberNegativePattern);
 	var sign = signInfo[0];
 	var num = signInfo[1];
-	if ((sign === "") && (numFormat.NumberNegativePattern !== 1)) {
+	if ((sign === '') && (numFormat.NumberNegativePattern !== 1)) {
 		signInfo = parseNumberNegativePattern(value, numFormat, 1);
 		sign = signInfo[0];
 		num = signInfo[1];
 	}
-	if (sign === "") sign = "+";
+	if (sign === '') sign = '+';
 	var exponent;
 	var intAndFraction;
-	var exponentPos = num.indexOf("e");
-	if (exponentPos < 0) exponentPos = num.indexOf("E");
+	var exponentPos = num.indexOf('e');
+	if (exponentPos < 0) exponentPos = num.indexOf('E');
 	if (exponentPos < 0) {
 		intAndFraction = num;
 		exponent = null;
@@ -739,21 +794,21 @@ export function parseNumber(value: string, cultureInfo: CultureInfo): number {
 		integer = intAndFraction.substr(0, decimalPos);
 		fraction = intAndFraction.substr(decimalPos + numFormat.NumberDecimalSeparator.length);
 	}
-	integer = integer.split(numFormat.NumberGroupSeparator).join("");
+	integer = integer.split(numFormat.NumberGroupSeparator).join('');
 	var altNumGroupSeparator = numFormat.NumberGroupSeparator.replace(/\u00A0/g, " ");
 	if (numFormat.NumberGroupSeparator !== altNumGroupSeparator) {
-		integer = integer.split(altNumGroupSeparator).join("");
+		integer = integer.split(altNumGroupSeparator).join('');
 	}
 	var p = sign + integer;
 	if (fraction !== null) {
-		p += "." + fraction;
+		p += '.' + fraction;
 	}
 	if (exponent !== null) {
 		var expSignInfo = parseNumberNegativePattern(exponent, numFormat, 1);
-		if (expSignInfo[0] === "") {
-			expSignInfo[0] = "+";
+		if (expSignInfo[0] === '') {
+			expSignInfo[0] = '+';
 		}
-		p += "e" + expSignInfo[0] + expSignInfo[1];
+		p += 'e' + expSignInfo[0] + expSignInfo[1];
 	}
 
 	if (p.match(/^[+-]?\d*\.?\d*(e[+-]?\d+)?$/)) {

@@ -5,7 +5,7 @@ import { Type, PropertyType, isEntityType, ValueType, TypeOptions, TypeExtension
 import { Format, createFormat } from "./format";
 import { EntitySerializer } from "./entity-serializer";
 import { LocalizedResourcesMap, setDefaultLocale, defineResources, getResource } from "./resource";
-import { CultureInfo, formatNumber, parseNumber, formatDate, parseDate } from "./globalization";
+import { CultureInfo, formatNumber, parseNumber, formatDate, parseDate, expandDateFormat, getNumberStyle } from "./globalization";
 
 const valueTypes: { [name: string]: ValueType } = { string: String, number: Number, date: Date, boolean: Boolean };
 
@@ -117,8 +117,16 @@ export class Model {
 	 * Parses a date from text
 	 * @param text The text to parse
 	 */
-	parseDate(text: string): Date {
-		return parseDate(text, this.$culture);
+	parseDate(text: string, formats?: string[]): Date {
+		return parseDate(text, this.$culture, formats);
+	}
+
+	/**
+	 * Expands a date/time format string, which may be a predefined short format, into the equivalent full format strin
+	 * @param format The format string
+	 */
+	expandDateFormat(format: string): string {
+		return expandDateFormat(this.$culture.dateTimeFormat, format);
 	}
 
 	/**
@@ -134,8 +142,8 @@ export class Model {
 	 * Parses a number from text
 	 * @param text The text to parse
 	 */
-	parseNumber(text: string): number {
-		return parseNumber(text, this.$culture);
+	parseNumber(text: string, format?: string): number {
+		return parseNumber(text, getNumberStyle(format), this.$culture);
 	}
 
 	/**
@@ -239,11 +247,15 @@ export class Model {
 				typesToInitialize.push(typeName);
 
 				if (!type) {
-					let baseType = this.types[typeOptions.$extends];
-					delete typeOptions["$extends"];
+					let baseType: Type = null;
+					if (typeOptions.$extends) {
+						baseType = this.types[typeOptions.$extends];
+						if (!baseType) {
+							throw new Error("Base type '" + typeOptions.$extends + "' for type '" + typeName + "' wasn't found.");
+						}
+					}
 
 					let format = typeOptions.$format;
-					delete typeOptions["$format"];
 
 					type = new Type(this, typeName, baseType, format);
 					this.types[typeName] = type;

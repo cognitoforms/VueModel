@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{84111aa3-88c8-479d-81ee-308d0b9f5225}</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <ProjectView>ProjectFiles</ProjectView>
+    <ProjectView>ShowAllFiles</ProjectView>
     <StartupFile />
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
@@ -52,6 +52,7 @@
     <TypeScriptCompile Include="lib\model.js\src\format-error.ts" />
     <TypeScriptCompile Include="lib\model.js\src\format.ts" />
     <TypeScriptCompile Include="lib\model.js\src\functor.ts" />
+    <TypeScriptCompile Include="lib\model.js\src\globalization.ts" />
     <TypeScriptCompile Include="lib\model.js\src\helpers.ts" />
     <TypeScriptCompile Include="lib\model.js\src\list-length-rule.ts" />
     <TypeScriptCompile Include="lib\model.js\src\index.ts" />
@@ -111,8 +112,14 @@
     <Compile Include="babel.config.js" />
     <Compile Include="jest.config.js" />
     <Compile Include="lib\model.js\rollup.config.js" />
+    <Compile Include="lib\model.js\src\globalization.unit.js" />
+    <Compile Include="lib\model.js\src\range-rule.unit.js" />
+    <Compile Include="lib\model.js\src\string-length-rule.unit.js" />
     <Compile Include="rollup.config.js" />
+    <Compile Include="src\source-path-mixin.unit.js" />
+    <Compile Include="src\source-root-mixin.unit.js" />
     <Compile Include="testing\unit\setup.js" />
+    <Compile Include="webpack.config.js" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <!--Do not delete the following Import Project.  While this appears to do nothing it is a marker for setting TypeScript properties before our import that depends on them.-->
