@@ -1,6 +1,7 @@
 import { Event, EventObject, EventSubscriber } from "./events";
 import { Format } from "./format";
 import { Type, EntityType, isEntityType } from "./type";
+import { InitializationContext } from "./initilization-context";
 import { ObjectMeta } from "./object-meta";
 import { Property, Property$init, Property$setter } from "./property";
 import { ObjectLookup } from "./helpers";
@@ -14,9 +15,9 @@ export class Entity {
 	readonly changed: EventSubscriber<Entity, EntityChangeEventArgs>;
 
 	constructor(); // Prototype assignment *** used internally
-	constructor(type: Type, id: string, properties?: ObjectLookup<any>); // Construct existing instance with state
-	constructor(type: Type, properties?: ObjectLookup<any>); // Construct new instance with state
-	constructor(type?: Type, id?: string | ObjectLookup<any>, properties?: ObjectLookup<any>) {
+	constructor(type: Type, id: string, properties?: ObjectLookup<any>, context?: InitializationContext); // Construct existing instance with state
+	constructor(type: Type, properties?: ObjectLookup<any>, context?: InitializationContext); // Construct new instance with state
+	constructor(type?: Type, id?: string | ObjectLookup<any>, properties?: ObjectLookup<any>, context?: InitializationContext) {
 		if (arguments.length === 0) {
 			// TODO: Warn about direct call in dev build?
 		}
@@ -43,9 +44,12 @@ export class Entity {
 			// Register the newly constructed instance
 			type.register(this);
 
+			if (!context)
+				context = new InitializationContext(true);
+
 			// Initialize existing entity with provided property values
 			if (!isNew && properties)
-				this.init(properties);
+				this.init(properties, context);
 
 			// Raise the initNew or initExisting event on this type and all base types
 			for (let t = type; t; t = t.baseType) {
@@ -67,9 +71,9 @@ export class Entity {
 		});
 	}
 
-	private init(properties: ObjectLookup<any>): void;
-	private init(property: string, value: any): void;
-	private init(property: any, value?: any): void {
+	private init(properties: ObjectLookup<any>, context: InitializationContext): void;
+	private init(property: string, context: InitializationContext, value: any): void;
+	private init(property: any, context: InitializationContext, value?: any): void {
 		if (Entity.ctorDepth === 0) {
 			throw new Error("Entity.init() should not be called directly.");
 		}
@@ -91,28 +95,37 @@ export class Entity {
 			const prop = this.serializer.resolveProperty(this, propName);
 			if (prop) {
 				initializedProps.add(prop);
-				let value;
-				if (isEntityType(prop.propertyType)) {
-					if (prop.isList && Array.isArray(state))
-						value = state.map(s => this.serializer.deserialize(this, s, prop));
-					else
-						value = this.serializer.deserialize(this, state, prop);
-				}
-				else if (prop.isList && Array.isArray(state))
-					value = state.map(i => this.serializer.deserialize(this, i, prop));
+				const valueResolution = context.tryResolveValue(this, prop, state);
+				if (valueResolution)
+					valueResolution.then(asyncState => this.initProp(prop, asyncState));
 				else
-					value = this.serializer.deserialize(this, state, prop);
-
-				Property$init(prop, this, value);
+					this.initProp(prop, state);
 			}
 		}
 
 		// Pass all unspecified properties through the deserializer to allow initialization logic via converters
 		for (const prop of this.meta.type.properties.filter(p => !initializedProps.has(p))) {
 			const value = this.serializer.deserialize(this, undefined, prop);
+
 			if (value !== undefined)
 				Property$init(prop, this, value);
 		}
+	}
+
+	private initProp(prop: Property, state: any) {
+		let value;
+		if (isEntityType(prop.propertyType)) {
+			if (prop.isList && Array.isArray(state))
+				value = state.map(s => this.serializer.deserialize(this, s, prop));
+			else
+				value = this.serializer.deserialize(this, state, prop);
+		}
+		else if (prop.isList && Array.isArray(state))
+			value = state.map(i => this.serializer.deserialize(this, i, prop));
+		else
+			value = this.serializer.deserialize(this, state, prop);
+
+		Property$init(prop, this, value);
 	}
 
 	set(properties: ObjectLookup<any>): void;
@@ -151,7 +164,7 @@ export class Entity {
 							}
 							// Add a list item
 							else
-								currentValue.push(s instanceof ChildEntity ? s : new ChildEntity(s.$id, s));
+								currentValue.push(s instanceof ChildEntity ? s : new ChildEntity(s.Id, s));
 						});
 					}
 					else if (state instanceof ChildEntity)
@@ -162,7 +175,7 @@ export class Entity {
 						if (currentValue)
 							currentValue.set(state);
 						else
-							value = new ChildEntity(state.$id, state);
+							value = new ChildEntity(state.Id, state);
 					}
 				}
 				else if (prop.isList && Array.isArray(state) && Array.isArray(currentValue))

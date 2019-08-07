@@ -1,5 +1,5 @@
 import { isEntityType, Type } from "./type";
-import { Entity } from "./entity";
+import { Entity, EntityConstructorForType } from "./entity";
 import { Property } from "./property";
 import { ObjectLookup } from "./helpers";
 
@@ -147,7 +147,7 @@ export class EntitySerializer {
 	}
 
 	deserialize(context: Entity, data: any, property: Property, constructEntity = true): any {
-		// Apply custom convertors before deserializing
+		// Apply custom converters before deserializing
 		const converter = this._propertyConverters.find(c => c.shouldConvert(context, property));
 		if (converter)
 			data = converter.deserialize(context, data, property);
@@ -157,6 +157,15 @@ export class EntitySerializer {
 
 		let value: any;
 
+		const resolveEntity = (type: EntityConstructorForType<Entity>, state: any) => {
+			let entity: Entity;
+			if (state.Id)
+				entity = type.meta.get(state.Id);
+			if (!entity)
+				entity = new type(state.Id, state);
+			return entity;
+		};
+
 		// Entities
 		if (isEntityType(property.propertyType)) {
 			const ChildEntity = property.propertyType;
@@ -165,12 +174,12 @@ export class EntitySerializer {
 				value = data;
 			// Entity List
 			else if (property.isList && Array.isArray(data))
-				value = data.map(s => s instanceof ChildEntity ? s : new ChildEntity(s.$id, s));
+				value = data.map(s => s instanceof ChildEntity ? s : resolveEntity(ChildEntity, s));
 			// Entity
 			else if (data instanceof ChildEntity)
 				value = data;
 			else if (data instanceof Object)
-				value = new ChildEntity(data.$id, data);
+				value = resolveEntity(ChildEntity, data);
 		}
 
 		// Value List

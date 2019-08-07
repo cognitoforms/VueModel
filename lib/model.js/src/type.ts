@@ -8,6 +8,7 @@ import { RuleOptions, Rule } from "./rule";
 import { Format } from "./format";
 import { PropertyChain } from "./property-chain";
 import { PropertyPath } from "./property-path";
+import { InitializationContext, InitializationValueResolver } from "./initilization-context";
 
 export const Type$newIdPrefix = "+c";
 
@@ -72,6 +73,18 @@ export class Type {
 		// Apply type options
 		if (options)
 			this.extend(options);
+	}
+
+	async create(state: any, valueResolver?: InitializationValueResolver): Promise<Entity> {
+		const context = new InitializationContext(false, valueResolver);
+		// Cast the jstype to any so we can call the internal constructor signature that takes a context
+		// We don't want to put the context on the public constructor interface
+		const Ctor = this.jstype as any;
+		const instance = new Ctor(state.Id, state, context) as Entity;
+
+		await context.ready();
+
+		return instance;
 	}
 
 	/** Generates a unique id suitable for an instance in the current type hierarchy. */

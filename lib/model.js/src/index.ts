@@ -6,6 +6,7 @@ export * from "./property-chain";
 export * from "./entity";
 export * from "./object-meta";
 export * from "./format";
+export * from "./initilization-context";
 
 // Conditions, etc.
 export * from "./condition-target";
