@@ -113,6 +113,8 @@ export class Property implements PropertyPath {
 
 		// Use prepare() to defer property path resolution while the model is being extended
 		targetType.model.prepare(() => {
+			options = { ...options };
+			
 			// Label
 			if (options.label)
 				this.label = options.label;
