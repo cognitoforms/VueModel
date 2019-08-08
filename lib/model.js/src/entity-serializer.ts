@@ -2,6 +2,7 @@ import { isEntityType, Type } from "./type";
 import { Entity, EntityConstructorForType } from "./entity";
 import { Property } from "./property";
 import { ObjectLookup } from "./helpers";
+import { InitializationContext } from "./initilization-context";
 
 export interface PropertySerializationResult {
 	key: string;
@@ -146,11 +147,11 @@ export class EntitySerializer {
 		return result;
 	}
 
-	deserialize(context: Entity, data: any, property: Property, constructEntity = true): any {
+	deserialize(instance: Entity, data: any, property: Property, context: InitializationContext, constructEntity = true): any {
 		// Apply custom converters before deserializing
-		const converter = this._propertyConverters.find(c => c.shouldConvert(context, property));
+		const converter = this._propertyConverters.find(c => c.shouldConvert(instance, property));
 		if (converter)
-			data = converter.deserialize(context, data, property);
+			data = converter.deserialize(instance, data, property);
 		
 		if (data === IgnoreProperty)
 			return;
@@ -162,7 +163,7 @@ export class EntitySerializer {
 			if (state.Id)
 				entity = type.meta.get(state.Id);
 			if (!entity)
-				entity = new type(state.Id, state);
+				entity = new (type as any)(state.Id, state, context);
 			return entity;
 		};
 
@@ -184,7 +185,7 @@ export class EntitySerializer {
 
 		// Value List
 		else if (property.isList && Array.isArray(data))
-			value = data.map(i => this.deserialize(context, i, property));
+			value = data.map(i => this.deserialize(instance, i, property, context));
 
 		// Value
 		else if (property.format && data && typeof(data) === "string" && data.constructor !== property.propertyType)

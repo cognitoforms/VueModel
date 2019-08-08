@@ -8,6 +8,7 @@ export class InitializationContext {
 	private valueResolver: InitializationValueResolver;
 	private tasks = new Set<Promise<any>>();
 	private waiting: (() => void)[] = [];
+
 	constructor(constructorCall: boolean, valueResolver?: InitializationValueResolver) {
 		this.constructorCall = constructorCall;
 		this.valueResolver = valueResolver;
@@ -22,9 +23,13 @@ export class InitializationContext {
 		});
 	}
 
+	get isAsync() {
+		return !this.constructorCall;
+	}
+
 	ready() {
 		if (this.tasks.size === 0)
-			return Promise.resolve;
+			return Promise.resolve();
 
 		return new Promise<void>(resolve => {
 			this.waiting.push(resolve);

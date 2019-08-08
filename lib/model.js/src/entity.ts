@@ -44,23 +44,29 @@ export class Entity {
 			// Register the newly constructed instance
 			type.register(this);
 
+			let isNested = !!context;
 			if (!context)
 				context = new InitializationContext(true);
 
 			// Initialize existing entity with provided property values
-			if (!isNew && properties)
+			if (properties && (!isNew || isNested))
 				this.init(properties, context);
 
 			// Raise the initNew or initExisting event on this type and all base types
-			for (let t = type; t; t = t.baseType) {
-				if (isNew)
-					(t.initNew as Event<Type, EntityInitExistingEventArgs>).publish(t, { entity: this });
-				else
-					(t.initExisting as Event<Type, EntityInitExistingEventArgs>).publish(t, { entity: this });
-			}
+			context.ready().then(() => {
+				for (let t = type; t; t = t.baseType) {
+					if (isNew)
+						(t.initNew as Event<Type, EntityInitExistingEventArgs>).publish(t, { entity: this });
+					else
+						(t.initExisting as Event<Type, EntityInitExistingEventArgs>).publish(t, { entity: this });
+				}
 
-			// Set values of new entity for provided properties
-			if (isNew && properties)
+				// Set values of new entity for provided properties
+				if (context.isAsync && isNew && properties)
+					this.set(properties);
+			});
+
+			if (!context.isAsync && isNew && properties)
 				this.set(properties);
 		}
 	}
@@ -97,33 +103,25 @@ export class Entity {
 				initializedProps.add(prop);
 				const valueResolution = context.tryResolveValue(this, prop, state);
 				if (valueResolution)
-					valueResolution.then(asyncState => this.initProp(prop, asyncState));
+					valueResolution.then(asyncState => this.initProp(prop, asyncState, context));
 				else
-					this.initProp(prop, state);
+					this.initProp(prop, state, context);
 			}
 		}
 
 		// Pass all unspecified properties through the deserializer to allow initialization logic via converters
 		for (const prop of this.meta.type.properties.filter(p => !initializedProps.has(p))) {
-			const value = this.serializer.deserialize(this, undefined, prop);
+			const value = this.serializer.deserialize(this, undefined, prop, context);
 
 			if (value !== undefined)
 				Property$init(prop, this, value);
 		}
 	}
 
-	private initProp(prop: Property, state: any) {
+	private initProp(prop: Property, state: any, context: InitializationContext) {
 		let value;
-		if (isEntityType(prop.propertyType)) {
-			if (prop.isList && Array.isArray(state))
-				value = state.map(s => this.serializer.deserialize(this, s, prop));
-			else
-				value = this.serializer.deserialize(this, state, prop);
-		}
-		else if (prop.isList && Array.isArray(state))
-			value = state.map(i => this.serializer.deserialize(this, i, prop));
-		else
-			value = this.serializer.deserialize(this, state, prop);
+
+		value = this.serializer.deserialize(this, state, prop, context);
 
 		Property$init(prop, this, value);
 	}
@@ -153,7 +151,7 @@ export class Entity {
 					if (prop.isList && Array.isArray(state) && Array.isArray(currentValue)) {
 						state.forEach((s, idx) => {
 							if (!(s instanceof ChildEntity))
-								s = this.serializer.deserialize(this, s, prop, false);
+								s = this.serializer.deserialize(this, s, prop, null, false);
 
 							// Modifying/replacing existing list item
 							if (idx < currentValue.length) {
@@ -170,7 +168,7 @@ export class Entity {
 					else if (state instanceof ChildEntity)
 						value = state;
 					else if (state instanceof Object) {
-						state = this.serializer.deserialize(this, state, prop, false);
+						state = this.serializer.deserialize(this, state, prop, null, false);
 						// Update the entity's state
 						if (currentValue)
 							currentValue.set(state);
@@ -179,9 +177,9 @@ export class Entity {
 					}
 				}
 				else if (prop.isList && Array.isArray(state) && Array.isArray(currentValue))
-					currentValue.splice(0, currentValue.length, ...state.map(s => this.serializer.deserialize(this, s, prop)));
+					currentValue.splice(0, currentValue.length, ...state.map(s => this.serializer.deserialize(this, s, prop, null)));
 				else
-					value = this.serializer.deserialize(this, state, prop);
+					value = this.serializer.deserialize(this, state, prop, null);
 
 				if (value !== undefined)
 					Property$setter(prop, this, value);
