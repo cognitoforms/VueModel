@@ -75,16 +75,14 @@ export class Type {
 			this.extend(options);
 	}
 
-	async create(state: any, valueResolver?: InitializationValueResolver): Promise<Entity> {
+	create(state: any, valueResolver?: InitializationValueResolver): Promise<Entity> {
 		const context = new InitializationContext(false, valueResolver);
 		// Cast the jstype to any so we can call the internal constructor signature that takes a context
 		// We don't want to put the context on the public constructor interface
 		const Ctor = this.jstype as any;
 		const instance = new Ctor(state.Id, state, context) as Entity;
 
-		await context.ready();
-
-		return instance;
+		return context.ready().then(() => instance);
 	}
 
 	/** Generates a unique id suitable for an instance in the current type hierarchy. */
