@@ -1,13 +1,13 @@
 import Vue, { VueConstructor, ComponentOptions, PluginObject } from "vue";
-import { Model, ModelOptions, ModelNamespaceOption, ModelLocalizationOptions, ModelConfiguration } from "../lib/model.js/src/model";
-import { Entity } from "../lib/model.js/src/entity";
+import { Model, ModelOptions, ModelNamespaceOption, ModelLocalizationOptions, ModelConfiguration } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { Entity } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { VueInternals, ensureVueInternalTypes } from "./vue-internals";
 import { VueModel$installGlobalMixin } from "./vue-global-mixin";
 import { SourcePathMixin } from "./source-path-mixin";
 import { SourceRootMixin } from "./source-root-mixin";
 import { makeEntitiesVueObservable } from "./vue-model-observability";
 import { VMSource } from "./vm-source-component";
-import { CultureInfo } from "../lib/model.js/src/globalization";
+import { CultureInfo } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 
 // TODO: Do we need to take `toggleObserving()` into account?
 
@@ -29,7 +29,7 @@ export class VueModel extends Model {
 		}
 
 		// Make sure that entities are observable by Vue
-		makeEntitiesVueObservable(this);
+		makeEntitiesVueObservable(this as Model);
 	}
 
 	/**

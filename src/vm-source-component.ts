@@ -2,7 +2,7 @@ import Vue, { VNode } from "vue";
 import { Component, Prop, Watch } from "vue-property-decorator";
 import { SourceAdapter, isSourceAdapter, applyOverridesToSourceAdapter, hasOverrideValue } from "./source-adapter";
 import { SourcePathAdapter } from "./source-path-adapter";
-import { Entity } from "../lib/model.js/src/entity";
+import { Entity } from "@cognitoforms/model.js";
 
 @Component
 export class VMSource extends Vue {

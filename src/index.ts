@@ -2,18 +2,19 @@ import { VueModel } from "./vue-model";
 import { SourceRootAdapter } from "./source-root-adapter";
 import { SourcePathAdapter } from "./source-path-adapter";
 import { SourceItemAdapter } from "./source-item-adapter";
-import { Model, ModelOptions, ModelLocalizationOptions } from "../lib/model.js/src/model";
-import { PropertyConverter, PropertyInjector, PropertySerializationResult } from "../lib/model.js/src/entity-serializer";
-import { TypeOptions, TypeExtensionOptions, RuleOrMethodFunctionOrOptions } from "../lib/model.js/src/type";
-import { Entity } from "../lib/model.js/src/entity";
-import { Property, PropertyOptions, PropertyBooleanFunction, PropertyBooleanFunctionAndOptions } from "../lib/model.js/src/property";
-import { CultureInfo } from "../lib/model.js/src/globalization";
+import { Model, ModelOptions, ModelLocalizationOptions } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { PropertyInjector, PropertySerializationResult } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { TypeOptions, TypeExtensionOptions, RuleOrMethodFunctionOrOptions } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { Entity } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { Property, PropertyOptions, PropertyBooleanFunction, PropertyBooleanFunctionAndOptions } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { CultureInfo } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 
 // Include English resources by default
-import "../lib/model.js/src/resource-en.ts";
-import { ObjectLookup } from "model/helpers";
+import "@cognitoforms/model.js/lib/resource-en";
 
 export default VueModel;
+
+type ObjectLookup<T> = { [key: string]: T };
 
 // Export any additional *types* to be referenced externally
 // TODO: Change to export { ... } from "./...";
@@ -31,8 +32,9 @@ export type PropertyBooleanFunction = PropertyBooleanFunction;
 export type PropertyBooleanFunctionAndOptions = PropertyBooleanFunctionAndOptions;
 export type PropertyInjector = PropertyInjector;
 export type PropertySerializationResult = PropertySerializationResult;
-export { PropertyConverter, IgnoreProperty } from '../lib/model.js/src/entity-serializer';
-export { isEntityType, isValueType } from '../lib/model.js/src/type';
+export { PropertyConverter, IgnoreProperty } from "@cognitoforms/model.js";
+export { isEntityType, isValueType } from "@cognitoforms/model.js";
+export { isSourceAdapter } from "./source-adapter";
 export type SourceRootAdapter<TEntity extends Entity> = SourceRootAdapter<TEntity>;
 export type SourcePathAdapter<TEntity extends Entity, TValue> = SourcePathAdapter<TEntity, TValue>;
 export type SourceItemAdapter<TEntity extends Entity, TValue> = SourceItemAdapter<TEntity, TValue>;

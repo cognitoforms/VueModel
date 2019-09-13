@@ -1,4 +1,4 @@
-import { Entity, EntityAccessEventArgs, EntityChangeEventArgs } from "../lib/model.js/src/entity";
+import { Entity, EntityAccessEventArgs, EntityChangeEventArgs } from "@cognitoforms/model.js";
 import { CustomObserver } from "./custom-observer";
 import { ExtendedObserver, getObjectMetaObserver } from "./vue-model-observability";
 

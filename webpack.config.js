@@ -6,10 +6,17 @@ module.exports = {
 	entry: path.resolve(__dirname, 'src'),
 	output: {
 		filename: 'vuemodel.js',
+		library: "VueModel",
+		libraryExport: 'default',
+		libraryTarget: "umd",
 		path: path.resolve(__dirname, 'out'),
 	},
 	resolve: {
 		extensions: ['.ts', '.tsx', '.js', '.json']
+	},
+	externals:{
+		"model.js": "model",
+		"vue": "Vue"
 	},
 	module: {
 		rules: [

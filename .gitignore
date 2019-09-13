@@ -1,10 +1,9 @@
 .DS_Store
 node_modules/
-out/**/*.js
-src/**/*.js
-legacy/
-migration/
-src/*.js
-lib/model.js/src/*.js
-bin/**
-obj/**
+out/
+dist/
+bin/
+obj/
+@types/
+lib/
+build/

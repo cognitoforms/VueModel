@@ -1,20 +1,20 @@
 import Vue from "vue";
 import { Component, Prop } from "vue-property-decorator";
-import { Entity } from "../lib/model.js/src/entity";
-import { Property, isPropertyBooleanFunction, isPropertyBooleanFunctionAndOptions } from "../lib/model.js/src/property";
-import { Format } from "../lib/model.js/src/format";
+import { Entity } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { Property, isPropertyBooleanFunction, isPropertyBooleanFunctionAndOptions } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { Format } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { SourceAdapter, SourcePropertyAdapter, isSourceAdapter } from "./source-adapter";
 import { SourceOptionAdapter } from "./source-option-adapter";
-import { AllowedValuesRule } from "../lib/model.js/src/allowed-values-rule";
+import { AllowedValuesRule } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { observeEntity, observeArray, getObjectMetaObserver, preventVueObservability } from "./vue-model-observability";
-import { PropertyChain } from "../lib/model.js/src/property-chain";
-import { ObservableArray, updateArray } from "../lib/model.js/src/observable-array";
-import { PropertyPath } from "../lib/model.js/src/property-path";
+import { PropertyChain } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { ObservableArray, updateArray } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { PropertyPath } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { SourceItemAdapter } from "./source-item-adapter";
-import { isEntityType, isValueType } from "../lib/model.js/src/type";
-import { Condition } from "../lib/model.js/src/condition";
-import { ConditionTarget } from "../lib/model.js/src/condition-target";
-import { FormatError } from "../lib/model.js/src/format-error";
+import { isEntityType, isValueType } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { Condition } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { ConditionTarget } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { FormatError } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 
 export type SourcePathOverrides = {
 	label?: string;

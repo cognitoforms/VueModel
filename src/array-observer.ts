@@ -1,5 +1,5 @@
 import { CustomObserver } from "./custom-observer";
-import { ObservableArray } from "../lib/model.js/src/observable-array";
+import { ObservableArray } from "@cognitoforms/model.js";
 import { ExtendedObserver } from "./vue-model-observability";
 
 /**

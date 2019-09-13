@@ -2,8 +2,8 @@ import { SourceRootAdapter } from "./source-root-adapter";
 import { SourcePathAdapter } from "./source-path-adapter";
 import { SourceItemAdapter } from "./source-item-adapter";
 import { SourceOptionAdapter } from "./source-option-adapter";
-import { Entity } from "../lib/model.js/src/entity";
-import { PropertyPath } from "../lib/model.js/src/property-path";
+import { Entity } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { PropertyPath } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 
 export interface SourceAdapterOverrides {
 	label?: string;

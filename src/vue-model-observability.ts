@@ -1,8 +1,8 @@
 import { Observer, ObserverConstructor, Dep } from "./vue-internals";
-import { Model } from "../lib/model.js/src/model";
-import { Entity, EntityRegisteredEventArgs } from "../lib/model.js/src/entity";
-import { ObjectMeta } from "../lib/model.js/src/object-meta";
-import { ObservableArray } from "../lib/model.js/src/observable-array";
+import { Model } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { Entity, EntityRegisteredEventArgs } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { ObjectMeta } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { ObservableArray } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { hasOwnProperty, getProp } from "./helpers";
 
 export interface ExtendedObserver extends Observer<any> {
@@ -28,10 +28,12 @@ export function getCustomObserverConstructor(): CustomObserverConstructor {
 export function preventVueObservability(obj: object): boolean {
 	if (obj) {
 		let CustomObserver = getCustomObserverConstructor();
-		if (!hasOwnProperty(obj, '__ob__')) {
+		if (!hasOwnProperty(obj, "__ob__")) {
+			// eslint-disable-next-line no-new
 			new CustomObserver(obj);
 			return true;
-		} else {
+		}
+		else {
 			return (obj as any).__ob__ instanceof CustomObserver;
 		}
 	}

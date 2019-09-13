@@ -1,20 +1,20 @@
 {
 	"compilerOptions": {
 		// Target latest version of ECMAScript.
-		"target": "esnext",
+		"target": "ES5",
 		// Search under node_modules for non-relative imports.
 		"moduleResolution": "node",
 		// Process & infer types from .js files.
-		"allowJs": true,
+		"allowJs": false,
 		// Don't emit; allow Babel to transform files.
-		"noEmit": true,
-		// Disallow features that require cross-file information for emit.
-		"isolatedModules": true,
+		// "noEmit": true,
+		"outDir": "./lib",
+		"declaration": true,
+		"declarationDir": "./@types",
 		// Import non-ES modules as default imports.
 		"esModuleInterop": true,
 		"experimentalDecorators": true,
 		"lib": [
-			"esnext",
 			"es2016",
 			"dom"
 		],
@@ -24,7 +24,6 @@
 		]
 	},
 	"include": [
-		"./src",
-		"./lib/model.js/src", "../../Cognito.Services/client/src/components/Phone.unit.ts", "../../Cognito.Services/client/src/components/Choice.vue"
+		"./src"
 	]
 }

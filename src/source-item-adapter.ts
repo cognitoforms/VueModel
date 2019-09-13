@@ -1,9 +1,9 @@
 import Vue from "vue";
 import { Component, Prop, Watch } from "vue-property-decorator";
-import { Entity } from "../lib/model.js/src/entity";
+import { Entity } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { SourceAdapter, isSourceAdapter, isSourcePropertyAdapter } from "./source-adapter";
 import { SourcePathAdapter, SourcePathOverrides } from "./source-path-adapter";
-import { ObservableArray, ArrayChangeType } from "../lib/model.js/src/observable-array";
+import { ObservableArray, ArrayChangeType } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 
 @Component
 export class SourceItemAdapter<TEntity extends Entity, TValue> extends Vue implements SourceAdapter<TValue> {

@@ -1,5 +1,5 @@
 import Vue, { VueConstructor } from "vue";
-import { Entity } from "../lib/model.js/src/entity";
+import { Entity } from "@cognitoforms/model.js";
 import { debug, hasOwnProperty } from "./helpers";
 import { Vue$isReserved, Vue$proxy } from "./vue-helpers";
 import { makeEntitiesVueObservable, getEntityObserver, observeEntity } from "./vue-model-observability";

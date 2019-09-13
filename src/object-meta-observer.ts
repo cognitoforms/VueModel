@@ -1,4 +1,4 @@
-﻿import { ObjectMeta } from "../lib/model.js/src/object-meta";
+﻿import { ObjectMeta } from "@cognitoforms/model.js";
 import { CustomObserver } from "./custom-observer";
 import { ExtendedObserver } from "./vue-model-observability";
 

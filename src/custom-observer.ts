@@ -2,7 +2,7 @@ import { VueModel } from "./vue-model";
 import { VueInternals as VueInternalsType, Dep } from "./vue-internals";
 import { hasOwnProperty } from "./helpers";
 import { observeEntity, dependChildArray } from "./vue-model-observability";
-import { Entity } from "../lib/model.js/src/entity";
+import { Entity } from "@cognitoforms/model.js";
 
 let VueInternals = (VueModel as any)._VueInternals as VueInternalsType;
 

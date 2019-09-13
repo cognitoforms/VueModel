@@ -1,7 +1,7 @@
 import Vue from "vue";
 import { Component, Prop, Watch } from "vue-property-decorator";
 import { SourceAdapter } from "./source-adapter";
-import { Entity } from "../lib/model.js/src/entity";
+import { Entity } from "@cognitoforms/model.js";
 import { SourceRootAdapter } from "./source-root-adapter";
 import { observeEntity } from "./vue-model-observability";
 
