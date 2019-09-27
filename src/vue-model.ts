@@ -6,6 +6,7 @@ import { VueModel$installGlobalMixin } from "./vue-global-mixin";
 import { SourcePathMixin } from "./source-path-mixin";
 import { SourceRootMixin } from "./source-root-mixin";
 import { makeEntitiesVueObservable } from "./vue-model-observability";
+import { VMRoot } from "./vm-root-component";
 import { VMSource } from "./vm-source-component";
 import { CultureInfo } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 
@@ -55,6 +56,7 @@ export class VueModel extends Model {
 			return;
 
 		// Register components globally for use in templates
+		vue.component("vm-root", VMRoot);
 		vue.component("vm-source", VMSource);
 
 		// Store a reference to the Vue constructor/module
