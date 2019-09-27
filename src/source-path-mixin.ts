@@ -1,13 +1,13 @@
 import Vue from "vue";
 import { Component, Prop, Watch } from "vue-property-decorator";
-import { isSourceAdapter, applyOverridesToSourceAdapter, hasOverrideValue } from "./source-adapter";
+import { SourceAdapter, isSourceAdapter, hasOverrideValue, isSourcePropertyAdapter } from "./source-adapter";
+import { SourcePathAdapter, SourcePathOverrides } from "./source-path-adapter";
 import { Entity } from "@cognitoforms/model.js";
-import { SourcePathAdapter } from "./source-path-adapter";
 
 @Component
-export class SourcePathMixin extends Vue {
+export class SourcePathMixin extends Vue implements SourcePathOverrides {
 	@Prop({ type: [String, Object] })
-	source: string | SourcePathAdapter<Entity, any>;
+	source: string | SourceAdapter<any>;
 
 	@Prop(String)
 	label: string;
@@ -41,18 +41,39 @@ export class SourcePathMixin extends Vue {
 		this.onOverrideValueChanged(required, Boolean);
 	}
 
-	get $source(): SourcePathAdapter<Entity, any> {
+	get $source(): SourceAdapter<any> {
 		// If the source is an adapter, then potentially apply overrides, and return it
 		if (isSourceAdapter(this.source)) {
-			return applyOverridesToSourceAdapter(this.source, this);
+			this.ensureOverridesAppliedToSourceAdapter(this.source);
+			return this.source;
 		}
 
 		return new SourcePathAdapter<Entity, any>({ parent: this, propsData: { source: this.source, overrides: this } });
 	}
 
+	ensureOverridesAppliedToSourceAdapter(source: SourceAdapter<any>): void {
+		let hasOverrides = hasOverrideValue(this.label, String) || hasOverrideValue(this.helptext, String) || hasOverrideValue(this.readonly, Boolean) || hasOverrideValue(this.required, Boolean);
+		if (isSourcePropertyAdapter(source)) {
+			if (hasOverrides) {
+				if (source.overrides && source.overrides !== this) {
+					throw new Error("Overrides have already been applied to source of type '" + source.constructor.name + "'.");
+				}
+	
+				// Apply the given overrides as the overrides for the source
+				source.overrides = this;
+			}
+		}
+		else {
+			if (hasOverrides) {
+				throw new Error("Cannot apply overrides to source of type '" + source.constructor.name + "'.");
+			}
+		}
+	}
+
 	onOverrideValueChanged(value: string | boolean, type: StringConstructor | BooleanConstructor): void {
+		// If the source is an adapter, and an override value is set, then ensure that the
 		if (isSourceAdapter(this.source) && hasOverrideValue(value, type)) {
-			throw new Error("Cannot apply overrides to source of type '" + this.source.constructor.name + "'.");
+			this.ensureOverridesAppliedToSourceAdapter(this.source);
 		}
 	}
 }

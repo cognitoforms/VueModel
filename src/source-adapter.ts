@@ -46,26 +46,3 @@ export function hasOverrideValue(value: any, type: StringConstructor | BooleanCo
 		return typeof value === "boolean";
 	}
 }
-
-export function applyOverridesToSourceAdapter<TSource extends SourceRootAdapter<Entity> | SourcePathAdapter<Entity, any> | SourceItemAdapter<Entity, any>>(source: TSource, overrides: SourceAdapterOverrides): TSource {
-	let hasOverrides = hasOverrideValue(overrides.label, String) || hasOverrideValue(overrides.helptext, String) || hasOverrideValue(overrides.readonly, Boolean) || hasOverrideValue(overrides.required, Boolean);
-	if (isSourcePropertyAdapter(source)) {
-		if (hasOverrides) {
-			if (source.overrides) {
-				throw new Error("Overrides have already been applied to source of type '" + source.constructor.name + "'.");
-			}
-
-			// Apply the given overrides as the overrides for the source
-			source.overrides = overrides;
-		}
-
-		return source;
-	}
-	else {
-		if (hasOverrides) {
-			throw new Error("Cannot apply overrides to source of type '" + source.constructor.name + "'.");
-		}
-
-		return source;
-	}
-}
