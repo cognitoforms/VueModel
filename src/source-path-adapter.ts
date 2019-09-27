@@ -2,7 +2,6 @@ import Vue from "vue";
 import { Component, Prop } from "vue-property-decorator";
 import { Entity } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { Property, isPropertyBooleanFunction, isPropertyBooleanFunctionAndOptions } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
-import { Format } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { SourceAdapter, SourcePropertyAdapter, isSourceAdapter } from "./source-adapter";
 import { SourceOptionAdapter } from "./source-option-adapter";
 import { AllowedValuesRule } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
@@ -66,7 +65,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	get label(): string {
 		let label = this.overrides ? this.overrides.label : null;
 		if (label === undefined || label === null) {
-			if (Format.hasTokens(this.property.label)) {
+			if (this.property.labelIsFormat) {
 				label = this.parent.value.toString(this.property.label);
 			}
 			else {
@@ -84,7 +83,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	get helptext(): string {
 		let helptext = this.overrides ? this.overrides.helptext : null;
 		if (helptext === undefined || helptext === null) {
-			if (Format.hasTokens(this.property.helptext)) {
+			if (this.property.helptextIsFormat) {
 				helptext = this.parent.value.toString(this.property.helptext);
 			}
 			else {
