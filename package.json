@@ -12,6 +12,7 @@
     "build:typescript": "rimraf ./@types && rimraf ./lib && tsc",
     "build:webpack": "rimraf ./out && webpack --mode=production",
     "build": "npm run build:typescript && npm run build:webpack",
+    "build:watch": "nodemon -e ts --watch src/ -x \"npm run build\"",
     "test": "jest",
     "test:watch": "jest --watch",
     "lint": "eslint --fix **/src/*.[jt]s"
@@ -41,6 +42,7 @@
     "eslint-plugin-standard": "^4.0.0",
     "fork-ts-checker-webpack-plugin": "^1.0.1",
     "jest": "^24.5.0",
+    "nodemon": "^2.0.1",
     "rimraf": "^3.0.0",
     "tslib": "^1.9.3",
     "typescript": "^3.3.3",
