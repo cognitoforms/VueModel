@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [0.4.0] - 2019-11-27
+### Changed
+- Update to `model.js` version 0.4.0
+    > Changes to `Entity.set()`, `Type.create()`, and entity identity and pooling
+
 ## [0.3.3] - 2019-11-22
 ### Added
 - Update to `model.js` version 0.3.5

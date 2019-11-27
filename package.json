@@ -1,5 +1,5 @@
 {
-  "version": "0.3.3",
+  "version": "0.4.0",
   "name": "@cognitoforms/vuemodel",
   "license": "MIT",
   "main": "lib/index.js",
@@ -51,7 +51,7 @@
     "webpack-cli": "^3.3.0"
   },
   "dependencies": {
-    "@cognitoforms/model.js": "^0.3.5",
+    "@cognitoforms/model.js": "^0.4.0",
     "vue": "^2.6.10",
     "vue-class-component": "^7.0.1",
     "vue-property-decorator": "^7.3.0"
