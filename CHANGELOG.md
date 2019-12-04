@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [0.5.0] - 2019-12-04
+### Changed
+- Update to `model.js` version 0.5.0
+    > Add `Property.isIdentifier`, set via `id` boolean option instead of detecting a property named "Id"
+
 ## [0.4.1] - 2019-12-04
 ### Added
 - Export `preventVueObservability` helper function
