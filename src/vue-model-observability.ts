@@ -25,15 +25,26 @@ export function getCustomObserverConstructor(): CustomObserverConstructor {
 	return CustomObserverConstructor || (CustomObserverConstructor = require("./custom-observer").CustomObserver);
 }
 
+let NullObserverConstructor: ObserverConstructor = null;
+
+export function getNullObserverConstructor(): ObserverConstructor {
+	return NullObserverConstructor || (NullObserverConstructor = require("./null-observer").NullObserver);
+}
+
 export function preventVueObservability(obj: object): boolean {
 	if (obj) {
-		let CustomObserver = getCustomObserverConstructor();
+		let NullObserver = getNullObserverConstructor();
 		if (!hasOwnProperty(obj, "__ob__")) {
 			// eslint-disable-next-line no-new
-			new CustomObserver(obj);
+			new NullObserver(obj);
+			return true;
+		}
+		else if ((obj as any).__ob__ instanceof NullObserver) {
 			return true;
 		}
 		else {
+			// Vue's default observability is also bypassed if the object's observer is a subclass of `CustomObserver`
+			let CustomObserver = getCustomObserverConstructor();
 			return (obj as any).__ob__ instanceof CustomObserver;
 		}
 	}
