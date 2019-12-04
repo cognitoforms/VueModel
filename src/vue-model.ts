@@ -5,7 +5,7 @@ import { VueInternals, ensureVueInternalTypes } from "./vue-internals";
 import { VueModel$installGlobalMixin } from "./vue-global-mixin";
 import { SourcePathMixin } from "./source-path-mixin";
 import { SourceRootMixin } from "./source-root-mixin";
-import { makeEntitiesVueObservable } from "./vue-model-observability";
+import { makeEntitiesVueObservable, preventVueObservability } from "./vue-model-observability";
 import { VMRoot } from "./vm-root-component";
 import { VMSource } from "./vm-source-component";
 import { CultureInfo } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
@@ -28,6 +28,9 @@ export class VueModel extends Model {
 			// TODO: auto-install if needed?
 			throw new Error("Vue.use(VueModel) must be called before constructing a VueModel instance.");
 		}
+
+		// Make sure that the model itself is not made observable by Vue, since anything that we want to be made observable should be made observable explicitly
+		preventVueObservability(this);
 
 		// Make sure that entities are observable by Vue
 		makeEntitiesVueObservable(this as Model);
