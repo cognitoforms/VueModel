@@ -35,6 +35,7 @@ export type PropertySerializationResult = PropertySerializationResult;
 export { PropertyConverter, IgnoreProperty } from "@cognitoforms/model.js";
 export { isEntityType, isValueType } from "@cognitoforms/model.js";
 export { isSourceAdapter } from "./source-adapter";
+export { preventVueObservability } from "./vue-model-observability";
 export type SourceRootAdapter<TEntity extends Entity> = SourceRootAdapter<TEntity>;
 export type SourcePathAdapter<TEntity extends Entity, TValue> = SourcePathAdapter<TEntity, TValue>;
 export type SourceItemAdapter<TEntity extends Entity, TValue> = SourceItemAdapter<TEntity, TValue>;
