@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [0.4.1] - 2019-12-04
+### Added
+- Export `preventVueObservability` helper function
+### Changed
+- Make sure that the model itself is not made observable by Vue
+- Use `NullObserver` as the observer class when preventing Vue observability
+
 ## [0.4.0] - 2019-11-27
 ### Changed
 - Update to `model.js` version 0.4.0
