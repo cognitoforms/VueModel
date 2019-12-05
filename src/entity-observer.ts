@@ -24,7 +24,7 @@ export class EntityObserver extends CustomObserver<Entity> implements ExtendedOb
 
 	_onAccess(args: EntityAccessEventArgs): void {
 		// Get the current property value
-		var value = (args.entity as any)[args.property.fieldName];
+		var value = args.entity.__fields__[args.property.name];
 
 		// Notify interested observers of the property access in order to track dependencies
 		this.onPropertyAccess(args.property.name, value);
@@ -32,7 +32,7 @@ export class EntityObserver extends CustomObserver<Entity> implements ExtendedOb
 
 	_onChange(args: EntityChangeEventArgs): void {
 		// Get the current property value
-		var newValue = (args.entity as any)[args.property.fieldName];
+		var newValue = args.entity.__fields__[args.property.name];
 
 		// Notify interested observers of the property change
 		this.onPropertyChange(args.property.name, newValue);

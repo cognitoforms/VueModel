@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [0.6.0] - 2019-12-05
+### Changed
+- Update to `model.js` version 0.6.0
+    > Fixes for identifier property handling, rename `id` option to `identifier`, misc. backing field changes, etc.
+- Update `EntityObserver` to use new `__fields__` backing field
+
 ## [0.5.0] - 2019-12-04
 ### Changed
 - Update to `model.js` version 0.5.0
