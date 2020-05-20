@@ -38,7 +38,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 	get parent(): SourceAdapter<TEntity> {
 		for (let parentVm: Vue = this.$parent.$parent, parentLevel = 1; parentVm != null; parentVm = parentVm.$parent, parentLevel += 1) {
-			if (isSourceAdapter((parentVm as any).$source)) {
+			const source = (parentVm as any).$source as SourceAdapter<TEntity>;
+			if (isSourceAdapter(source) && source.value && source.value.meta) {
 				return (parentVm as any).$source as SourceAdapter<TEntity>;
 			}
 		}
