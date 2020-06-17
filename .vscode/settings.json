@@ -19,10 +19,11 @@
 		"pass"
 	],
 	"jest.autoEnable": false,
-	"eslint.autoFixOnSave": true,
 	"eslint.validate": [
-		{ "language": "typescript", "autoFix": true },
-		{ "language": "typescript", "autoFix": true }
+		"typescript"
 	],
-	"eslint.provideLintTask": true
+	"eslint.lintTask.enable": true,
+	"editor.codeActionsOnSave": {
+		"source.fixAll.eslint": true
+	}
 }
