@@ -15,7 +15,8 @@
     "build:watch": "nodemon -e ts --watch src/ -x \"npm run build\"",
     "test": "jest",
     "test:watch": "jest --watch",
-    "lint": "eslint --fix **/src/*.[jt]s"
+    "lint": "eslint --fix **/src/*.[jt]s",
+    "release": "dotenv release-it"
   },
   "devDependencies": {
     "@babel/core": "^7.4.0",
@@ -25,6 +26,7 @@
     "@babel/plugin-syntax-decorators": "^7.2.0",
     "@babel/preset-env": "^7.4.1",
     "@babel/preset-typescript": "^7.3.3",
+    "@release-it/keep-a-changelog": "^1.1.0",
     "@types/jest": "^24.0.11",
     "@typescript-eslint/eslint-plugin": "^1.5.0",
     "@typescript-eslint/parser": "^1.5.0",
@@ -32,6 +34,7 @@
     "babel-eslint": "^10.0.1",
     "babel-jest": "^24.5.0",
     "babel-loader": "^8.0.5",
+    "dotenv-cli": "^3.1.0",
     "dts-generator": "^2.1.0",
     "eslint": "^5.15.3",
     "eslint-config-prettier": "^4.1.0",
@@ -43,6 +46,7 @@
     "fork-ts-checker-webpack-plugin": "^1.0.1",
     "jest": "^24.5.0",
     "nodemon": "^2.0.1",
+    "release-it": "^13.6.3",
     "rimraf": "^3.0.0",
     "tslib": "^1.9.3",
     "typescript": "^3.3.3",
