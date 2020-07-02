@@ -236,13 +236,14 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 				return formatErrorConditionTarget.condition;
 			}
 		}
-
+		
 		var property = this.property instanceof Property ? this.property : this.property instanceof PropertyChain ? this.property.lastProperty : null;
 		if (property) {
 			var conditions = this.conditions.filter(c => c.condition.type.category === "Error");
 			var thisPathConditions = conditions.filter(c => c.properties.indexOf(property) >= 0);
 			if (thisPathConditions.length) {
-				return thisPathConditions[0].condition;
+				var requiredCondition = thisPathConditions.find((pathCondition) => pathCondition.condition.type.code.endsWith(".Required"));
+				return (requiredCondition || thisPathConditions[0]).condition;
 			}
 		}
 	}
