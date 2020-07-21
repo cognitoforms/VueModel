@@ -1,6 +1,6 @@
 import Vue from "vue";
 import { Component, Prop } from "vue-property-decorator";
-import { Entity } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { Entity, Rule } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { Property, evaluateLabel, isPropertyBooleanFunction, isPropertyBooleanFunctionAndOptions } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { SourceAdapter, SourcePropertyAdapter, isSourceAdapter } from "./source-adapter";
 import { SourceOptionAdapter } from "./source-option-adapter";
@@ -229,23 +229,26 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		}
 	}
 
-	get firstError(): Condition {
-		if (this.formatError) {
-			let formatErrorConditionTarget = (this.formatError as any)["conditionTarget"] as ConditionTarget;
-			if (formatErrorConditionTarget) {
-				return formatErrorConditionTarget.condition;
-			}
-		}
-		
+	get pathConditions(): ConditionTarget[] {
 		var property = this.property instanceof Property ? this.property : this.property instanceof PropertyChain ? this.property.lastProperty : null;
-		if (property) {
-			var conditions = this.conditions.filter(c => c.condition.type.category === "Error");
-			var thisPathConditions = conditions.filter(c => c.properties.indexOf(property) >= 0);
-			if (thisPathConditions.length) {
-				var requiredCondition = thisPathConditions.find((pathCondition) => pathCondition.condition.type.code.endsWith(".Required"));
-				return (requiredCondition || thisPathConditions[0]).condition;
-			}
-		}
+		if (!property)
+			return null;
+
+		var conditions = this.conditions.filter(c => c.condition.type.category === "Error");
+		var thisPathConditions = conditions.filter(c => c.properties.indexOf(property) >= 0);
+		return thisPathConditions.length? thisPathConditions : null;
+	}
+
+	get formatCondition(): Condition {
+		if (!this.formatError)
+			return null;
+		
+		let formatErrorConditionTarget = (this.formatError as any)["conditionTarget"] as ConditionTarget;
+		return formatErrorConditionTarget ? formatErrorConditionTarget.condition: null;
+	}
+
+	get prioritizedErrors() : Array<Condition> {
+		return this.sort(this.pathConditions);
 	}
 
 	get displayValue(): string {
@@ -491,6 +494,32 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 	toString(): string {
 		return "Source['" + this.source + "']";
+	}
+
+	sort(conditionTargets: Array<ConditionTarget>) : Array<Condition> { 
+		if (!this.pathConditions)
+			return;
+
+		let requiredConditionTarget = null;
+		
+		let conditions = conditionTargets.filter((condition) => {
+			let source = condition.condition.type.source;
+			if (source && (source as Rule).name === "Required") {
+				requiredConditionTarget = condition;
+				return false;
+			}
+			return true;
+		}).map((condition) => {
+			return condition.condition;
+		});
+
+		if (requiredConditionTarget)
+			conditions = [requiredConditionTarget.condition].concat(conditions as any) as any;
+
+		if (this.formatError)
+			conditions = [this.formatError].concat(conditions as any) as any;
+
+		return conditions;
 	}
 }
 
