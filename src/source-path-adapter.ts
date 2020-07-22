@@ -235,8 +235,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 			return null;
 
 		var conditions = this.conditions.filter(c => c.condition.type.category === "Error");
-		var thisPathConditions = conditions.filter(c => c.properties.indexOf(property) >= 0);
-		return thisPathConditions.length? thisPathConditions : null;
+		return conditions.filter(c => c.properties.indexOf(property) >= 0);		
 	}
 
 	get formatCondition(): Condition {
@@ -497,7 +496,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	}
 
 	sort(conditionTargets: Array<ConditionTarget>) : Array<Condition> { 
-		if (!this.pathConditions)
+		if (!this.pathConditions.length)
 			return;
 
 		let requiredConditionTarget = null;
