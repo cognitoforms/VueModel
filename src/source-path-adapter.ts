@@ -238,14 +238,6 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		return conditions.filter(c => c.properties.indexOf(property) >= 0);		
 	}
 
-	get formatCondition(): Condition {
-		if (!this.formatError)
-			return null;
-		
-		let formatErrorConditionTarget = (this.formatError as any)["conditionTarget"] as ConditionTarget;
-		return formatErrorConditionTarget ? formatErrorConditionTarget.condition: null;
-	}
-
 	get prioritizedErrors() : Array<Condition> {
 		if (!this.pathConditions.length)
 			return [];
