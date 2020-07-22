@@ -272,6 +272,10 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		return conditions;
 	}
 
+	get firstError(): Condition {
+		return this.prioritizedErrors.length? this.prioritizedErrors[0] : null;
+	}
+
 	get displayValue(): string {
 		if (this.formatError) {
 			return this.formatError.invalidValue;
