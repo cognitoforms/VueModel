@@ -247,7 +247,29 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	}
 
 	get prioritizedErrors() : Array<Condition> {
-		return this.sort(this.pathConditions);
+		if (!this.pathConditions.length)
+			return [];
+		
+		let requiredConditionTarget = null;
+		
+		let conditions = this.pathConditions.filter((condition) => {
+			let source = condition.condition.type.source;
+			if (source && (source as Rule).name === "Required") {
+				requiredConditionTarget = condition;
+				return false;
+			}
+			return true;
+		}).map((condition) => {
+			return condition.condition;
+		});
+
+		if (requiredConditionTarget)
+			conditions = [requiredConditionTarget.condition].concat(conditions as any) as any;
+
+		if (this.formatError)
+			conditions = [this.formatError].concat(conditions as any) as any;
+
+		return conditions;
 	}
 
 	get displayValue(): string {
@@ -493,32 +515,6 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 	toString(): string {
 		return "Source['" + this.source + "']";
-	}
-
-	sort(conditionTargets: Array<ConditionTarget>) : Array<Condition> { 
-		if (!this.pathConditions.length)
-			return;
-
-		let requiredConditionTarget = null;
-		
-		let conditions = conditionTargets.filter((condition) => {
-			let source = condition.condition.type.source;
-			if (source && (source as Rule).name === "Required") {
-				requiredConditionTarget = condition;
-				return false;
-			}
-			return true;
-		}).map((condition) => {
-			return condition.condition;
-		});
-
-		if (requiredConditionTarget)
-			conditions = [requiredConditionTarget.condition].concat(conditions as any) as any;
-
-		if (this.formatError)
-			conditions = [this.formatError].concat(conditions as any) as any;
-
-		return conditions;
 	}
 }
 
