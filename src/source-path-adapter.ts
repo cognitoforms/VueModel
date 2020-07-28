@@ -170,8 +170,6 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		// Changes to conditions will result in a Vue change notification for the 'conditions' property
 		metaOb.onPropertyAccess("conditions", conditionsList);
 
-		// let formatError: ConditionTarget = vs.formatError;		
-
 		var property = this.property instanceof Property ? this.property : this.property instanceof PropertyChain ? this.property.lastProperty : null;
 		if (!property)
 			return [];
@@ -186,20 +184,8 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		return conditions;
 	}
 
-	// get rid of this
 	get formatError(): FormatError {
-		let vs = this.viewState;
-		if (!vs) {
-			this.viewState = Vue.observable({ formatError: null });
-		}
-
-		var formatErrorConditionTarget = vs.formatError;
-		if (formatErrorConditionTarget) {
-			var formatErrorCondition = formatErrorConditionTarget.condition;
-			if (formatErrorCondition) {
-				return (formatErrorCondition as any)["formatError"] as FormatError;
-			}
-		}
+		return this.conditions[0] instanceof StringFormatRule? this.conditions[0]["formatError"] as FormatError: null;
 	}
 
 	set formatError(err: FormatError) {
@@ -211,7 +197,6 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		if (err) {
 			preventVueObservability(err);
 
-			// 
 			var formatErrorCondition = err.createCondition(this.property.getLastTarget(this.parent.value), this.property.lastProperty);
 
 			preventVueObservability(formatErrorCondition);
