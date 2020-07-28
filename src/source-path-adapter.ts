@@ -175,8 +175,6 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		var property = this.property instanceof Property ? this.property : this.property instanceof PropertyChain ? this.property.lastProperty : null;
 		if (!property)
 			return [];
-		
-		debugger;
 
 		let conditionTargets = conditionsList.filter(c => c.properties.indexOf(property) >= 0);
 		let conditions = conditionTargets.sort((conditionA, conditionB) => {
