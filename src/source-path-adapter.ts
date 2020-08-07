@@ -164,16 +164,17 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		// Raise property access to let Vue know that array was accessed
 		// Changes to conditions will result in a Vue change notification for the 'conditions' property
 		metaOb.onPropertyAccess("conditions", conditionTargets);
+		const formatErrorConditions = this.formatErrorCondition? [this.formatErrorCondition] : [];
 
 		var property = this.property instanceof Property ? this.property : this.property instanceof PropertyChain ? this.property.lastProperty : null;
 		if (!property)
-			return [];
+			return formatErrorConditions;
 
 		let conditions = conditionTargets.filter(c => c.properties.indexOf(property) >= 0).map((conditionTarget) => {
 			return conditionTarget.condition;
 		});
 
-		conditions = (this.formatErrorCondition ? [this.formatErrorCondition] : []).concat(conditions);
+		conditions = conditions.concat(formatErrorConditions);
 
 		conditions = conditions.sort((conditionA, conditionB) => {
 			return this.compare(conditionA, conditionB);
