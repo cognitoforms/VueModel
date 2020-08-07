@@ -1,6 +1,6 @@
 import Vue from "vue";
 import { Component, Prop } from "vue-property-decorator";
-import { Entity } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { Entity, RequiredRule } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { Property, evaluateLabel, isPropertyBooleanFunction, isPropertyBooleanFunctionAndOptions } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { SourceAdapter, SourcePropertyAdapter, isSourceAdapter } from "./source-adapter";
 import { SourceOptionAdapter } from "./source-option-adapter";
@@ -12,7 +12,6 @@ import { PropertyPath } from "@cognitoforms/model.js"; // eslint-disable-line im
 import { SourceItemAdapter } from "./source-item-adapter";
 import { isEntityType, isValueType } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { Condition } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
-import { ConditionTarget } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { FormatError } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 
 export type SourcePathOverrides = {
@@ -32,7 +31,9 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	@Prop(Object)
 	overrides: SourcePathOverrides;
 
-	viewState: { formatError: ConditionTarget } = { formatError: null };
+	// viewState: { formatError: ConditionTarget } = { formatError: null };
+	// formatError: FormatError = null;
+	formatErrorCondition: Condition = null;
 
 	id = `${_id++}`;
 
@@ -148,12 +149,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		}
 	}
 
-	get conditions(): ConditionTarget[] {
-		let vs = this.viewState;
-		if (!vs) {
-			this.viewState = Vue.observable({ formatError: null });
-		}
-
+	get conditions(): Condition[] {
 		let meta = this.parent.value.meta;
 
 		let metaOb = getObjectMetaObserver(meta);
@@ -161,47 +157,37 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		// Make sure that the meta object is observable, ex: subscribes to conditions array changed
 		metaOb.ensureObservable();
 
-		let conditionsList = meta.conditions;
+		let conditionTargets = meta.conditions;
 
-		conditionsList.forEach(condition => { preventVueObservability(condition); });
+		conditionTargets.forEach(condition => { preventVueObservability(condition); });
 
 		// Raise property access to let Vue know that array was accessed
 		// Changes to conditions will result in a Vue change notification for the 'conditions' property
-		metaOb.onPropertyAccess("conditions", conditionsList);
-
-		let formatError: ConditionTarget = vs.formatError;
-
-		let thisPathConditions: ConditionTarget[] = null;
+		metaOb.onPropertyAccess("conditions", conditionTargets);
+		const formatErrorConditions = this.formatErrorCondition? [this.formatErrorCondition] : [];
 
 		var property = this.property instanceof Property ? this.property : this.property instanceof PropertyChain ? this.property.lastProperty : null;
-		if (property) {
-			thisPathConditions = conditionsList.filter(c => c.properties.indexOf(property) >= 0);
-		}
+		if (!property)
+			return formatErrorConditions;
 
-		return (formatError ? [formatError] : []).concat(thisPathConditions || []);
+		let conditions = conditionTargets.filter(c => c.properties.indexOf(property) >= 0).map((conditionTarget) => {
+			return conditionTarget.condition;
+		});
+
+		conditions = conditions.concat(formatErrorConditions);
+
+		conditions = conditions.sort((conditionA, conditionB) => {
+			return this.compare(conditionA, conditionB);
+		});
+
+		return conditions;
 	}
 
 	get formatError(): FormatError {
-		let vs = this.viewState;
-		if (!vs) {
-			this.viewState = Vue.observable({ formatError: null });
-		}
-
-		var formatErrorConditionTarget = vs.formatError;
-		if (formatErrorConditionTarget) {
-			var formatErrorCondition = formatErrorConditionTarget.condition;
-			if (formatErrorCondition) {
-				return (formatErrorCondition as any)["formatError"] as FormatError;
-			}
-		}
+		return this.formatErrorCondition ? (this.formatErrorCondition as any)["formatError"] as FormatError : null;
 	}
 
 	set formatError(err: FormatError) {
-		let vs = this.viewState;
-		if (!vs) {
-			this.viewState = Vue.observable({ formatError: null });
-		}
-
 		if (err) {
 			preventVueObservability(err);
 
@@ -210,16 +196,10 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 			preventVueObservability(formatErrorCondition);
 
 			(formatErrorCondition as any)["formatError"] = err;
-
-			formatErrorCondition.targets.forEach(formatErrorConditionTarget => {
-				preventVueObservability(formatErrorConditionTarget);
-				(formatErrorConditionTarget as any)["formatError"] = err;
-				vs.formatError = formatErrorConditionTarget;
-				(err as any)["conditionTarget"] = formatErrorConditionTarget;
-			});
+			this.formatErrorCondition = formatErrorCondition;
 		}
 		else {
-			vs.formatError = null;
+			this.formatErrorCondition = null;
 		}
 	}
 
@@ -230,21 +210,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	}
 
 	get firstError(): Condition {
-		if (this.formatError) {
-			let formatErrorConditionTarget = (this.formatError as any)["conditionTarget"] as ConditionTarget;
-			if (formatErrorConditionTarget) {
-				return formatErrorConditionTarget.condition;
-			}
-		}
-
-		var property = this.property instanceof Property ? this.property : this.property instanceof PropertyChain ? this.property.lastProperty : null;
-		if (property) {
-			var conditions = this.conditions.filter(c => c.condition.type.category === "Error");
-			var thisPathConditions = conditions.filter(c => c.properties.indexOf(property) >= 0);
-			if (thisPathConditions.length) {
-				return thisPathConditions[0].condition;
-			}
-		}
+		return this.conditions.length ? this.conditions[0] : null;
 	}
 
 	get displayValue(): string {
@@ -358,7 +324,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 	get options(): SourceOptionAdapter<TValue>[] {
 		// Destroy existing option components
-		let optionsToDestroy = this.$children.filter(function(c) { return c instanceof SourceOptionAdapter; });
+		let optionsToDestroy = this.$children.filter(function (c) { return c instanceof SourceOptionAdapter; });
 		optionsToDestroy.forEach(c => c.$destroy());
 
 		// TODO: preserve option adapters if possible?
@@ -382,14 +348,14 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		let items: SourceItemAdapter<TEntity, any>[] = [];
 
 		// Collect existing option components to potentially be destroyed
-		let existingItemsToDestroy = this.$children.filter(function(c) { return c instanceof SourceItemAdapter; }) as SourceItemAdapter<TEntity, any>[];
+		let existingItemsToDestroy = this.$children.filter(function (c) { return c instanceof SourceItemAdapter; }) as SourceItemAdapter<TEntity, any>[];
 
 		let value = this.value;
 
 		if (Array.isArray(value)) {
 			if (isEntityType(this.property.propertyType)) {
 				let existingItemsMap: { [key: string]: SourceItemAdapter<TEntity, Entity> } = {};
-				existingItemsToDestroy.forEach(function(c) {
+				existingItemsToDestroy.forEach(function (c) {
 					let adapter = c as SourceItemAdapter<TEntity, Entity>;
 					if (!adapter.isOrphaned) {
 						let key = adapter.value ? adapter.value.meta.id : null;
@@ -438,6 +404,21 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 		existingItemsToDestroy.forEach(c => c.$destroy());
 
 		return items;
+	}
+
+	compare(conditionTargetA: Condition, conditionTargetB: Condition): number {
+		if (conditionTargetA["formatError"] instanceof FormatError || conditionTargetB["formatError"] instanceof FormatError) {
+			return conditionTargetA["formatError"] instanceof FormatError && conditionTargetB["formatError"] instanceof FormatError ? 0 :
+				conditionTargetA["formatError"] instanceof FormatError ? -1 : 1;
+		}
+		else if (conditionTargetA["source"] instanceof RequiredRule || conditionTargetB["source"] instanceof RequiredRule)
+			return conditionTargetA["source"] instanceof RequiredRule && conditionTargetB["source"] instanceof RequiredRule ? 0 :
+				conditionTargetA["source"] instanceof RequiredRule ? -1 : 1;
+		else if (conditionTargetA.type.category === "Error" || conditionTargetB.type.category === "Error")
+			return conditionTargetA.type.category === "Error" && conditionTargetB.type.category === "Error" ? 0 :
+				conditionTargetA.type.category === "Error" ? -1 : 1;
+		else
+			return 0;
 	}
 
 	clearInvalidOptions(allowedValues: any[]): void {
