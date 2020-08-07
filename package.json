@@ -46,7 +46,7 @@
     "fork-ts-checker-webpack-plugin": "^1.0.1",
     "jest": "^24.5.0",
     "nodemon": "^2.0.1",
-    "release-it": "^13.6.3",
+    "release-it": "^13.6.6",
     "rimraf": "^3.0.0",
     "tslib": "^1.9.3",
     "typescript": "^3.3.3",
