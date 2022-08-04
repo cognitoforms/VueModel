@@ -1,8 +1,8 @@
 import Vue from "vue";
 import { Component, Prop } from "vue-property-decorator";
-import { Entity, RequiredRule } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { Entity, EntityType, RequiredRule } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { Property, evaluateLabel, isPropertyBooleanFunction, isPropertyBooleanFunctionAndOptions } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
-import { SourceAdapter, SourcePropertyAdapter, isSourceAdapter } from "./source-adapter";
+import { SourceAdapter, SourcePropertyAdapter, isSourceAdapter, SourceType } from "./source-adapter";
 import { SourceOptionAdapter } from "./source-option-adapter";
 import { AllowedValuesRule } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { observeEntity, observeArray, getObjectMetaObserver, preventVueObservability } from "./vue-model-observability";
@@ -13,6 +13,7 @@ import { SourceItemAdapter } from "./source-item-adapter";
 import { isEntityType, isValueType } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { Condition } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { FormatError } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { isEntity } from "./helpers";
 
 export type SourcePathOverrides = {
 	label?: string;
@@ -48,9 +49,21 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	}
 
 	get property(): PropertyPath {
-		let property = this.parent.value.meta.type.getPath(this.source);
+		let property = (this.parent.type as EntityType).meta.getPath(this.source);
 		preventVueObservability(property);
 		return property;
+	}
+
+	get type(): SourceType {
+		// If possible, determine the type based on the actual entity instance
+		if (this.value && isEntity(this.value))
+			return this.value.meta.type.jstype;
+
+		return this.property.propertyType;
+	}
+
+	get isList(): boolean {
+		return this.property.isList;
 	}
 
 	get lastTarget(): Entity {
@@ -130,6 +143,10 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	 *  @returns The observable raw value of the property
 	 */
 	get value(): TValue {
+		// This adapter has no value if its parent has no value
+		if (!this.parent.value)
+			return;
+
 		return this.ensureObservable(this.property.value(this.parent.value));
 	}
 

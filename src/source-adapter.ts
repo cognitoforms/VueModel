@@ -4,6 +4,9 @@ import { SourceItemAdapter } from "./source-item-adapter";
 import { SourceOptionAdapter } from "./source-option-adapter";
 import { Entity } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { PropertyPath } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { EntityType, ValueType } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+
+export type SourceType = ValueType | EntityType | ObjectConstructor;
 
 export interface SourceAdapterOverrides {
 	label?: string;
@@ -16,6 +19,8 @@ export interface SourceAdapter<TValue> {
 	readonly: boolean;
     value: TValue;
     displayValue: string;
+	type: SourceType;
+	isList: boolean;
 }
 
 export interface SourcePropertyAdapter<TValue> extends SourceAdapter<TValue> {
