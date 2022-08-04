@@ -1,7 +1,7 @@
 import Vue from "vue";
 import { Component, Prop } from "vue-property-decorator";
 import { Entity } from "@cognitoforms/model.js";
-import { SourceAdapter } from "./source-adapter";
+import { SourceAdapter, SourceType } from "./source-adapter";
 
 @Component
 export class SourceRootAdapter<TEntity extends Entity> extends Vue implements SourceAdapter<TEntity> {
@@ -12,6 +12,14 @@ export class SourceRootAdapter<TEntity extends Entity> extends Vue implements So
 
     get value(): TEntity {
     	return this.entity;
+    }
+
+    get type(): SourceType {
+    	return this.entity.meta.type.jstype;
+    }
+
+    get isList(): boolean {
+    	return false;
     }
 
     get displayValue(): string {

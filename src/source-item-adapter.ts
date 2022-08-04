@@ -1,9 +1,10 @@
 import Vue from "vue";
 import { Component, Prop, Watch } from "vue-property-decorator";
 import { Entity } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
-import { SourceAdapter, isSourceAdapter, isSourcePropertyAdapter } from "./source-adapter";
+import { SourceAdapter, isSourceAdapter, isSourcePropertyAdapter, SourceType } from "./source-adapter";
 import { SourcePathAdapter, SourcePathOverrides } from "./source-path-adapter";
 import { ObservableArray, ArrayChangeType } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { isEntity } from "./helpers";
 
 @Component
 export class SourceItemAdapter<TEntity extends Entity, TValue> extends Vue implements SourceAdapter<TValue> {
@@ -15,14 +16,14 @@ export class SourceItemAdapter<TEntity extends Entity, TValue> extends Vue imple
 
 	@Prop(Object)
     overrides: SourcePathOverrides;
-    
+
     @Prop({ type: Boolean, default: false })
     suppressChangeTracking: boolean;
 
     isOrphaned: boolean = false;
 
     internalIndex: number = -1;
-    
+
     isSubscribedToSourceChanges: boolean = false;
 
     created(): void {
@@ -112,6 +113,18 @@ export class SourceItemAdapter<TEntity extends Entity, TValue> extends Vue imple
 		let list = this.parent.value;
 		let value = list[this.internalIndex];
 		return value as TValue;
+	}
+
+	get type(): SourceType {
+		// If possible, determine the type based on the actual entity instance
+		if (this.value && isEntity(this.value))
+			return this.value.meta.type.jstype;
+
+		return this.parent.type;
+	}
+
+	get isList(): boolean {
+		return false;
 	}
 
 	get displayValue(): string {

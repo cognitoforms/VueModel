@@ -1,3 +1,9 @@
+import { Entity, isEntityType } from "@cognitoforms/model.js";
+
+export function isEntity(obj): obj is Entity {
+	return obj && obj.meta && obj.meta.type && obj.meta.type.jstype && isEntityType(obj.meta.type.jstype);
+}
+
 export function getProp(obj: any, prop: string): any {
 	return obj[prop];
 }
