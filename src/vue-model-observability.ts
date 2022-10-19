@@ -185,6 +185,10 @@ export function getArrayObserverConstructor(): ArrayObserverConstructor {
  * @param array The child array to track as a dependency
  */
 export function dependChildArray(array: any[]): void {
+	const arrayObserver = observeArray(array as any);
+	if (arrayObserver)
+		arrayObserver.ensureObservable();
+
 	for (var e, i = 0, l = array.length; i < l; i++) {
 		e = array[i];
 		if (e != null) {
