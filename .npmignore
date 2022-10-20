@@ -5,3 +5,4 @@ dist/
 bin/
 obj/
 build/
+.env
