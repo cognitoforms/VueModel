@@ -35,7 +35,7 @@
     "babel-jest": "^24.5.0",
     "babel-loader": "^8.0.5",
     "dotenv-cli": "^3.1.0",
-    "dts-generator": "^2.1.0",
+    "dts-generator": "^3.0.0",
     "eslint": "^5.15.3",
     "eslint-config-prettier": "^4.1.0",
     "eslint-config-standard": "^12.0.0",
