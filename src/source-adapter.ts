@@ -31,10 +31,11 @@ export interface SourcePropertyAdapter<TValue> extends SourceAdapter<TValue> {
     readonly options: SourceOptionAdapter<TValue>[];
 }
 
-export function isSourceAdapter(obj: any): obj is SourceRootAdapter<Entity> | SourcePathAdapter<Entity, any> | SourceItemAdapter<Entity, any> {
+export function isSourceAdapter(obj: any): obj is SourceRootAdapter<Entity> | SourcePathAdapter<Entity, any> | SourceItemAdapter<Entity, any> | SourceAdapter<Entity> {
 	if (obj instanceof SourceRootAdapter) return true;
 	if (obj instanceof SourcePathAdapter) return true;
 	if (obj instanceof SourceItemAdapter) return true;
+	if (typeof obj === "object") return true;
 	return false;
 }
 
