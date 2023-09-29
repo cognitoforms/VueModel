@@ -227,7 +227,7 @@ export function makeEntitiesVueObservable(model: Model): void {
 		return;
 	}
 
-	model.entityRegistered.subscribe(function(args: EntityRegisteredEventArgs) {
+	model.entityRegistered.subscribe(function(args: EntityRegisteredEventArgs<Entity>) {
 		observeEntity(args.entity).ensureObservable();
 	});
 

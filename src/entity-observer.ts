@@ -11,7 +11,7 @@ export class EntityObserver extends CustomObserver<Entity> implements ExtendedOb
 		if ((this as any)._observable === true) {
 			return;
 		}
-    
+
 		this.value.accessed.subscribe(this._onAccess.bind(this));
 		this.value.changed.subscribe(this._onChange.bind(this));
 
@@ -22,7 +22,7 @@ export class EntityObserver extends CustomObserver<Entity> implements ExtendedOb
 		(this as any)._observable = true;
 	}
 
-	_onAccess(args: EntityAccessEventArgs): void {
+	_onAccess(args: EntityAccessEventArgs<Entity>): void {
 		// Get the current property value
 		var value = args.entity.__fields__[args.property.name];
 
@@ -30,7 +30,7 @@ export class EntityObserver extends CustomObserver<Entity> implements ExtendedOb
 		this.onPropertyAccess(args.property.name, value);
 	}
 
-	_onChange(args: EntityChangeEventArgs): void {
+	_onChange(args: EntityChangeEventArgs<Entity>): void {
 		// Get the current property value
 		var newValue = args.entity.__fields__[args.property.name];
 
