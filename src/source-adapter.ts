@@ -17,20 +17,20 @@ export interface SourceAdapterOverrides {
 
 export interface SourceAdapter<TValue> {
 	readonly readonly: boolean;
-    readonly value: TValue;
-    readonly displayValue: string;
+	readonly value: TValue;
+	readonly displayValue: string;
 	readonly type: SourceType;
 	readonly isList: boolean;
 }
 
 export interface SourcePropertyAdapter<TValue> extends SourceAdapter<TValue> {
-    value: TValue;
-    displayValue: string;
-    readonly label: string;
+	value: TValue;
+	displayValue: string;
+	readonly label: string;
 	readonly helptext: string;
 	readonly property: PropertyPath;
 	readonly lastTarget: Entity;
-    readonly options: SourceOptionAdapter<TValue>[];
+	readonly options: SourceOptionAdapter<TValue>[];
 }
 
 export function isSourceRootAdapter(obj: any): obj is SourceRootAdapter<Entity> {
