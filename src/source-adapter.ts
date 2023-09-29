@@ -16,7 +16,7 @@ export interface SourceAdapterOverrides {
 }
 
 export interface SourceAdapter<TValue> {
-	readonly: boolean;
+	readonly readonly: boolean;
     readonly value: TValue;
     readonly displayValue: string;
 	readonly type: SourceType;

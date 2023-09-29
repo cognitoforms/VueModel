@@ -1,6 +1,5 @@
 import Vue from "vue";
 import { Component, Prop, Watch } from "vue-property-decorator";
-import { SourceAdapter } from "./source-adapter";
 import { Entity } from "@cognitoforms/model.js";
 import { SourceRootAdapter } from "./source-root-adapter";
 import { observeEntity } from "./vue-model-observability";
@@ -18,7 +17,7 @@ export class SourceRootMixin extends Vue {
 		this.$source.readonly = readonly;
 	}
 
-	get $source(): SourceAdapter<Entity> {
+	get $source(): SourceRootAdapter<Entity> {
 		let entity: Entity;
 
 		if (this.source instanceof Entity) {
