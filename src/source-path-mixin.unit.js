@@ -28,7 +28,7 @@ const Field = {
 
 const RootComponent = {
 	components: { Field },
-	props: ['nameRequired'],
+	props: ["nameRequired"],
 	template: `
 <Field source="FirstName" :required="nameRequired" v-slot="{ field }">
 	<div v-if="field.readonly"><span>{{ field.displayValue }}</span></div>
@@ -73,12 +73,12 @@ describe("SourcePathMixin", () => {
 		var fieldAdapter = fieldComponent.vm.$source;
 
 		expect(fieldAdapter.displayValue).toBe(person.FirstName);
-		expect(fieldComponent.classes().includes('c-required')).toBe(false);
+		expect(fieldComponent.classes().includes("c-required")).toBe(false);
 
 		fieldComponent.setProps({ required: true });
 		await Vue.nextTick();
 
 		expect(fieldAdapter.displayValue).toBe(person.FirstName);
-		expect(fieldComponent.classes().includes('c-required')).toBe(true);
+		expect(fieldComponent.classes().includes("c-required")).toBe(true);
 	});
 });

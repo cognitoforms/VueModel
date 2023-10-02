@@ -1,6 +1,6 @@
 import Vue from "vue";
 import { Component, Prop, Watch } from "vue-property-decorator";
-import { SourceAdapter, isSourceAdapter, hasOverrideValue, isSourcePropertyAdapter } from "./source-adapter";
+import { SourceAdapter, isSourceAdapter, hasOverrideValue, isSourcePathAdapter } from "./source-adapter";
 import { SourcePathAdapter, SourcePathOverrides } from "./source-path-adapter";
 import { Entity } from "@cognitoforms/model.js";
 
@@ -53,12 +53,12 @@ export class SourcePathMixin extends Vue implements SourcePathOverrides {
 
 	ensureOverridesAppliedToSourceAdapter(source: SourceAdapter<any>): void {
 		let hasOverrides = hasOverrideValue(this.label, String) || hasOverrideValue(this.helptext, String) || hasOverrideValue(this.readonly, Boolean) || hasOverrideValue(this.required, Boolean);
-		if (isSourcePropertyAdapter(source)) {
+		if (isSourcePathAdapter(source)) {
 			if (hasOverrides) {
 				if (source.overrides && source.overrides !== this) {
 					throw new Error("Overrides have already been applied to source of type '" + source.constructor.name + "'.");
 				}
-	
+
 				// Apply the given overrides as the overrides for the source
 				source.overrides = this;
 			}
