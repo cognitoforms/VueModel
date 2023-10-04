@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [0.9.0] - 2023-10-02
+### Changed
+- Allow any object (i.e. non-string) to be considered a source adapter
+### Fixed
+- Update SourceAdapter interfaces to be more accurate
+## Added
+- Provide isSource_X_Adapter functions to allow testing for each type
+
 ## [0.8.2] - 2022-10-20
 ### Fixed
 - ensure arrays are made observable to vue

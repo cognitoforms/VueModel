@@ -21,7 +21,7 @@ export class SourceOptionAdapter<TValue> extends Vue {
     get label(): string {
     	return this.parent.label;
     }
-    
+
     get displayValue(): string {
     	return formatDisplayValue(this.parent, this.value);
     }
