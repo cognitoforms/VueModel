@@ -50,13 +50,13 @@
     "rimraf": "^3.0.0",
     "tslib": "^1.9.3",
     "typescript": "^3.3.3",
-    "vue-template-compiler": "^2.6.10",
+    "vue-template-compiler": "^2.7.15",
     "webpack": "^4.29.6",
     "webpack-cli": "^3.3.0"
   },
   "dependencies": {
     "@cognitoforms/model.js": "^0.8.44",
-    "vue": "^2.6.10",
+    "vue": "^2.7.15",
     "vue-class-component": "^7.0.1",
     "vue-property-decorator": "^7.3.0"
   }

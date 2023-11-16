@@ -19,7 +19,7 @@ module.exports = {
 		// Transform any static assets to empty strings
 		"\\.(jpe?g|png|gif|webp|svg|mp4|webm|ogg|mp3|wav|flac|aac|woff2?|eot|ttf|otf)$": "<rootDir>/testing/unit/fixtures/empty-string.js",
 		"^@/(.*)$": "<rootDir>/src/$1",
-		"^vue$": "vue/dist/vue.common.js"
+		"^vue$": "<rootDir>/node_modules/vue/dist/vue.js"
 	},
 	// snapshotSerializers: ["jest-serializer-vue"],
 	coverageDirectory: "<rootDir>/testing/unit/coverage",
