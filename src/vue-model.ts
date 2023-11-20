@@ -42,7 +42,6 @@ export class VueModel extends Model {
 	static mixins = {
 		SourcePath: SourcePathMixin,
 		SourceRoot: SourceRootMixin
-		// SourceRoot: function (source: string) { return new SourceRootMixin({ propsData: { source: source } }); }
 	};
 
 	static Entity = Entity;
