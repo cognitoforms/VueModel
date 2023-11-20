@@ -15,13 +15,13 @@ export interface CustomObserverInterface {
     onPropertyChange(propertyName: string, newValue: any): void;
 }
 
-export interface CustomObserverConstructor extends ObserverConstructor {
-    new(value: any): Observer<any> & CustomObserverInterface;
+export interface CustomObserverConstructor<T> extends ObserverConstructor {
+    new(value: T, shallow?: boolean, mock?: boolean): Observer<T> & CustomObserverInterface;
 }
 
 let CustomObserverConstructor: ObserverConstructor = null;
 
-export function getCustomObserverConstructor(): CustomObserverConstructor {
+export function getCustomObserverConstructor(): CustomObserverConstructor<any> {
 	return CustomObserverConstructor || (CustomObserverConstructor = require("./custom-observer").CustomObserver);
 }
 
@@ -51,7 +51,7 @@ export function preventVueObservability(obj: object): boolean {
 }
 
 export interface EntityObserverConstructor extends ObserverConstructor {
-	new(value: Entity): Observer<Entity> & ExtendedObserver & CustomObserverInterface;
+	new(value: Entity, shallow?: boolean, mock?: boolean): Observer<Entity> & ExtendedObserver & CustomObserverInterface;
 }
 
 /**
@@ -87,7 +87,7 @@ export function getEntityObserver(entity: Entity, create: boolean = false): Obse
 		return getProp(entity, "__ob__");
 	}
 	else if (create) {
-		return new EntityObserver(entity);
+		return new EntityObserver(entity, true);
 	}
 	else {
 		return null;
@@ -101,7 +101,7 @@ export function getEntityObserverConstructor(): EntityObserverConstructor {
 }
 
 export interface ObjectMetaObserverConstructor extends ObserverConstructor {
-	new(value: ObjectMeta): Observer<ObjectMeta> & ExtendedObserver & CustomObserverInterface;
+	new(value: ObjectMeta, shallow?: boolean, mock?: boolean): Observer<ObjectMeta> & ExtendedObserver & CustomObserverInterface;
 }
 
 /**
@@ -115,7 +115,7 @@ export function getObjectMetaObserver(meta: ObjectMeta, create: boolean = false)
 		return getProp(meta, "__ob__");
 	}
 	else if (create) {
-		return new ObjectMetaObserver(meta);
+		return new ObjectMetaObserver(meta, true);
 	}
 	else {
 		return null;
@@ -128,8 +128,8 @@ export function getObjectMetaObserverConstructor(): ObjectMetaObserverConstructo
 	return ObjectMetaObserverConstructor || (ObjectMetaObserverConstructor = require("./object-meta-observer").ObjectMetaObserver);
 }
 
-export interface ArrayObserverConstructor extends ObserverConstructor {
-	new(items: ObservableArray<any>): Observer<ObservableArray<any>> & ExtendedObserver & CustomObserverInterface;
+export interface ArrayObserverConstructor<TItem> extends ObserverConstructor {
+	new(items: ObservableArray<TItem>, shallow?: boolean, mock?: boolean): Observer<ObservableArray<TItem>> & ExtendedObserver & CustomObserverInterface;
 }
 
 /**
@@ -167,16 +167,16 @@ export function getArrayObserver<TItem>(array: ObservableArray<TItem>, create: b
 		return getProp(array, "__ob__");
 	}
 	else if (create) {
-		return new ArrayObserver(array);
+		return new ArrayObserver(array, true);
 	}
 	else {
 		return null;
 	}
 }
 
-let ArrayObserverConstructor: ArrayObserverConstructor = null;
+let ArrayObserverConstructor: ArrayObserverConstructor<any> = null;
 
-export function getArrayObserverConstructor(): ArrayObserverConstructor {
+export function getArrayObserverConstructor(): ArrayObserverConstructor<any> {
 	return ArrayObserverConstructor || (ArrayObserverConstructor = require("./array-observer").ArrayObserver);
 }
 

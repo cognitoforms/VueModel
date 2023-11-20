@@ -19,7 +19,7 @@ export interface Observer<T> {
 }
 
 export interface ObserverConstructor {
-    new<T>(value: T): Observer<T>;
+    new<T>(value: T, shallow?: boolean, mock?: boolean): Observer<T>;
 }
 
 export interface VueInternals {

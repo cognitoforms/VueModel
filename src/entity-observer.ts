@@ -7,11 +7,15 @@ import { ExtendedObserver, getObjectMetaObserver } from "./vue-model-observabili
  * metadata to manage property access/change rather than property walking and rewriting
  */
 export class EntityObserver extends CustomObserver<Entity> implements ExtendedObserver {
+	constructor(value: Entity, shallow: boolean = false, mock: boolean = false) {
+		super(value, shallow, mock);
+	}
+
 	ensureObservable(): void {
 		if ((this as any)._observable === true) {
 			return;
 		}
-    
+
 		this.value.accessed.subscribe(this._onAccess.bind(this));
 		this.value.changed.subscribe(this._onChange.bind(this));
 
