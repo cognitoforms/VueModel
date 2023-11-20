@@ -78,6 +78,8 @@ export function getEntityObserver(entity: Entity, create: boolean = false): Obse
 		return getProp(entity, "__ob__");
 	}
 	else if (create) {
+		// Mark the entity as "raw" so that Vue won't try to make it observable
+		markRaw(entity);
 		return new EntityObserver(entity, true);
 	}
 	else {
@@ -106,6 +108,8 @@ export function getObjectMetaObserver(meta: ObjectMeta, create: boolean = false)
 		return getProp(meta, "__ob__");
 	}
 	else if (create) {
+		// Mark the object meta as "raw" so that Vue won't try to make it observable
+		markRaw(meta);
 		return new ObjectMetaObserver(meta, true);
 	}
 	else {
@@ -158,6 +162,8 @@ export function getArrayObserver<TItem>(array: ObservableArray<TItem>, create: b
 		return getProp(array, "__ob__");
 	}
 	else if (create) {
+		// Mark the array as "raw" so that Vue won't try to make it observable
+		markRaw(array);
 		return new ArrayObserver(array, true);
 	}
 	else {
