@@ -4,6 +4,7 @@ import { Entity, EntityRegisteredEventArgs } from "@cognitoforms/model.js"; // e
 import { ObjectMeta } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { ObservableArray } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { hasOwnProperty, getProp } from "./helpers";
+import { markRaw } from "vue";
 
 export interface ExtendedObserver extends Observer<any> {
     ensureObservable(): void;
@@ -25,21 +26,11 @@ export function getCustomObserverConstructor(): CustomObserverConstructor<any> {
 	return CustomObserverConstructor || (CustomObserverConstructor = require("./custom-observer").CustomObserver);
 }
 
-let NullObserverConstructor: ObserverConstructor = null;
-
-export function getNullObserverConstructor(): ObserverConstructor {
-	return NullObserverConstructor || (NullObserverConstructor = require("./null-observer").NullObserver);
-}
-
 export function preventVueObservability(obj: object): boolean {
 	if (obj) {
-		let NullObserver = getNullObserverConstructor();
 		if (!hasOwnProperty(obj, "__ob__")) {
-			// eslint-disable-next-line no-new
-			new NullObserver(obj);
-			return true;
-		}
-		else if ((obj as any).__ob__ instanceof NullObserver) {
+			// Mark the object as "raw" so that Vue won't try to make it observable
+			markRaw(obj);
 			return true;
 		}
 		else {
