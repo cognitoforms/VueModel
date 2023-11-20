@@ -96,6 +96,6 @@ export class CustomObserver<TValue> extends Observer<TValue> {
 		}
 
 		// Notify of property change
-			propertyDep.notify();
+		propertyDep.notify();
 	}
 }
