@@ -20,6 +20,7 @@ export interface CustomObserverConstructor<T> extends ObserverConstructor {
     new(value: T, shallow?: boolean, mock?: boolean): Observer<T> & CustomObserverInterface;
 }
 
+// eslint-disable-next-line no-redeclare
 let CustomObserverConstructor: ObserverConstructor = null;
 
 export function getCustomObserverConstructor(): CustomObserverConstructor<any> {
@@ -87,6 +88,7 @@ export function getEntityObserver(entity: Entity, create: boolean = false): Obse
 	}
 }
 
+// eslint-disable-next-line no-redeclare
 let EntityObserverConstructor: EntityObserverConstructor = null;
 
 export function getEntityObserverConstructor(): EntityObserverConstructor {
@@ -117,6 +119,7 @@ export function getObjectMetaObserver(meta: ObjectMeta, create: boolean = false)
 	}
 }
 
+// eslint-disable-next-line no-redeclare
 let ObjectMetaObserverConstructor: ObjectMetaObserverConstructor = null;
 
 export function getObjectMetaObserverConstructor(): ObjectMetaObserverConstructor {
@@ -171,6 +174,7 @@ export function getArrayObserver<TItem>(array: ObservableArray<TItem>, create: b
 	}
 }
 
+// eslint-disable-next-line no-redeclare
 let ArrayObserverConstructor: ArrayObserverConstructor<any> = null;
 
 export function getArrayObserverConstructor(): ArrayObserverConstructor<any> {
