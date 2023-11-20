@@ -28,6 +28,7 @@
     "@babel/preset-typescript": "^7.22.5",
     "@release-it/keep-a-changelog": "^1.1.1",
     "@types/jest": "^24.0.11",
+    "@types/node": "^20.9.2",
     "@typescript-eslint/eslint-plugin": "^1.5.0",
     "@typescript-eslint/parser": "^1.5.0",
     "@vue/test-utils": "^1.0.0-beta.29",
