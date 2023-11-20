@@ -1,7 +1,7 @@
+import { reactive, shallowReactive } from "vue";
 import { EntityType } from "@cognitoforms/model.js";
 import { VueModel } from "./vue-model";
 import { createLocalVue } from "@vue/test-utils";
-import { reactive, shallowReactive } from "vue";
 
 const localVue = createLocalVue();
 

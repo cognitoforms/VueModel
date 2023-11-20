@@ -1,10 +1,10 @@
+import { markRaw } from "vue";
 import { Observer, ObserverConstructor, Dep } from "./vue-internals";
 import { Model } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { Entity, EntityRegisteredEventArgs } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { ObjectMeta } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { ObservableArray } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { hasOwnProperty, getProp } from "./helpers";
-import { markRaw } from "vue";
 
 export interface ExtendedObserver extends Observer<any> {
     ensureObservable(): void;
