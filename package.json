@@ -1,5 +1,5 @@
 {
-  "version": "0.9.0",
+  "version": "2.0.0",
   "name": "@cognitoforms/vuemodel",
   "license": "MIT",
   "main": "lib/index.js",
