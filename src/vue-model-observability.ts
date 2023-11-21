@@ -1,3 +1,4 @@
+import { markRaw } from "vue";
 import { Observer, ObserverConstructor, Dep } from "./vue-internals";
 import { Model } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { Entity, EntityRegisteredEventArgs } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
@@ -15,31 +16,22 @@ export interface CustomObserverInterface {
     onPropertyChange(propertyName: string, newValue: any): void;
 }
 
-export interface CustomObserverConstructor extends ObserverConstructor {
-    new(value: any): Observer<any> & CustomObserverInterface;
+export interface CustomObserverConstructor<T> extends ObserverConstructor {
+    new(value: T, shallow?: boolean, mock?: boolean): Observer<T> & CustomObserverInterface;
 }
 
+// eslint-disable-next-line no-redeclare
 let CustomObserverConstructor: ObserverConstructor = null;
 
-export function getCustomObserverConstructor(): CustomObserverConstructor {
+export function getCustomObserverConstructor(): CustomObserverConstructor<any> {
 	return CustomObserverConstructor || (CustomObserverConstructor = require("./custom-observer").CustomObserver);
-}
-
-let NullObserverConstructor: ObserverConstructor = null;
-
-export function getNullObserverConstructor(): ObserverConstructor {
-	return NullObserverConstructor || (NullObserverConstructor = require("./null-observer").NullObserver);
 }
 
 export function preventVueObservability(obj: object): boolean {
 	if (obj) {
-		let NullObserver = getNullObserverConstructor();
 		if (!hasOwnProperty(obj, "__ob__")) {
-			// eslint-disable-next-line no-new
-			new NullObserver(obj);
-			return true;
-		}
-		else if ((obj as any).__ob__ instanceof NullObserver) {
+			// Mark the object as "raw" so that Vue won't try to make it observable
+			markRaw(obj);
 			return true;
 		}
 		else {
@@ -51,7 +43,7 @@ export function preventVueObservability(obj: object): boolean {
 }
 
 export interface EntityObserverConstructor extends ObserverConstructor {
-	new(value: Entity): Observer<Entity> & ExtendedObserver & CustomObserverInterface;
+	new(value: Entity, shallow?: boolean, mock?: boolean): Observer<Entity> & ExtendedObserver & CustomObserverInterface;
 }
 
 /**
@@ -87,13 +79,16 @@ export function getEntityObserver(entity: Entity, create: boolean = false): Obse
 		return getProp(entity, "__ob__");
 	}
 	else if (create) {
-		return new EntityObserver(entity);
+		// Mark the entity as "raw" so that Vue won't try to make it observable
+		markRaw(entity);
+		return new EntityObserver(entity, true);
 	}
 	else {
 		return null;
 	}
 }
 
+// eslint-disable-next-line no-redeclare
 let EntityObserverConstructor: EntityObserverConstructor = null;
 
 export function getEntityObserverConstructor(): EntityObserverConstructor {
@@ -101,7 +96,7 @@ export function getEntityObserverConstructor(): EntityObserverConstructor {
 }
 
 export interface ObjectMetaObserverConstructor extends ObserverConstructor {
-	new(value: ObjectMeta): Observer<ObjectMeta> & ExtendedObserver & CustomObserverInterface;
+	new(value: ObjectMeta, shallow?: boolean, mock?: boolean): Observer<ObjectMeta> & ExtendedObserver & CustomObserverInterface;
 }
 
 /**
@@ -115,21 +110,24 @@ export function getObjectMetaObserver(meta: ObjectMeta, create: boolean = false)
 		return getProp(meta, "__ob__");
 	}
 	else if (create) {
-		return new ObjectMetaObserver(meta);
+		// Mark the object meta as "raw" so that Vue won't try to make it observable
+		markRaw(meta);
+		return new ObjectMetaObserver(meta, true);
 	}
 	else {
 		return null;
 	}
 }
 
+// eslint-disable-next-line no-redeclare
 let ObjectMetaObserverConstructor: ObjectMetaObserverConstructor = null;
 
 export function getObjectMetaObserverConstructor(): ObjectMetaObserverConstructor {
 	return ObjectMetaObserverConstructor || (ObjectMetaObserverConstructor = require("./object-meta-observer").ObjectMetaObserver);
 }
 
-export interface ArrayObserverConstructor extends ObserverConstructor {
-	new(items: ObservableArray<any>): Observer<ObservableArray<any>> & ExtendedObserver & CustomObserverInterface;
+export interface ArrayObserverConstructor<TItem> extends ObserverConstructor {
+	new(items: ObservableArray<TItem>, shallow?: boolean, mock?: boolean): Observer<ObservableArray<TItem>> & ExtendedObserver & CustomObserverInterface;
 }
 
 /**
@@ -167,16 +165,19 @@ export function getArrayObserver<TItem>(array: ObservableArray<TItem>, create: b
 		return getProp(array, "__ob__");
 	}
 	else if (create) {
-		return new ArrayObserver(array);
+		// Mark the array as "raw" so that Vue won't try to make it observable
+		markRaw(array);
+		return new ArrayObserver(array, true);
 	}
 	else {
 		return null;
 	}
 }
 
-let ArrayObserverConstructor: ArrayObserverConstructor = null;
+// eslint-disable-next-line no-redeclare
+let ArrayObserverConstructor: ArrayObserverConstructor<any> = null;
 
-export function getArrayObserverConstructor(): ArrayObserverConstructor {
+export function getArrayObserverConstructor(): ArrayObserverConstructor<any> {
 	return ArrayObserverConstructor || (ArrayObserverConstructor = require("./array-observer").ArrayObserver);
 }
 

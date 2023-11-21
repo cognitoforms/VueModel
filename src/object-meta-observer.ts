@@ -7,6 +7,10 @@ import { ExtendedObserver } from "./vue-model-observability";
  * metadata to manage condition change rather than property walking and rewriting
  */
 export class ObjectMetaObserver extends CustomObserver<ObjectMeta> implements ExtendedObserver {
+	constructor(value: ObjectMeta, shallow: boolean = false, mock: boolean = false) {
+		super(value, shallow, mock);
+	}
+
 	ensureObservable(): void {
 		if ((this as any)._observable === true) {
 			return;
