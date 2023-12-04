@@ -6,7 +6,6 @@ import "@cognitoforms/model.js/lib/resource-en";
 export default VueModel;
 
 // Export any additional *types* to be referenced externally
-// TODO: Change to export { ... } from "./...";
 export type { Model, ModelOptions, ModelLocalizationOptions } from "@cognitoforms/model.js";
 export type { TypeOptions, TypeExtensionOptions, RuleOrMethodFunctionOrOptions } from "@cognitoforms/model.js";
 export type { Entity, EntityOfType, EntityConstructorForType, TypeOfType } from "@cognitoforms/model.js";
