@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [2.0.0] - 2023-11-21
+### Changed
+- Upgrade to Vue 2.7.15
+### Fixed
+- Fix observer issues by using `markRaw`
+
 ## [0.9.0] - 2023-10-02
 ### Changed
 - Allow any object (i.e. non-string) to be considered a source adapter

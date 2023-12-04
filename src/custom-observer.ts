@@ -20,9 +20,8 @@ let Observer = VueInternals.Observer;
 export class CustomObserver<TValue> extends Observer<TValue> {
 	propertyDeps: { [name: string]: Dep } = {};
 
-	walk(): void {
-    	// Overwrite the `walk()` method to prevent Vue's default property walking behavior
-    	// TODO: Should we allow this to happen?
+	constructor(value: TValue, shallow: boolean = false, mock: boolean = false) {
+		super(value, shallow, mock);
 	}
 
 	/**
@@ -33,26 +32,26 @@ export class CustomObserver<TValue> extends Observer<TValue> {
      * @param create If true, create the `Dep` object if it doesn't already exist
      */
 	getPropertyDep(propertyName: string, create: boolean = false): Dep {
-    	let propertyDep: Dep;
+		let propertyDep: Dep;
 
-    	let Dep = VueInternals.Dep;
+		let Dep = VueInternals.Dep;
 
-    	let propertyDeps = this.propertyDeps;
+		let propertyDeps = this.propertyDeps;
 
-    	if (hasOwnProperty(propertyDeps, propertyName) && propertyDeps[propertyName] instanceof Dep) {
-    		propertyDep = propertyDeps[propertyName];
-    	}
-    	else if (create) {
-    		propertyDep = new Dep();
-    		Object.defineProperty(propertyDeps, propertyName, {
-    			configurable: true,
-    			enumerable: true,
-    			value: propertyDep,
-    			writable: true
-    		});
-    	}
+		if (hasOwnProperty(propertyDeps, propertyName) && propertyDeps[propertyName] instanceof Dep) {
+			propertyDep = propertyDeps[propertyName];
+		}
+		else if (create) {
+			propertyDep = new Dep();
+			Object.defineProperty(propertyDeps, propertyName, {
+				configurable: true,
+				enumerable: true,
+				value: propertyDep,
+				writable: true
+			});
+		}
 
-    	return propertyDep;
+		return propertyDep;
 	}
 
 	/**
@@ -61,25 +60,25 @@ export class CustomObserver<TValue> extends Observer<TValue> {
      * @param value The current property value
      */
 	onPropertyAccess(propertyName: string, value: any): void {
-    	let Dep = VueInternals.Dep;
-    	// Attach dependencies if something is watching
-    	if (Dep.target) {
-    		// Get or initialize the `Dep` object
-    		var propertyDep = this.getPropertyDep(propertyName, true);
+		let Dep = VueInternals.Dep;
+		// Attach dependencies if something is watching
+		if (Dep.target) {
+			// Get or initialize the `Dep` object
+			var propertyDep = this.getPropertyDep(propertyName, true);
 
-    		// Let an active observer target know that the property was accessed and is a dependency
-    		propertyDep.depend();
+			// Let an active observer target know that the property was accessed and is a dependency
+			propertyDep.depend();
 
-    		var childOb = observeEntity(value);
-    		if (childOb) {
-    			childOb.dep.depend();
-    		}
+			var childOb = observeEntity(value);
+			if (childOb) {
+				childOb.dep.depend();
+			}
 
-    		if (Array.isArray(value)) {
-    			// Track dependency on children as well (creating entity observer as needed)
-    			dependChildArray(value);
-    		}
-    	}
+			if (Array.isArray(value)) {
+				// Track dependency on children as well (creating entity observer as needed)
+				dependChildArray(value);
+			}
+		}
 	}
 
 	/**
@@ -88,15 +87,15 @@ export class CustomObserver<TValue> extends Observer<TValue> {
      * @param newValue The new property value
      */
 	onPropertyChange(propertyName: string, newValue: any): void {
-    	// Get or initialize the `Dep` object
-    	var propertyDep = this.getPropertyDep(propertyName, true);
-    
-    	// Make sure a new value that is an entity is observable
-    	if (newValue && newValue instanceof Entity) {
-    		observeEntity(newValue).ensureObservable();
-    	}
+		// Get or initialize the `Dep` object
+		var propertyDep = this.getPropertyDep(propertyName, true);
 
-    	// Notify of property change
-    		propertyDep.notify(); 
+		// Make sure a new value that is an entity is observable
+		if (newValue && newValue instanceof Entity) {
+			observeEntity(newValue).ensureObservable();
+		}
+
+		// Notify of property change
+		propertyDep.notify();
 	}
 }
