@@ -1,4 +1,11 @@
 {
+	"editor.codeActionsOnSave": {
+		"source.fixAll": true
+	},
+    "eslint.validate": [
+        "javascript",
+        {"language":  "typescript",  "autoFix":  true  }
+    ],
 	"files.exclude": {
 		"**/.git": true,
 		"**/.DS_Store": true,
@@ -19,11 +26,5 @@
 		"pass"
 	],
 	"jest.autoEnable": false,
-	"eslint.validate": [
-		"typescript"
-	],
-	"eslint.lintTask.enable": true,
-	"editor.codeActionsOnSave": {
-		"source.fixAll": true
-	}
+	"typescript.tsdk": "node_modules\\typescript\\lib"
 }
