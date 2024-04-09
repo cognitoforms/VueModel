@@ -1,5 +1,5 @@
 import Vue, { VueConstructor, ComponentOptions, PluginObject } from "vue";
-import { Model, ModelOptions, ModelNamespaceOption, ModelLocalizationOptions, ModelConfiguration } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { Model, ModelOptions, ModelConfiguration, ModelTypeOptions, ModelNamespaceOption, ModelWithNamespace, ModelNamespace, TypeOfType, ModelLocalizationOptions, ModelOfType } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { Entity } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { VueInternals, ensureVueInternalTypes } from "./vue-internals";
 import { VueModel$installGlobalMixin } from "./vue-global-mixin";
@@ -21,7 +21,7 @@ export class VueModel extends Model {
 	 * Creates a new model with the specified type information.
 	 * @param options The set of model types to add.
 	 */
-	constructor(options?: ModelOptions & ModelNamespaceOption & ModelLocalizationOptions, config?: ModelConfiguration) {
+	constructor(options?: ModelOptions<any>, config?: ModelConfiguration) {
 		super(options, config);
 
 		if (!VueModel._Vue) {
@@ -77,8 +77,27 @@ export interface VueModelMixins {
 	SourceRoot: ComponentOptions<Vue>;
 }
 
+export interface VueModelOfType<TTypes> extends VueModel {
+	readonly types: { [T in keyof TTypes]: TypeOfType<TTypes[T]> };
+}
+
+export interface VueModelWithNamespace<TNamespace> extends VueModel {
+	readonly $namespace: ModelNamespace<TNamespace>;
+}
+
+export function createVueModel<TTypes>(options?: ModelTypeOptions<TTypes> & Required<ModelNamespaceOption<TTypes>> & ModelLocalizationOptions, config?: ModelConfiguration): Promise<ModelOfType<TTypes> & ModelWithNamespace<TTypes>>;
+export function createVueModel<TTypes>(options?: ModelTypeOptions<TTypes> & ModelLocalizationOptions, config?: ModelConfiguration): Promise<ModelOfType<TTypes> & ModelNamespace<TTypes>>;
+export function createVueModel<TTypes>(options?: ModelOptions<TTypes>, config?: ModelConfiguration): Promise<ModelOfType<TTypes>> {
+	return new Promise((resolve) => {
+		const model = new VueModel(options, config);
+		model.ready(() => {
+			resolve(model as ModelOfType<TTypes>);
+		});
+	});
+}
+
 export interface VueModelConstructor extends PluginObject<any> {
-	new(options?: ModelOptions, config?: ModelConfiguration): VueModel;
+	new(options?: ModelOptions<any>, config?: ModelConfiguration): VueModel;
 	mixins: VueModelMixins;
 	SourceRoot: any;
 }

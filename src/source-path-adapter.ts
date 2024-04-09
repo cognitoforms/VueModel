@@ -1,6 +1,6 @@
 import Vue from "vue";
 import { Component, Prop } from "vue-property-decorator";
-import { Entity, EntityType, RequiredRule } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
+import { Entity, EntityConstructor, RequiredRule } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { Property, evaluateLabel, isPropertyBooleanFunction, isPropertyBooleanFunctionAndOptions } from "@cognitoforms/model.js"; // eslint-disable-line import/no-duplicates
 import { SourceAdapter, SourcePropertyAdapter, isSourceAdapter, SourceType } from "./source-adapter";
 import { SourceOptionAdapter } from "./source-option-adapter";
@@ -49,7 +49,7 @@ export class SourcePathAdapter<TEntity extends Entity, TValue> extends Vue imple
 	}
 
 	get property(): PropertyPath {
-		let property = (this.parent.type as EntityType).meta.getPath(this.source);
+		let property = (this.parent.type as EntityConstructor).meta.getPath(this.source);
 		preventVueObservability(property);
 		return property;
 	}
