@@ -7,7 +7,6 @@ module.exports = {
 	// setupFiles: ["<rootDir>/testing/unit/setup"],
 	// globalSetup: "<rootDir>/testing/unit/global-setup",
 	// globalTeardown: "<rootDir>/testing/unit/global-teardown",
-	setupFilesAfterEnv: ["<rootDir>/testing/unit/setup"],
 	testMatch: ["**/(*.)unit.[jt]s"],
 	testPathIgnorePatterns: ["/node_modules/", "/dist/"],
 	moduleFileExtensions: ["js", "ts", "json", "vue"],
