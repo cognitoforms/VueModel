@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [Unreleased]
+### Changed
+- Updates due to model.js type enhancements
+### Added
+- Add `createVueModel` function to support typed model
+
 ## [2.0.0] - 2023-11-21
 ### Changed
 - Upgrade to Vue 2.7.15
