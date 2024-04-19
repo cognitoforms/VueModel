@@ -1,24 +1,25 @@
 import { reactive, shallowReactive } from "vue";
-import { EntityType } from "@cognitoforms/model.js";
-import { VueModel } from "./vue-model";
+import { VueModel, createVueModel } from "./vue-model";
 import { createLocalVue } from "@vue/test-utils";
 
 const localVue = createLocalVue();
 
 localVue.use(VueModel);
 
-const model = new VueModel({
-	Person: {
-		FirstName: String,
-		LastName: String
-	}
-});
-
-const Person = model.getJsType("Person") as EntityType;
-
 describe("preventVueObservability", () => {
-	it("VueModel instances are prevented from being observed by Vue", () => {
+	it("VueModel instances are prevented from being observed by Vue", async () => {
 		// NOTE: The VueModel constructor calls `preventVueObservability` automatically
+		const model = await createVueModel<{
+			Person: {
+				FirstName: string;
+				LastName: string;
+			}
+		}>({
+			Person: {
+				FirstName: String,
+				LastName: String
+			}
+		});
 
 		// Ask Vue to make the model reactive / observable
 		reactive(model);
@@ -39,7 +40,19 @@ describe("preventVueObservability", () => {
 });
 
 describe("makeEntitiesVueObservable", () => {
-	it("when an entity is created it is marked as raw / skipped, an entity observer is attached, and none of its properties are hijacked by Vue", () => {
+	it("when an entity is created it is marked as raw / skipped, an entity observer is attached, and none of its properties are hijacked by Vue", async () => {
+		const { Person } = await createVueModel<{
+			Person: {
+				FirstName: string;
+				LastName: string;
+			}
+		}>({
+			Person: {
+				FirstName: String,
+				LastName: String
+			}
+		});
+
 		// NOTE: When an entity is registered, observeEntity is called automatically
 		const person = new Person({ FirstName: "John", LastName: "Doe" });
 

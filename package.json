@@ -14,6 +14,7 @@
     "build": "npm run build:typescript && npm run build:webpack",
     "build:watch": "nodemon -e ts --watch src/ -x \"npm run build\"",
     "test": "jest",
+    "test:ci": "jest --ci --reporters=default --reporters=jest-junit",
     "test:watch": "jest --watch",
     "lint": "eslint --fix **/src/*.[jt]s",
     "release": "dotenv release-it"
@@ -46,6 +47,7 @@
     "eslint-plugin-standard": "^4.0.0",
     "fork-ts-checker-webpack-plugin": "^1.0.1",
     "jest": "^24.5.0",
+    "jest-junit": "^12.0.0",
     "nodemon": "^2.0.1",
     "release-it": "^13.6.6",
     "rimraf": "^3.0.0",
@@ -56,7 +58,7 @@
     "webpack-cli": "^3.3.0"
   },
   "dependencies": {
-    "@cognitoforms/model.js": "^0.8.45",
+    "@cognitoforms/model.js": "^0.9.0",
     "vue": "^2.7.15",
     "vue-class-component": "^7.0.1",
     "vue-property-decorator": "^7.3.0"

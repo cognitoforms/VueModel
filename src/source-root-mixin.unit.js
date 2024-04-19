@@ -1,4 +1,3 @@
-import Vue from "vue";
 import { createLocalVue, shallowMount } from "@vue/test-utils";
 import { VueModel } from "./vue-model";
 import { SourceRootMixin } from "./source-root-mixin";
