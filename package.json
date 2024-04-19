@@ -56,7 +56,7 @@
     "webpack-cli": "^3.3.0"
   },
   "dependencies": {
-    "@cognitoforms/model.js": "^0.8.45",
+    "@cognitoforms/model.js": "^0.9.0",
     "vue": "^2.7.15",
     "vue-class-component": "^7.0.1",
     "vue-property-decorator": "^7.3.0"
